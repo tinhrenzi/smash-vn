@@ -450,4 +450,37 @@ public class AdminControllerRenderTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("successMsg", "Đã xác nhận hoàn tiền thành công cho khách hàng!"));
     }
+
+    @Test
+    public void testHeaderQuickSearch_HiddenForStaff() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "mock-token-value");
+
+        mockMvc.perform(get("/admin/don-hang")
+                        .requestAttr("_csrf", csrfToken)
+                        .sessionAttr("activeRole", "NV")
+                        .sessionAttr("vaiTro", "NV"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("adminGlobalSearch"))))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Tìm sản phẩm..."))));
+    }
+
+    @Test
+    public void testHeaderQuickSearch_VisibleForManager() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "mock-token-value");
+
+        mockMvc.perform(get("/admin/don-hang")
+                        .requestAttr("_csrf", csrfToken)
+                        .sessionAttr("activeRole", "QL")
+                        .sessionAttr("vaiTro", "QL"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("adminGlobalSearch")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("Tìm sản phẩm...")));
+    }
 }
+

@@ -10,6 +10,7 @@ import com.smashvn.shop.entity.TaiKhoan;
 import com.smashvn.shop.exception.GhnUnsupportedRouteException;
 import com.smashvn.shop.repository.HoaDonChiTietRepository;
 import com.smashvn.shop.repository.HoaDonRepository;
+import com.smashvn.shop.repository.SoDiaChiRepository;
 import com.smashvn.shop.repository.TaiKhoanRepository;
 import com.smashvn.shop.service.api.GhnService;
 import com.smashvn.shop.service.api.GhnStatusMapper;
@@ -62,6 +63,9 @@ class GhnRestControllerTest {
     @Mock
     private com.smashvn.shop.service.inventory.InventoryLotService inventoryLotService;
 
+    @Mock
+    private SoDiaChiRepository soDiaChiRepository;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -75,7 +79,8 @@ class GhnRestControllerTest {
                 orderViewService,
                 ghnConfig,
                 taiKhoanRepository,
-                inventoryLotService);
+                inventoryLotService,
+                soDiaChiRepository);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
