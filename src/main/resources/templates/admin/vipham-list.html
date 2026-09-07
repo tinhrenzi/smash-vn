@@ -33,7 +33,6 @@
                 <div class="admin-page-header">
                     <div>
                         <h1 class="admin-page-title"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Quản Lý Vi Phạm Bình Luận</h1>
-                        <p class="admin-page-subtitle">Lịch sử vi phạm nội dung bình luận, từ ngữ cấm và hình phạt xử lý</p>
                     </div>
                     <div class="admin-toolbar">
                         <span class="admin-status admin-status-danger" th:text="${listViPham != null ? listViPham.size() : 0} + ' Lượt vi phạm'">0 Lượt vi phạm</span>
@@ -92,10 +91,11 @@
                                         <td class="text-muted" th:text="${vp.noiDungGoc != null ? vp.noiDungGoc : '(trống)'}">Nội dung gốc</td>
                                         <td class="fw-semibold" th:text="${vp.noiDungDaLoc != null ? vp.noiDungDaLoc : '(không có)'}">Nội dung đã lọc</td>
                                         <td>
-                                            <span th:if="${vp.mucDoViPham == 'LOW'}" class="admin-status admin-status-neutral">LOW</span>
-                                            <span th:if="${vp.mucDoViPham == 'MEDIUM'}" class="admin-status admin-status-warning">MEDIUM</span>
-                                            <span th:if="${vp.mucDoViPham == 'HIGH' or vp.mucDoViPham == 'CRITICAL'}" class="admin-status admin-status-danger" th:text="${vp.mucDoViPham}">HIGH</span>
-                                            <span th:if="${vp.mucDoViPham == null}" class="admin-status admin-status-neutral">UNKNOWN</span>
+                                            <span th:if="${vp.mucDoViPham == 'LOW'}" class="admin-status admin-status-neutral">Nhẹ</span>
+                                            <span th:if="${vp.mucDoViPham == 'MEDIUM'}" class="admin-status admin-status-warning">Trung bình</span>
+                                            <span th:if="${vp.mucDoViPham == 'HIGH'}" class="admin-status admin-status-danger">Nặng</span>
+                                            <span th:if="${vp.mucDoViPham == 'CRITICAL'}" class="admin-status admin-status-danger">Nghiêm trọng</span>
+                                            <span th:if="${vp.mucDoViPham == null or (vp.mucDoViPham != 'LOW' and vp.mucDoViPham != 'MEDIUM' and vp.mucDoViPham != 'HIGH' and vp.mucDoViPham != 'CRITICAL')}" class="admin-status admin-status-neutral" th:text="${vp.mucDoViPham != null ? vp.mucDoViPham : 'Không xác định'}">Không xác định</span>
                                         </td>
                                         <td class="text-center fw-bold" th:text="${vp.soLanViPham != null ? vp.soLanViPham : 0}">1</td>
                                         <td>

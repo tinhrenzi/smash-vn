@@ -198,6 +198,15 @@
                         <!-- Messages are rendered dynamically -->
                     </div>
                     
+                    <!-- Quick Suggestions Area -->
+                    <div class="chatbot-quick-chips">
+                        <button type="button" class="chatbot-chip" data-query="Tư vấn vợt theo lối chơi">🏸 Tư vấn vợt</button>
+                        <button type="button" class="chatbot-chip" data-query="Vợt đang giảm giá">🔥 Vợt giảm giá</button>
+                        <button type="button" class="chatbot-chip" data-query="Shop có mã giảm giá nào không?">🎟️ Mã voucher</button>
+                        <button type="button" class="chatbot-chip" data-query="Kiểm tra đơn hàng của tôi">📦 Tra cứu đơn</button>
+                        <button type="button" class="chatbot-chip" data-query="Địa chỉ và hotline của shop">🏪 Địa chỉ shop</button>
+                    </div>
+
                     <!-- Input Form Area -->
                     <div class="chatbot-input-area">
                         <input type="text" id="chatbot-input-field" placeholder="Hỏi sản phẩm, đơn hàng, voucher..." autocomplete="off">
@@ -439,6 +448,41 @@
                 #chatbot-send-btn:hover {
                     background-color: #e03d00;
                     transform: scale(1.05);
+                }
+
+                .chatbot-quick-chips {
+                    display: flex;
+                    gap: 6px;
+                    padding: 8px 12px;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                    background: #f8f9fb;
+                    border-top: 1px solid rgba(21, 23, 28, 0.06);
+                    border-bottom: 1px solid rgba(21, 23, 28, 0.04);
+                    scrollbar-width: none;
+                }
+                .chatbot-quick-chips::-webkit-scrollbar {
+                    display: none;
+                }
+                .chatbot-chip {
+                    background: #ffffff;
+                    border: 1px solid rgba(255, 69, 0, 0.25);
+                    border-radius: 16px;
+                    color: #495057;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    padding: 4px 10px;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+                }
+                .chatbot-chip:hover {
+                    background: #ff4500;
+                    color: #ffffff;
+                    border-color: #ff4500;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 6px rgba(255, 69, 0, 0.25);
                 }
                 
                 .chatbot-msg-feedback {
@@ -696,6 +740,18 @@
                         }
                     });
 
+                    // Quick Action Chips listener
+                    const chipButtons = document.querySelectorAll(".chatbot-chip");
+                    chipButtons.forEach(btn => {
+                        btn.addEventListener("click", function() {
+                            const query = btn.getAttribute("data-query");
+                            if (query) {
+                                inputField.value = query;
+                                sendMessageAction();
+                            }
+                        });
+                    });
+
                     function loadChatHistory() {
                         messagesBox.innerHTML = "";
                         showTypingIndicator();
@@ -794,6 +850,25 @@
                         }
                     }
 
+                    function formatChatMarkdown(text) {
+                        if (!text) return "";
+                        let safe = text
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;")
+                            .replace(/"/g, "&quot;");
+                        
+                        // Bold **text**
+                        safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        // Italic *text*
+                        safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                        // Inline code `code`
+                        safe = safe.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:2px 5px;border-radius:4px;font-size:0.86em;color:#e83e8c;">$1</code>');
+                        // Line breaks
+                        safe = safe.replace(/\n/g, '<br>');
+                        return safe;
+                    }
+
                     function renderMessage(id, senderType, content, time, products) {
                         if (!senderType || content == null) return;
                         const wrap = document.createElement("div");
@@ -801,8 +876,12 @@
                         
                         const bubble = document.createElement("div");
                         bubble.className = "chatbot-msg-bubble shadow-sm";
-                        bubble.textContent = content;
-                        bubble.style.whiteSpace = "pre-line";
+                        if (senderType === 'BOT') {
+                            bubble.innerHTML = formatChatMarkdown(content);
+                        } else {
+                            bubble.textContent = content;
+                            bubble.style.whiteSpace = "pre-line";
+                        }
                         wrap.appendChild(bubble);
 
                         // Add likes/dislikes feedback for BOT messages

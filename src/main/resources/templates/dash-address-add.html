@@ -169,7 +169,9 @@
                                                 <span th:text="${loi}"></span>
                                             </div>
 
-                                            <form class="dash-address-manipulation" th:action="@{/user/address/add(from=${fromPage})}" th:object="${addressDto}" method="post">
+                                            <form class="dash-address-manipulation" th:action="@{/user/address/add(from=${fromPage}, token=${checkoutToken})}" th:object="${addressDto}" method="post">
+                                                <input type="hidden" name="from" th:if="${fromPage != null}" th:value="${fromPage}">
+                                                <input type="hidden" name="token" th:if="${checkoutToken != null}" th:value="${checkoutToken}">
                                                 <!-- Tọa độ bản đồ chọn -->
                                                 <input type="hidden" id="address-lat" th:field="*{latitude}">
                                                 <input type="hidden" id="address-lon" th:field="*{longitude}">

@@ -245,4 +245,69 @@ public class ChatbotIntegrationTest {
         assertTrue(fbOpt.isPresent());
         assertEquals(1, fbOpt.get().getDanhGia().intValue());
     }
+
+    @Test
+    void testSlangPriceParser_CuVaCanh() {
+        BigDecimal p1 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePrice("1 củ rưỡi");
+        assertNotNull(p1);
+        assertEquals(new BigDecimal("1500000"), p1);
+
+        BigDecimal p2 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePrice("500 cành");
+        assertNotNull(p2);
+        assertEquals(new BigDecimal("500000"), p2);
+
+        BigDecimal p3 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePrice("2 củ");
+        assertNotNull(p3);
+        assertEquals(new BigDecimal("2000000"), p3);
+    }
+
+    @Test
+    void testBadmintonPlaystyleConsultation_NotBlocked() throws Exception {
+        // Legitimate badminton playstyle question must be answered (SUCCESS), NOT BLOCKED
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"Tôi muốn mua vợt nặng đầu để đập cầu tấn công mạnh\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsStringIgnoringCase("tấn công")));
+    }
+
+    @Test
+    void testOrderLookup_ProvidesHelpfulStatus() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"Kiểm tra tình trạng đơn hàng của tôi\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("đơn hàng")));
+    }
+
+    @Test
+    void testVoucherInquiry_ReturnsVoucherInfo() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"Shop có mã giảm giá nào không?\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("giảm giá")));
+    }
+
+    @Test
+    void testStrictOffTopicBlocking_CodingQuestions() throws Exception {
+        String expectedHotline = shopContactProperties.getPhone();
+        if (expectedHotline == null || expectedHotline.isBlank()) {
+            expectedHotline = "0981472035";
+        }
+
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"Viết code Java kết nối SQL server giúp tôi\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BLOCKED"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString(expectedHotline)));
+    }
 }

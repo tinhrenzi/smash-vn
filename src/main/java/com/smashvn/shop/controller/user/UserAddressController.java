@@ -103,7 +103,8 @@ public class UserAddressController {
     // 2. Form thêm mới
     @GetMapping("/add")
     public String hienThiThemDiaChi(HttpSession session, Model model,
-            @RequestParam(value = "from", required = false) String from) {
+            @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "token", required = false) String token) {
         String redirect = checkRoleAndRedirect(session);
         if (redirect != null) {
             return redirect;
@@ -117,6 +118,7 @@ public class UserAddressController {
         model.addAttribute("kh", kh);
         populateUserStats(kh, model);
         model.addAttribute("fromPage", from); // Truyền trang nguồn vào view
+        model.addAttribute("checkoutToken", token);
         if (!model.containsAttribute("addressDto")) {
             model.addAttribute("addressDto", new UserAddressDto());
         }
@@ -129,6 +131,7 @@ public class UserAddressController {
             @Valid @ModelAttribute("addressDto") UserAddressDto addressDto,
             BindingResult bindingResult,
             @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "token", required = false) String token,
             Model model,
             RedirectAttributes redirectAttributes) {
 
@@ -143,7 +146,12 @@ public class UserAddressController {
         }
 
         // Xác định trang đích sau khi thêm thành công
-        String successRedirect = "checkout".equals(from) ? "redirect:/checkout" : "redirect:/user/address";
+        String successRedirect;
+        if ("checkout".equals(from) && token != null && !token.isBlank()) {
+            successRedirect = "redirect:/checkout?token=" + java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
+        } else {
+            successRedirect = "redirect:/user/address";
+        }
 
         if (bindingResult.hasErrors()) {
             String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
@@ -151,6 +159,7 @@ public class UserAddressController {
             populateUserStats(kh, model);
             model.addAttribute("loi", errorMessage);
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         }
 
@@ -164,18 +173,21 @@ public class UserAddressController {
             populateUserStats(kh, model);
             model.addAttribute("loi", e.getMessage());
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         } catch (IllegalStateException e) {
             model.addAttribute("kh", kh);
             populateUserStats(kh, model);
             model.addAttribute("loi", e.getMessage());
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         } catch (Exception e) {
             model.addAttribute("kh", kh);
             populateUserStats(kh, model);
             model.addAttribute("loi", "Có lỗi xảy ra khi thêm địa chỉ.");
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         }
     }

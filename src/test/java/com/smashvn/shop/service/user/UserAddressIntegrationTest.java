@@ -296,5 +296,31 @@ public class UserAddressIntegrationTest {
         SoDiaChi unchanged = soDiaChiRepository.findById(otherAddress.getId()).orElseThrow();
         assertEquals("Stranger", unchanged.getHoNguoiNhan());
     }
+
+    @Test
+    void testAddAddress_FromCheckout_PreservesTokenAndRedirectsToCheckout() throws Exception {
+        String testToken = "test-checkout-token-12345";
+
+        mockMvc.perform(post("/user/address/add")
+                        .sessionAttr("idNguoiDung", testUser.getId())
+                        .sessionAttr("vaiTro", "KH")
+                        .param("from", "checkout")
+                        .param("token", testToken)
+                        .param("hoNguoiNhan", "Trần")
+                        .param("tenNguoiNhan", "Vinh")
+                        .param("sdtNguoiNhan", "0912345678")
+                        .param("diaChiCuThe", "456 Kim Mã")
+                        .param("tinhThanh", "Hà Nội")
+                        .param("quocGia", "Việt Nam")
+                        .param("ghnProvinceId", "201")
+                        .param("ghnDistrictId", "1442")
+                        .param("ghnWardCode", "20101")
+                        .param("quanHuyen", "Quận Ba Đình")
+                        .param("phuongXa", "Phường Phúc Xá")
+                        .param("defaultAddress", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/checkout?token=" + testToken))
+                .andExpect(flash().attribute("thongBaoThanhCong", "Đã thêm địa chỉ mới thành công!"));
+    }
 }
 

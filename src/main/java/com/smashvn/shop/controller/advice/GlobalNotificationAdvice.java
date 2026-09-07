@@ -170,9 +170,6 @@ public class GlobalNotificationAdvice {
     private NotificationMessage firstNotification(Map<String, ?> flashAttributes, HttpServletRequest request) {
         String message = firstNonBlank(flashAttributes,
                 "errorMsg", "error", "errorMessage", "thongBaoLoi", "loi");
-        if (message == null) {
-            message = trimToNull(request.getParameter("loi"));
-        }
         if (message != null) {
             return new NotificationMessage("error", "Lỗi", message);
         }
@@ -187,6 +184,12 @@ public class GlobalNotificationAdvice {
         if (message != null) {
             return new NotificationMessage("success", "Thành công", message);
         }
+
+        message = trimToNull(request.getParameter("loi"));
+        if (message != null) {
+            return new NotificationMessage("error", "Lỗi", message);
+        }
+
         return null;
     }
 

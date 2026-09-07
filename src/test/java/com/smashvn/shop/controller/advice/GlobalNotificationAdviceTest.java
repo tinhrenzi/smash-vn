@@ -162,6 +162,19 @@ class GlobalNotificationAdviceTest {
         assertEquals(null, model.getAttribute("globalNotificationMessage"));
     }
 
+    @Test
+    void flashSuccessTakesPrecedenceOverQueryParamLoi() {
+        ConcurrentModel model = new ConcurrentModel();
+        MockHttpServletRequest request = requestWithFlash("thongBaoThanhCong", "Đã thêm địa chỉ mới thành công!");
+        request.setParameter("loi", "Vui lòng chọn sản phẩm để thanh toán!");
+
+        advice.normalizeFlashNotification(model, request);
+
+        assertEquals("success", model.getAttribute("globalNotificationType"));
+        assertEquals("Thành công", model.getAttribute("globalNotificationTitle"));
+        assertEquals("Đã thêm địa chỉ mới thành công!", model.getAttribute("globalNotificationMessage"));
+    }
+
     private MockHttpServletRequest requestWithFlash(String... keyValues) {
         FlashMap flashMap = new FlashMap();
         for (int index = 0; index < keyValues.length; index += 2) {

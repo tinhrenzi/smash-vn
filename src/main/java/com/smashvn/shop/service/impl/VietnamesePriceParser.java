@@ -24,6 +24,13 @@ public class VietnamesePriceParser {
                 .replaceAll("đ|vnd|vnđ", "")
                 .trim();
 
+        // 0. Normalize slang: "củ", "chai" -> "triệu", "cành" -> "k"
+        clean = clean.replaceAll("(?i)(?U)\\b(\\d+)\\s*(củ|chai)\\s*rưỡi\\b", "$1.5 triệu")
+                .replaceAll("(?i)(?U)\\b(củ|chai)\\s*rưỡi\\b", "1.5 triệu")
+                .replaceAll("(?i)(?U)\\brưỡi\\b", ".5 triệu")
+                .replaceAll("(?i)(?U)\\b(củ|chai|cu)\\b", "triệu")
+                .replaceAll("(?i)(?U)\\b(cành|canh)\\b", "k");
+
         // 1. Try composite pattern like "1tr5", "2 triệu 500", "1tr500"
         Matcher compMatcher = TR_COMPOSITE_PATTERN.matcher(clean);
         if (compMatcher.find()) {
