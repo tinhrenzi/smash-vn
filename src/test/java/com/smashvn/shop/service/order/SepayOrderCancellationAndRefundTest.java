@@ -206,4 +206,54 @@ public class SepayOrderCancellationAndRefundTest {
         assertEquals(new BigDecimal("600000"), tx.getAmount());
         assertTrue(tx.getRawPayload().contains(proofUrl), "Raw payload phải chứa đường dẫn ảnh chứng từ");
     }
+
+    @Test
+    @DisplayName("Admin hoàn tiền TIỀN MẶT (TIEN_MAT) -> Phương thức hoàn tiền lưu trữ và hiển thị đúng là TIEN_MAT")
+    void testCashRefund_PersistenceAndResolution() {
+        HoaDon hd = new HoaDon();
+        hd.setMaDonHang("HD-TEST-CASH-001");
+        hd.setKhachHang(testKhachHang);
+        hd.setTenNguoiNhan("Nguyen Van Test");
+        hd.setSdtNhan("0987654321");
+        hd.setDiaChiNhan("123 Test Street");
+        hd.setPhuongThucThanhToan(testPttt);
+        hd.setTongTien(new BigDecimal("750000"));
+        hd.setTrangThaiDonHang("da_huy");
+        hd.setTrangThaiThanhToan("CHO_HOAN_TIEN");
+        hd.setPaymentStatus("paid");
+        hd.setRefundStatus(RefundStatus.PENDING);
+        hd.setDaNhapKhoHoan(true);
+        hd.setNgayTao(LocalDateTime.now());
+        HoaDon savedHd = hoaDonRepository.save(hd);
+
+        HoaDonChiTiet hdct = new HoaDonChiTiet();
+        hdct.setHoaDon(savedHd);
+        hdct.setSanPhamChiTiet(testSpct);
+        hdct.setSoLuong(1);
+        hdct.setDonGia(new BigDecimal("750000"));
+        hdct.setGiaGoc(new BigDecimal("750000"));
+        hdct.setGiaSauGiam(new BigDecimal("750000"));
+        hdct.setNgayTao(LocalDateTime.now());
+        hoaDonChiTietRepository.save(hdct);
+
+        final Integer orderId = savedHd.getId();
+        String proofUrl = "/uploads/refunds/refund_cash_proof.png";
+
+        // Admin hoàn tiền bằng TIỀN MẶT
+        orderViewService.xacNhanHoanTienChoKhach(
+                orderId, "TIEN_MAT", new BigDecimal("750000"), "", "Hoàn tiền mặt trực tiếp tại shop",
+                proofUrl, adminTk.getId(), "127.0.0.1"
+        );
+
+        // Giả lập request mới: Xóa các trường @Transient của entity để kiểm tra khả năng phục hồi từ PaymentTransaction
+        HoaDon reloadedHd = hoaDonRepository.findById(orderId).orElseThrow();
+        reloadedHd.setPhuongThucHoanTien(null);
+        reloadedHd.setSoTienHoan(null);
+
+        var details = orderViewService.resolveRefundDetails(orderId, reloadedHd);
+        assertEquals("TIEN_MAT", details.get("phuongThucHoanTien"), "Phương thức hoàn phải là TIEN_MAT");
+        assertEquals("750000.00", new BigDecimal(details.get("soTienHoan")).setScale(2).toString(), "Số tiền hoàn phải là 750000");
+        assertEquals(proofUrl, details.get("anhChungTuHoanTien"), "Ảnh chứng từ phải đúng");
+        assertEquals("TIEN_MAT", reloadedHd.getPhuongThucHoanTien(), "HoaDon phải được đồng bộ phuongThucHoanTien = TIEN_MAT");
+    }
 }

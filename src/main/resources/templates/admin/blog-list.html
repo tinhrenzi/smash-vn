@@ -140,7 +140,7 @@
                                         <td>
                                             <div class="fw-bold text-primary" th:text="${blog.title}">Tiêu đề bài viết</div>
                                             <small class="text-muted d-block" th:text="${#strings.length(blog.summary) > 75 ? #strings.substring(blog.summary, 0, 75) + '...' : blog.summary}"></small>
-                                            <span th:if="${blog.deleted}" class="admin-status admin-status-danger mt-1">ĐÃ XÓA TẠM THỜI</span>
+                                            <span th:if="${blog.deleted}" class="admin-status admin-status-danger mt-1">Đã xóa</span>
                                         </td>
                                         <td th:text="${blog.category}">Hướng dẫn</td>
                                         <td>
@@ -173,7 +173,7 @@
                                             </form>
                                             <form th:if="${session.vaiTro == 'QL' and !blog.deleted}" th:action="@{/admin/blog/delete/{id}(id=${blog.id})}" method="POST" style="display: inline;" onsubmit="return confirmSubmitForm(this, 'Bạn có chắc chắn muốn XÓA bài viết này? Bài viết sẽ được lưu trữ 90 ngày trước khi bị xóa vĩnh viễn.');">
                                                 <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                                                <button type="submit" class="admin-btn admin-btn-icon danger ms-1" title="Xóa tạm thời">
+                                                <button type="submit" class="admin-btn admin-btn-icon danger ms-1" title="Xóa bài viết">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>

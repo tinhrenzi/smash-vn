@@ -255,17 +255,49 @@ public class ChatbotServiceImpl implements ChatbotService {
         ChatbotProductSearchResponseDto searchResult = executeProductSearch(criteria, 5);
         List<ChatProductResponse> suggestionDtos = searchResult.getProducts();
 
-        // If no products match exact criteria, try fallback to related category for consultation
+        boolean relaxedBrand = false;
+        boolean outOfBudget = false;
+
+        // If no products match exact criteria, try fallback while respecting user constraints
         if (suggestionDtos.isEmpty()) {
-            String msgLower = removeAccents(rawMessage.toLowerCase());
-            if (msgLower.contains("vot") || msgLower.contains("tan cong") || msgLower.contains("phong thu") || msgLower.contains("moi choi")) {
+            // Level 1: If keyword was specified, drop keyword but KEEP brand, category, and price
+            if (criteria.getKeyword() != null) {
+                ProductSearchCriteria relaxKeywords = new ProductSearchCriteria();
+                relaxKeywords.setCategoryName(criteria.getCategoryName());
+                relaxKeywords.setBrandName(criteria.getBrandName());
+                relaxKeywords.setMinPrice(criteria.getMinPrice());
+                relaxKeywords.setMaxPrice(criteria.getMaxPrice());
+                suggestionDtos = chatbotProductCache.search(relaxKeywords, 5);
+            }
+
+            // Level 2: If still empty and brand was specified, drop brand but KEEP price & category
+            if (suggestionDtos.isEmpty() && criteria.getBrandName() != null && (criteria.getMinPrice() != null || criteria.getMaxPrice() != null)) {
+                ProductSearchCriteria relaxBrand = new ProductSearchCriteria();
+                relaxBrand.setCategoryName(criteria.getCategoryName());
+                relaxBrand.setMinPrice(criteria.getMinPrice());
+                relaxBrand.setMaxPrice(criteria.getMaxPrice());
+                suggestionDtos = chatbotProductCache.search(relaxBrand, 5);
+                if (!suggestionDtos.isEmpty()) {
+                    relaxedBrand = true;
+                }
+            }
+
+            // Level 3: If still empty, find available products in category but mark as outOfBudget
+            if (suggestionDtos.isEmpty()) {
+                String catName = criteria.getCategoryName() != null ? criteria.getCategoryName() : "Vợt";
                 ProductSearchCriteria broader = new ProductSearchCriteria();
-                broader.setCategoryName("Vợt");
-                suggestionDtos = chatbotProductCache.search(broader, 3);
-            } else if (msgLower.contains("giay")) {
-                ProductSearchCriteria broader = new ProductSearchCriteria();
-                broader.setCategoryName("Giày");
-                suggestionDtos = chatbotProductCache.search(broader, 3);
+                broader.setCategoryName(catName);
+                if (criteria.getMaxPrice() != null) {
+                    broader.setMaxPrice(criteria.getMaxPrice());
+                    suggestionDtos = chatbotProductCache.search(broader, 3);
+                }
+                if (suggestionDtos.isEmpty()) {
+                    broader.setMaxPrice(null);
+                    suggestionDtos = chatbotProductCache.search(broader, 3);
+                    if (criteria.getMinPrice() != null || criteria.getMaxPrice() != null) {
+                        outOfBudget = true;
+                    }
+                }
             }
         }
 
@@ -310,7 +342,7 @@ public class ChatbotServiceImpl implements ChatbotService {
 
         // Smart Badminton Domain Fallback if AI call didn't succeed
         if (aiResponse == null) {
-            aiResponse = buildBadmintonExpertFallback(rawMessage, suggestionDtos, criteria);
+            aiResponse = buildBadmintonExpertFallback(rawMessage, suggestionDtos, criteria, relaxedBrand, outOfBudget);
         }
 
         long duration = System.currentTimeMillis() - startTime;
@@ -475,23 +507,136 @@ public class ChatbotServiceImpl implements ChatbotService {
         return sb.toString();
     }
 
-    private String buildBadmintonExpertFallback(String rawMessage, List<ChatProductResponse> products, ProductSearchCriteria criteria) {
+    private String buildBadmintonExpertFallback(String rawMessage, List<ChatProductResponse> products, ProductSearchCriteria criteria, boolean relaxedBrand, boolean outOfBudget) {
         String msgLower = removeAccents(rawMessage.toLowerCase());
 
-        if (msgLower.contains("tan cong") || msgLower.contains("dap cau") || msgLower.contains("nang dau")) {
-            return "🏸 **Tư vấn lối chơi Tấn công:** Bạn nên chọn các dòng vợt **nặng đầu (Head-heavy)**, điểm cân bằng trên 295mm kết hợp thân vợt từ trung bình đến cứng để tối ưu lực đập cầu uy lực. SmashVN gợi ý các mẫu vợt phù hợp bên dưới:";
+        boolean isBeginner = msgLower.contains("moi choi") || msgLower.contains("nguoi moi")
+                || msgLower.contains("moi tap") || msgLower.contains("moi bat dau")
+                || msgLower.contains("nhap mon") || msgLower.contains("chua biet choi")
+                || msgLower.contains("co tay yeu") || msgLower.contains("tay yeu")
+                || msgLower.contains("luc tay yeu") || msgLower.contains("chua co luc")
+                || msgLower.contains("tro luc") || msgLower.contains("de choi")
+                || msgLower.contains("de danh") || msgLower.contains("de thuan");
+
+        if (isBeginner) {
+            String priceContext = "";
+            if (criteria.getMaxPrice() != null && criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** đến **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMaxPrice() != null) {
+                priceContext = " trong tầm giá dưới **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** trở lên";
+            }
+            return "🏸 **Tư vấn dành cho Người mới chơi / Lực tay vừa" + (priceContext.isEmpty() ? "" : " (" + priceContext.trim() + ")") + ":**\n"
+                    + "- **Trọng lượng:** Bạn nên ưu tiên chọn vợt **4U (80-84g)** hoặc **5U** để nhẹ tay, dễ điều khiển và tránh chấn thương khớp vai, cổ tay.\n"
+                    + "- **Thân vợt:** Chọn thân vợt **dẻo (Flexible)** hoặc trung bình để có độ trợ lực tự nhiên tốt khi phông cầu và đập cầu.\n"
+                    + "- **Mức căng cước:** Khuyến nghị căng ở mức an toàn từ **9.5 kg - 10.5 kg** (21-23 lbs) để tối ưu độ nảy trợ lực và không bị đau tay.\n\n"
+                    + "SmashVN gợi ý các cây vợt dễ chơi, trợ lực tốt nhất" + priceContext + " cho bạn bên dưới:";
         }
 
-        if (msgLower.contains("phong thu") || msgLower.contains("phan tat") || msgLower.contains("nhe dau") || msgLower.contains("toc do")) {
-            return "🏸 **Tư vấn lối chơi Phòng thủ / Tốc độ:** Bạn nên ưu tiên các dòng vợt **nhẹ đầu hoặc cân bằng (4U/5U)** với đũa dẻo linh hoạt, giúp phản tạt nhanh và xoay chuyển linh hoạt trên sân. Dưới đây là các gợi ý cho bạn:";
+        boolean isAttacking = msgLower.contains("tan cong") || msgLower.contains("dap cau")
+                || msgLower.contains("nang dau") || msgLower.contains("smash")
+                || msgLower.contains("chuyen cong") || msgLower.contains("thich dap")
+                || msgLower.contains("dap manh") || msgLower.contains("uy luc")
+                || msgLower.contains("head heavy");
+
+        if (isAttacking) {
+            String priceContext = "";
+            if (criteria.getMaxPrice() != null && criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** đến **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMaxPrice() != null) {
+                priceContext = " trong tầm giá dưới **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** trở lên";
+            }
+            return "🏸 **Tư vấn lối chơi Tấn công (Smash):**\n"
+                    + "- **Đặc điểm vợt:** Nên chọn vợt **nặng đầu (Head-heavy, điểm cân bằng > 295mm)** giúp tăng quán tính cho cú đập cầu cắm sân và uy lực.\n"
+                    + "- **Độ cứng thân:** Thân vợt từ **trung bình đến cứng** để truyền lực chính xác và đầm tay.\n"
+                    + "- **Trọng lượng:** 4U dành cho cổ tay trung bình, hoặc 3U nếu bạn có lực cổ tay khỏe và thể lực tốt.\n\n"
+                    + "SmashVN gợi ý các dòng vợt tấn công nổi bật" + priceContext + " bên dưới:";
         }
 
-        if (msgLower.contains("moi choi") || msgLower.contains("co tay yeu") || msgLower.contains("tro luc")) {
-            return "🏸 **Dành cho Người mới chơi / Lực tay vừa:** Bạn nên chọn vợt có **thân dẻo trợ lực**, trọng lượng 4U hoặc 5U nhẹ tay và căng cước ở mức an toàn khoảng **9.5 - 10.5 kg**. Dưới đây là các cây vợt dễ chơi nhất tại SmashVN:";
+        boolean isDefenseOrSpeed = msgLower.contains("phong thu") || msgLower.contains("phan tat")
+                || msgLower.contains("nhe dau") || msgLower.contains("toc do")
+                || msgLower.contains("chuyen thu") || msgLower.contains("danh nhanh")
+                || msgLower.contains("vung nhanh") || msgLower.contains("linh hoat")
+                || msgLower.contains("bat luoi") || msgLower.contains("gai cau")
+                || msgLower.contains("head light");
+
+        if (isDefenseOrSpeed) {
+            String priceContext = "";
+            if (criteria.getMaxPrice() != null && criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** đến **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMaxPrice() != null) {
+                priceContext = " trong tầm giá dưới **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** trở lên";
+            }
+            return "🏸 **Tư vấn lối chơi Phòng thủ / Phản tạt / Tốc độ:**\n"
+                    + "- **Đặc điểm vợt:** Ưu tiên dòng vợt **nhẹ đầu (Head-light)** hoặc cân bằng, khung vát khí động học xé gió nhanh.\n"
+                    + "- **Ưu thế:** Giúp xoay trở cực nhanh trong các pha đôi công sát lưới, đè lưới và thủ smash hiệu quả mà không bị mỏi tay.\n"
+                    + "- **Trọng lượng:** 4U hoặc 5U siêu nhẹ và linh hoạt.\n\n"
+                    + "Dưới đây là các cây vợt tốc độ & phản tạt tốt nhất" + priceContext + " tại SmashVN:";
         }
 
-        if (msgLower.contains("cong thu") || msgLower.contains("toan dien")) {
-            return "🏸 **Tư vấn lối chơi Công thủ toàn diện:** Cây vợt có **điểm cân bằng ~290-295mm**, trọng lượng 4U là lựa chọn lý tưởng nhất, giúp bạn vừa đập cầu tốt vừa thủ linh hoạt. Mời bạn tham khảo các mẫu sau:";
+        boolean isAllAround = msgLower.contains("cong thu") || msgLower.contains("toan dien")
+                || msgLower.contains("can bang") || msgLower.contains("danh doi")
+                || msgLower.contains("doi nam nu") || msgLower.contains("all around");
+
+        if (isAllAround) {
+            String priceContext = "";
+            if (criteria.getMaxPrice() != null && criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** đến **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMaxPrice() != null) {
+                priceContext = " trong tầm giá dưới **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMinPrice() != null) {
+                priceContext = " trong tầm giá từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** trở lên";
+            }
+            return "🏸 **Tư vấn lối chơi Công thủ toàn diện (All-around):**\n"
+                    + "- **Đặc điểm:** Điểm cân bằng lý tưởng khoảng **290mm - 295mm**, vừa có độ đầm để đập cầu khi có cơ hội, vừa đủ linh hoạt để thủ cầu và phản tạt.\n"
+                    + "- **Khuyến nghị:** Đây là lối chơi cân bằng và phổ biến nhất trong đánh đôi phong trào. Nên chọn vợt 4U thân trung bình để dễ kiểm soát.\n\n"
+                    + "Mời bạn tham khảo các mẫu vợt công thủ toàn diện được ưa chuộng nhất" + priceContext + " bên dưới:";
+        }
+
+        boolean isGeneralConsultation = msgLower.contains("nen mua vot nao") || msgLower.contains("nen choi vot nao")
+                || msgLower.contains("chon vot nao") || msgLower.contains("tu van vot")
+                || msgLower.contains("nen chon vot") || msgLower.contains("cay vot nao tot")
+                || msgLower.contains("vot nao hay") || msgLower.contains("vot nao de danh");
+
+        if (isGeneralConsultation) {
+            return "🏸 **Tư vấn chọn vợt cầu lông phù hợp tại SmashVN:**\n"
+                    + "Để chọn được cây vợt ưng ý nhất, bạn có thể cân nhắc theo 3 tiêu chí:\n"
+                    + "- **Trình độ / Lực tay:** Người mới nên chọn vợt **4U thân dẻo trợ lực**; người chơi có lực tay tốt có thể chọn **3U hoặc thân cứng**.\n"
+                    + "- **Lối chơi:** Thích đập cầu chọn vợt **Nặng đầu (Head-heavy)**; thích phản tạt, thủ nhanh chọn vợt **Nhẹ đầu/Cân bằng**; chơi linh hoạt chọn vợt **Công thủ toàn diện**.\n"
+                    + "- **Ngân sách:** Bạn có thể gửi cho SmashVN mức giá mong muốn (ví dụ: *dưới 1 triệu*, *tầm 1tr5 đến 2 triệu*) để shop gợi ý chính xác nhất nhé!\n\n"
+                    + "Dưới đây là các mẫu vợt nổi bật, dễ chơi nhất tại SmashVN để bạn tham khảo:";
+        }
+
+        if (outOfBudget) {
+            String budgetStr = "";
+            if (criteria.getMaxPrice() != null) {
+                budgetStr = "dưới **" + String.format("%,d đ", criteria.getMaxPrice().longValue()) + "**";
+            } else if (criteria.getMinPrice() != null) {
+                budgetStr = "từ **" + String.format("%,d đ", criteria.getMinPrice().longValue()) + "** trở lên";
+            }
+            return "Hiện tại SmashVN chưa có sản phẩm nào trong tầm giá " + budgetStr + " (hoặc các mẫu này đã tạm hết hàng). Bạn có thể tham khảo một số mẫu sản phẩm có mức giá tốt nhất hiện có của shop bên dưới hoặc liên hệ Hotline để được tư vấn thêm nhé:";
+        }
+
+        if (relaxedBrand && criteria.getBrandName() != null) {
+            return "Hiện tại shop chưa có mẫu vợt thương hiệu **" + criteria.getBrandName() + "** trong tầm giá bạn yêu cầu. Tuy nhiên, SmashVN xin gợi ý một số mẫu vợt chính hãng chất lượng khác cùng phân khúc giá bên dưới để bạn tham khảo nhé:";
+        }
+
+        if (criteria.getMaxPrice() != null && criteria.getMinPrice() != null) {
+            return String.format("SmashVN tìm thấy các sản phẩm trong tầm giá từ **%,d đ** đến **%,d đ** phù hợp với yêu cầu của bạn bên dưới. Mời bạn tham khảo:",
+                    criteria.getMinPrice().longValue(), criteria.getMaxPrice().longValue());
+        }
+        if (criteria.getMaxPrice() != null) {
+            return String.format("SmashVN tìm thấy các sản phẩm trong tầm giá dưới **%,d đ** phù hợp với yêu cầu của bạn bên dưới. Mời bạn tham khảo:",
+                    criteria.getMaxPrice().longValue());
+        }
+        if (criteria.getMinPrice() != null) {
+            return String.format("SmashVN tìm thấy các sản phẩm trong tầm giá từ **%,d đ** trở lên phù hợp với yêu cầu của bạn bên dưới. Mời bạn tham khảo:",
+                    criteria.getMinPrice().longValue());
         }
 
         if (!products.isEmpty()) {
@@ -538,14 +683,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         ProductSearchCriteria criteria = new ProductSearchCriteria();
         String promptLower = userPrompt.toLowerCase();
 
-        List<String> keywords = extractProductKeywords(promptLower);
-        if (!keywords.isEmpty()) {
-            criteria.setKeyword(keywords.get(0));
-            if (keywords.size() > 1) criteria.setKeyword2(keywords.get(1));
-            if (keywords.size() > 2) criteria.setKeyword3(keywords.get(2));
-        }
-
-        // Dynamic Brands from Cache
+        // 1. Dynamic Brands from Cache
         List<String> activeBrands = chatbotProductCache.getCachedBrands();
         for (String b : activeBrands) {
             if (promptLower.contains(b.toLowerCase())) {
@@ -560,10 +698,14 @@ public class ChatbotServiceImpl implements ChatbotService {
                 criteria.setBrandName("Yonex");
             } else if (promptLower.contains("victor")) {
                 criteria.setBrandName("Victor");
+            } else if (promptLower.contains("mizuno")) {
+                criteria.setBrandName("Mizuno");
+            } else if (promptLower.contains("kumpoo")) {
+                criteria.setBrandName("Kumpoo");
             }
         }
 
-        // Dynamic Categories from Cache
+        // 2. Dynamic Categories from Cache
         List<String> activeCats = chatbotProductCache.getCachedCategories();
         for (String c : activeCats) {
             if (promptLower.contains(c.toLowerCase())) {
@@ -572,53 +714,24 @@ public class ChatbotServiceImpl implements ChatbotService {
             }
         }
         if (criteria.getCategoryName() == null) {
-            if (promptLower.contains("vợt") || promptLower.contains("vot")) {
+            if (promptLower.contains("vợt") || promptLower.contains("vot") || promptLower.contains("cây") || promptLower.contains("cay")) {
                 criteria.setCategoryName("Vợt");
-            } else if (promptLower.contains("giày") || promptLower.contains("giay")) {
+            } else if (promptLower.contains("giày") || promptLower.contains("giay") || promptLower.contains("đôi") || promptLower.contains("doi")) {
                 criteria.setCategoryName("Giày");
-            } else if (promptLower.contains("áo") || promptLower.contains("quần") || promptLower.contains("ao") || promptLower.contains("quan")) {
+            } else if (promptLower.contains("áo") || promptLower.contains("quần") || promptLower.contains("ao") || promptLower.contains("quan") || promptLower.contains("trang phục")) {
                 criteria.setCategoryName("Trang phục");
-            } else if (promptLower.contains("cầu") || promptLower.contains("cau")) {
+            } else if (promptLower.contains("cầu") || promptLower.contains("cau") || promptLower.contains("ống cầu") || promptLower.contains("hộp cầu")) {
                 criteria.setCategoryName("Quả cầu lông");
+            } else if (promptLower.contains("phụ kiện") || promptLower.contains("phu kien") || promptLower.contains("cước") || promptLower.contains("balo") || promptLower.contains("túi")) {
+                criteria.setCategoryName("Phụ kiện");
             }
         }
 
-        // Parse prices with slang support
-        BigDecimal parsedPrice = VietnamesePriceParser.parsePrice(userPrompt);
-
-        // Range keywords check
-        boolean hasRangeKeywords = promptLower.contains("dưới") || promptLower.contains("thấp hơn")
-                || promptLower.contains("tối đa") || promptLower.contains("không quá")
-                || promptLower.contains("trên") || promptLower.contains("hơn")
-                || promptLower.contains("tối thiểu") || promptLower.contains("ít nhất")
-                || promptLower.contains("từ") || promptLower.contains("đến") || promptLower.contains("tới")
-                || promptLower.contains("khoảng");
-
-        if (parsedPrice != null) {
-            if (!hasRangeKeywords || promptLower.contains("khoảng")) {
-                // Single price or "khoảng X" -> ±20%
-                BigDecimal minP = parsedPrice.multiply(new BigDecimal("0.8")).setScale(0, RoundingMode.HALF_UP);
-                BigDecimal maxP = parsedPrice.multiply(new BigDecimal("1.2")).setScale(0, RoundingMode.HALF_UP);
-                criteria.setMinPrice(minP);
-                criteria.setMaxPrice(maxP);
-            } else {
-                if (promptLower.contains("dưới") || promptLower.contains("thấp hơn") || promptLower.contains("tối đa") || promptLower.contains("không quá")) {
-                    criteria.setMaxPrice(parsedPrice);
-                } else if (promptLower.contains("trên") || promptLower.contains("hơn") || promptLower.contains("tối thiểu") || promptLower.contains("ít nhất")) {
-                    criteria.setMinPrice(parsedPrice);
-                }
-            }
-        }
-
-        // Range "từ X đến Y"
-        if (promptLower.contains("từ") && (promptLower.contains("đến") || promptLower.contains("tới"))) {
-            Matcher rangeMatcher = Pattern.compile("(?i)từ\\s+([^đến]+?)\\s+(?:đến|tới)\\s+(.+)").matcher(userPrompt);
-            if (rangeMatcher.find()) {
-                BigDecimal minP = VietnamesePriceParser.parsePrice(rangeMatcher.group(1));
-                BigDecimal maxP = VietnamesePriceParser.parsePrice(rangeMatcher.group(2));
-                if (minP != null) criteria.setMinPrice(minP);
-                if (maxP != null) criteria.setMaxPrice(maxP);
-            }
+        // 3. Parse Price & Direction with Slang and Bound Support
+        VietnamesePriceParser.PriceFilter priceFilter = VietnamesePriceParser.parsePriceFilter(userPrompt);
+        if (priceFilter.hasPrice()) {
+            criteria.setMinPrice(priceFilter.minPrice());
+            criteria.setMaxPrice(priceFilter.maxPrice());
         }
 
         if (criteria.getMinPrice() != null && criteria.getMaxPrice() != null
@@ -628,20 +741,45 @@ public class ChatbotServiceImpl implements ChatbotService {
             criteria.setMaxPrice(temp);
         }
 
+        // 4. Extract specific keywords (e.g. model name like "astrox", "bladex", "axforce", "88d", "100zz")
+        List<String> keywords = extractProductKeywords(promptLower);
+        if (!keywords.isEmpty()) {
+            criteria.setKeyword(keywords.get(0));
+            if (keywords.size() > 1) criteria.setKeyword2(keywords.get(1));
+            if (keywords.size() > 2) criteria.setKeyword3(keywords.get(2));
+        }
+
         return criteria;
     }
 
     private List<String> extractProductKeywords(String promptLower) {
-        String unaccented = removeAccents(promptLower);
+        String cleaned = VietnamesePriceParser.stripPriceTokens(promptLower);
+        String unaccented = removeAccents(cleaned);
         Set<String> ignored = new java.util.HashSet<>(java.util.Arrays.asList(
-                "toi", "muon", "can", "xin", "hay", "giup", "tim", "mua", "tu", "van", "cho", "minh", "san", "pham", "vot", "cau",
-                "long", "giay", "ao", "quan", "phu", "kien", "gia", "duoi", "tren", "trieu", "cu", "canh", "yonex",
-                "lining", "li-ning", "victor", "do", "xanh", "den", "trang", "vang", "hong", "cam",
-                "3u", "4u", "5u", "hop", "con", "hang", "bao", "nhieu", "loai", "co", "khong",
-                "mot", "chiec", "cay", "nao", "duoc", "voi", "va", "hoac", "nguoi", "moi", "choi", "tot", "khoang",
-                "tan", "cong", "phong", "thu", "phan", "tat", "dap", "nang", "dau", "nhe", "tro", "luc"));
+                // Pronouns & polite words
+                "toi", "minh", "em", "anh", "chi", "ban", "ad", "shop", "admin", "bac", "chu", "ai", "nguoi",
+                // Question words & particles
+                "nhung", "ma", "thi", "co", "khong", "k", "ko", "khg", "hong", "dc", "duoc", "ha", "a", "oi", "nhe", "nha", "nao", "gi", "sao", "the", "vay", "di", "nhi", "chi", "voi", "va", "hoac", "hay", "la",
+                // Modal & intention verbs
+                "muon", "can", "tim", "mua", "tu", "van", "hoi", "xem", "cho", "xin", "giup", "ho", "dum", "biet", "thay", "tinh",
+                // General nouns & units
+                "san", "pham", "hang", "loai", "chiec", "cay", "doi", "bo", "mon", "mau", "cai", "con", "dong", "tien", "gia", "muc",
+                // Categories
+                "vot", "giay", "ao", "quan", "cau", "long", "phu", "kien", "balo", "tui", "cuoc", "ong", "hop",
+                // Brands
+                "yonex", "lining", "li-ning", "victor", "mizuno", "kumpoo", "felet",
+                // Price range & direction words
+                "tam", "khoang", "quanh", "chung", "duoi", "tren", "tro", "xuong", "len", "do", "lai", "ve", "quay", "dau", "hat", "thap", "cao", "hon", "it", "nhat", "nho", "be", "lon", "toi", "da", "thieu", "max", "min", "tu", "den", "toi", "trieu", "nghin", "ngan", "cu", "canh", "chai", "dong", "vnd", "ruoi",
+                // Playstyle terms
+                "tan", "cong", "phong", "thu", "toan", "dien", "phan", "tat", "dap", "nang", "dau", "nhe", "tro", "luc", "toc", "do", "dieu", "can", "bang", "cang", "cuoc", "moi", "choi", "tay", "yeu",
+                // Adjectives
+                "tot", "re", "dep", "ben", "ngon", "xin", "chinh", "auth", "real", "fake", "rep", "chat", "luong", "3u", "4u", "5u", "do", "xanh", "den", "trang", "vang", "hong", "cam"
+        ));
+
         return java.util.Arrays.stream(unaccented.replaceAll("[^a-zA-Z0-9-]+", " ").trim().split("\\s+"))
-                .filter(token -> token.length() > 1 && !ignored.contains(token) && !token.matches("\\d+(tr)?"))
+                .filter(token -> token.length() > 1 && !ignored.contains(token))
+                .filter(token -> !token.matches("(?i)\\d+(?:tr|trieu|k|cu|canh|nghin|ngan|vnd)\\d*"))
+                .filter(token -> !token.matches("\\d{5,}"))
                 .distinct()
                 .limit(3)
                 .toList();

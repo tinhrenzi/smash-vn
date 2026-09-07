@@ -115,6 +115,12 @@ public class AdminController {
                 hd.setGhnReturnOrderCode(orderViewService.resolveGhnReturnOrderCode(hd.getId(), hd));
                 returnOrders.add(hd);
             }
+            if ("REFUNDED".equalsIgnoreCase(hd.getTrangThaiThanhToan())
+                    || "DA_HOAN_TIEN".equalsIgnoreCase(hd.getTrangThaiThanhToan())
+                    || hd.getTrangThaiHoanHang() == com.smashvn.shop.entity.ReturnStatus.REFUNDED
+                    || hd.getRefundStatus() == com.smashvn.shop.entity.RefundStatus.COMPLETED) {
+                orderViewService.resolveRefundDetails(hd.getId(), hd);
+            }
             if (hd.getMaDonHang() != null && hd.getMaDonHang().startsWith("HDSVN")) {
                 posOrders.add(hd);
             } else {
@@ -878,21 +884,36 @@ public class AdminController {
             map.put("ngayXacNhanHoanHang", hd.getNgayXacNhanHoanHang() != null ? hd.getNgayXacNhanHoanHang().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) : "");
             map.put("nhanVienXacNhan", hd.getNhanVienXacNhan() != null ? hd.getNhanVienXacNhan().getHoTenNv() : "");
 
+            java.util.Map<String, String> refundDetails = orderViewService.resolveRefundDetails(hd.getId(), hd);
+
             // Refund status details
-            map.put("refundStatus", hd.getRefundStatus() != null ? hd.getRefundStatus().name() : "");
-            map.put("refundStatusLabel", hd.getRefundStatus() != null ? hd.getRefundStatus().getLabel() : "");
-            map.put("refundTime", hd.getRefundTime() != null ? hd.getRefundTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) : "");
-            map.put("refundConfirmedBy", hd.getRefundConfirmedBy() != null ? hd.getRefundConfirmedBy().getHoTenNv() : "");
+            map.put("refundStatus", hd.getRefundStatus() != null ? hd.getRefundStatus().name() : (refundDetails.containsKey("phuongThucHoanTien") ? "COMPLETED" : ""));
+            map.put("refundStatusLabel", hd.getRefundStatus() != null ? hd.getRefundStatus().getLabel() : (refundDetails.containsKey("phuongThucHoanTien") ? "Đã hoàn tiền" : ""));
+            String refTime = refundDetails.getOrDefault("thoiGianHoanTien", "");
+            if (refTime.isEmpty() && hd.getRefundTime() != null) {
+                refTime = hd.getRefundTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+            }
+            map.put("refundTime", refTime);
+            map.put("refundConfirmedBy", refundDetails.getOrDefault("nguoiThucHienHoanTien", hd.getRefundConfirmedBy() != null ? hd.getRefundConfirmedBy().getHoTenNv() : ""));
 
             // Cancellation & Refund meta
             map.put("isOrderPaid", orderViewService.isOrderPaid(hd));
             map.put("isStockDeducted", orderViewService.isStockDeductedState(hd, hd.getTrangThaiDonHang()));
             map.put("lyDoHuy", hd.getLyDoHuy() != null ? hd.getLyDoHuy() : "");
-            map.put("phuongThucHoanTien", hd.getPhuongThucHoanTien() != null ? hd.getPhuongThucHoanTien() : "");
-            map.put("soTienHoan", hd.getSoTienHoan() != null ? hd.getSoTienHoan() : java.math.BigDecimal.ZERO);
-            map.put("maGiaoDichHoanTien", hd.getMaGiaoDichHoanTien() != null ? hd.getMaGiaoDichHoanTien() : "");
-            map.put("ghiChuHoanTien", hd.getGhiChuHoanTien() != null ? hd.getGhiChuHoanTien() : "");
-            map.put("anhChungTuHoanTien", hd.getAnhChungTuHoanTien() != null ? hd.getAnhChungTuHoanTien() : "");
+            
+            String ptht = refundDetails.getOrDefault("phuongThucHoanTien", hd.getPhuongThucHoanTien() != null ? hd.getPhuongThucHoanTien() : "");
+            map.put("phuongThucHoanTien", ptht);
+            
+            java.math.BigDecimal sth = hd.getSoTienHoan();
+            if (sth == null && refundDetails.containsKey("soTienHoan")) {
+                try {
+                    sth = new java.math.BigDecimal(refundDetails.get("soTienHoan"));
+                } catch (Exception ignored) {}
+            }
+            map.put("soTienHoan", sth != null ? sth : java.math.BigDecimal.ZERO);
+            map.put("maGiaoDichHoanTien", refundDetails.getOrDefault("maGiaoDichHoanTien", hd.getMaGiaoDichHoanTien() != null ? hd.getMaGiaoDichHoanTien() : ""));
+            map.put("ghiChuHoanTien", refundDetails.getOrDefault("ghiChuHoanTien", hd.getGhiChuHoanTien() != null ? hd.getGhiChuHoanTien() : ""));
+            map.put("anhChungTuHoanTien", refundDetails.getOrDefault("anhChungTuHoanTien", hd.getAnhChungTuHoanTien() != null ? hd.getAnhChungTuHoanTien() : ""));
             boolean canCancel = !OrderStatus.DA_HUY.getValue().equalsIgnoreCase(hd.getTrangThaiDonHang())
                     && !OrderStatus.DA_GIAO.getValue().equalsIgnoreCase(hd.getTrangThaiDonHang())
                     && !OrderStatus.DA_BAN_GIAO_GHN.getValue().equalsIgnoreCase(hd.getTrangThaiDonHang())

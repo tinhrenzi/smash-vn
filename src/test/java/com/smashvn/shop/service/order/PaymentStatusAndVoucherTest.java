@@ -43,7 +43,18 @@ public class PaymentStatusAndVoucherTest {
         assertEquals("Đã hủy", cancelledInfo.label());
         assertEquals("bg-danger", cancelledInfo.badgeClass());
 
-        // 4. Strange status -> Raw status (bg-secondary)
+        // 4. refunded / da_hoan_tien -> Đã hoàn tiền (bg-danger)
+        var refundedInfo = orderViewService.getPaymentStatusInfo("REFUNDED");
+        assertEquals("REFUNDED", refundedInfo.code());
+        assertEquals("Đã hoàn tiền", refundedInfo.label());
+        assertEquals("bg-danger", refundedInfo.badgeClass());
+
+        var daHoanTienInfo = orderViewService.getPaymentStatusInfo("DA_HOAN_TIEN");
+        assertEquals("REFUNDED", daHoanTienInfo.code());
+        assertEquals("Đã hoàn tiền", daHoanTienInfo.label());
+        assertEquals("bg-danger", daHoanTienInfo.badgeClass());
+
+        // 5. Strange status -> Raw status (bg-secondary)
         var strangeInfo = orderViewService.getPaymentStatusInfo("SOME_STRANGE_STATUS");
         assertEquals("UNKNOWN", strangeInfo.code());
         assertEquals("SOME_STRANGE_STATUS", strangeInfo.label());

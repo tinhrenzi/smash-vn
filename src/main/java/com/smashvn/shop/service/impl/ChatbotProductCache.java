@@ -267,8 +267,13 @@ public class ChatbotProductCache {
             }
 
             // Prioritize items with sale price or high stock
-            matched.sort(Comparator.comparing((CachedProduct p) -> p.getSalePrice() != null ? 0 : 1)
-                    .thenComparing(CachedProduct::getStock, Comparator.reverseOrder()));
+            if (criteria.getMaxPrice() != null) {
+                matched.sort(Comparator.comparing((CachedProduct p) -> p.getSalePrice() != null ? 0 : 1)
+                        .thenComparing(p -> p.getSalePrice() != null ? p.getSalePrice() : p.getPrice()));
+            } else {
+                matched.sort(Comparator.comparing((CachedProduct p) -> p.getSalePrice() != null ? 0 : 1)
+                        .thenComparing(CachedProduct::getStock, Comparator.reverseOrder()));
+            }
 
             return matched.stream()
                     .limit(limit)

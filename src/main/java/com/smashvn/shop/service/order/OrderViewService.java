@@ -1702,7 +1702,7 @@ public class OrderViewService {
                 new PaymentStatusInfo("PENDING", "Chờ thanh toán", "bg-warning text-dark");
             case "CANCELLED", "CANCELED", "HUY", "DA_HUY", "FAILED" ->
                 new PaymentStatusInfo("CANCELLED", "Đã hủy", "bg-danger");
-            case "REFUNDED" ->
+            case "REFUNDED", "DA_HOAN_TIEN" ->
                 new PaymentStatusInfo("REFUNDED", "Đã hoàn tiền", "bg-danger");
             case "CHO_HOAN_TIEN", "HOAN_TIEN" ->
                 new PaymentStatusInfo("CHO_HOAN_TIEN", "Chờ hoàn tiền", "bg-warning text-dark");
@@ -1837,28 +1837,75 @@ public class OrderViewService {
     public Map<String, String> resolveRefundDetails(Integer idHoaDon, HoaDon hd) {
         Map<String, String> res = new HashMap<>();
         if (hd != null) {
-            if (hd.getPhuongThucHoanTien() != null) {
+            if (hd.getPhuongThucHoanTien() != null && !hd.getPhuongThucHoanTien().isBlank()) {
                 res.put("phuongThucHoanTien", hd.getPhuongThucHoanTien());
             }
             if (hd.getSoTienHoan() != null) {
                 res.put("soTienHoan", hd.getSoTienHoan().toString());
             }
-            if (hd.getMaGiaoDichHoanTien() != null) {
+            if (hd.getMaGiaoDichHoanTien() != null && !hd.getMaGiaoDichHoanTien().isBlank()) {
                 res.put("maGiaoDichHoanTien", hd.getMaGiaoDichHoanTien());
             }
-            if (hd.getGhiChuHoanTien() != null) {
+            if (hd.getGhiChuHoanTien() != null && !hd.getGhiChuHoanTien().isBlank()) {
                 res.put("ghiChuHoanTien", hd.getGhiChuHoanTien());
             }
-            if (hd.getAnhChungTuHoanTien() != null) {
+            if (hd.getAnhChungTuHoanTien() != null && !hd.getAnhChungTuHoanTien().isBlank()) {
                 res.put("anhChungTuHoanTien", hd.getAnhChungTuHoanTien());
             }
             if (hd.getThoiGianHoanTien() != null) {
                 res.put("thoiGianHoanTien", hd.getThoiGianHoanTien().format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy")));
             }
-            if (hd.getNguoiThucHienHoanTien() != null) {
+            if (hd.getNguoiThucHienHoanTien() != null && !hd.getNguoiThucHienHoanTien().isBlank()) {
                 res.put("nguoiThucHienHoanTien", hd.getNguoiThucHienHoanTien());
             }
         }
+
+        // Nguồn chân lý bền vững: PaymentTransaction lưu trữ đầy đủ payload hoàn tiền
+        if (idHoaDon != null) {
+            try {
+                List<com.smashvn.shop.entity.PaymentTransaction> refundTxs = paymentTransactionRepository.findByOrder_IdAndStatus(idHoaDon, "REFUND_SUCCESS");
+                if (refundTxs != null && !refundTxs.isEmpty()) {
+                    com.smashvn.shop.entity.PaymentTransaction latestTx = refundTxs.get(refundTxs.size() - 1);
+                    if (!res.containsKey("soTienHoan") && latestTx.getAmount() != null) {
+                        res.put("soTienHoan", latestTx.getAmount().toString());
+                    }
+                    if (!res.containsKey("maGiaoDichHoanTien") && latestTx.getTransactionId() != null) {
+                        res.put("maGiaoDichHoanTien", latestTx.getTransactionId());
+                    }
+                    if (!res.containsKey("thoiGianHoanTien") && latestTx.getCreatedAt() != null) {
+                        res.put("thoiGianHoanTien", latestTx.getCreatedAt().format(DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy")));
+                    }
+                    String raw = latestTx.getRawPayload();
+                    if (raw != null && !raw.isBlank()) {
+                        try {
+                            Map<String, Object> payload = objectMapper.readValue(raw, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                            if (!res.containsKey("phuongThucHoanTien") && payload.get("phuongThucHoanTien") != null) {
+                                res.put("phuongThucHoanTien", String.valueOf(payload.get("phuongThucHoanTien")));
+                            }
+                            if (!res.containsKey("ghiChuHoanTien") && payload.get("ghiChu") != null) {
+                                res.put("ghiChuHoanTien", String.valueOf(payload.get("ghiChu")));
+                            }
+                            if (!res.containsKey("nguoiThucHienHoanTien") && payload.get("nguoiThucHien") != null) {
+                                res.put("nguoiThucHienHoanTien", String.valueOf(payload.get("nguoiThucHien")));
+                            }
+                            if (!res.containsKey("anhChungTuHoanTien") && payload.get("anhChungTu") != null) {
+                                Object act = payload.get("anhChungTu");
+                                if (act instanceof List<?> list && !list.isEmpty()) {
+                                    res.put("anhChungTuHoanTien", String.valueOf(list.get(0)));
+                                } else if (act instanceof String str && !str.isBlank()) {
+                                    res.put("anhChungTuHoanTien", str);
+                                }
+                            }
+                        } catch (Exception parseEx) {
+                            log.warn("Error parsing refund raw payload for order {}: {}", idHoaDon, parseEx.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception txEx) {
+                log.warn("Error retrieving refund transaction for order {}: {}", idHoaDon, txEx.getMessage());
+            }
+        }
+
         try {
             List<com.smashvn.shop.entity.EditLog> logs = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", idHoaDon);
             for (int i = logs.size() - 1; i >= 0; i--) {
@@ -1883,6 +1930,28 @@ public class OrderViewService {
             }
         } catch (Exception e) {
         }
+
+        // Đồng bộ ngược lại vào đối tượng HoaDon trong bộ nhớ nếu hd != null
+        if (hd != null) {
+            if (hd.getPhuongThucHoanTien() == null && res.containsKey("phuongThucHoanTien")) {
+                hd.setPhuongThucHoanTien(res.get("phuongThucHoanTien"));
+            }
+            if (hd.getSoTienHoan() == null && res.containsKey("soTienHoan")) {
+                try {
+                    hd.setSoTienHoan(new BigDecimal(res.get("soTienHoan")));
+                } catch (Exception ignored) {}
+            }
+            if (hd.getMaGiaoDichHoanTien() == null && res.containsKey("maGiaoDichHoanTien")) {
+                hd.setMaGiaoDichHoanTien(res.get("maGiaoDichHoanTien"));
+            }
+            if (hd.getGhiChuHoanTien() == null && res.containsKey("ghiChuHoanTien")) {
+                hd.setGhiChuHoanTien(res.get("ghiChuHoanTien"));
+            }
+            if (hd.getAnhChungTuHoanTien() == null && res.containsKey("anhChungTuHoanTien")) {
+                hd.setAnhChungTuHoanTien(res.get("anhChungTuHoanTien"));
+            }
+        }
+
         return res;
     }
 

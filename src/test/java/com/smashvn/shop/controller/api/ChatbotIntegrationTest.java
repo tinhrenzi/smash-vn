@@ -274,6 +274,18 @@ public class ChatbotIntegrationTest {
     }
 
     @Test
+    void testBeginnerConsultation_ProvidesExpertAdvice() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"tôi là người mới thì nên chơi vợt nào\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Người mới chơi")))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("4U")));
+    }
+
+    @Test
     void testOrderLookup_ProvidesHelpfulStatus() throws Exception {
         mockMvc.perform(post("/api/chat/send")
                         .session(session)
@@ -309,5 +321,72 @@ public class ChatbotIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("BLOCKED"))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString(expectedHotline)));
+    }
+
+    @Test
+    void testPriceFilter_UpperLowerRangeApproximations() {
+        // 1. User query with "trở xuống" (<= 1.500.000)
+        var f1 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("nhưng tôi cần vợt tầm 1tr5 trở xuống thì có k");
+        assertTrue(f1.hasPrice());
+        assertNull(f1.minPrice());
+        assertEquals(new BigDecimal("1500000"), f1.maxPrice());
+
+        // 2. "2 củ quay đầu" (<= 2.000.000)
+        var f2 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("vợt 2 củ quay đầu");
+        assertTrue(f2.hasPrice());
+        assertNull(f2.minPrice());
+        assertEquals(new BigDecimal("2000000"), f2.maxPrice());
+
+        // 3. "1tr5 đổ lại" (<= 1.500.000)
+        var f3 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("vợt 1tr5 đổ lại");
+        assertTrue(f3.hasPrice());
+        assertNull(f3.minPrice());
+        assertEquals(new BigDecimal("1500000"), f3.maxPrice());
+
+        // 4. "từ 1tr đến 2tr" (range 1M - 2M)
+        var f4 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("vợt từ 1tr đến 2tr");
+        assertTrue(f4.hasPrice());
+        assertEquals(new BigDecimal("1000000"), f4.minPrice());
+        assertEquals(new BigDecimal("2000000"), f4.maxPrice());
+
+        // 5. "1tr - 2tr" (range 1M - 2M)
+        var f5 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("vợt 1tr - 2tr");
+        assertTrue(f5.hasPrice());
+        assertEquals(new BigDecimal("1000000"), f5.minPrice());
+        assertEquals(new BigDecimal("2000000"), f5.maxPrice());
+
+        // 6. "vợt trên 3 triệu" (>= 3.000.000)
+        var f6 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("vợt trên 3 triệu");
+        assertTrue(f6.hasPrice());
+        assertEquals(new BigDecimal("3000000"), f6.minPrice());
+        assertNull(f6.maxPrice());
+
+        // 7. "vợt tầm 1tr5" (approximate ±20%)
+        var f7 = com.smashvn.shop.service.impl.VietnamesePriceParser.parsePriceFilter("vợt tầm 1tr5");
+        assertTrue(f7.hasPrice());
+        assertEquals(new BigDecimal("1200000"), f7.minPrice());
+        assertEquals(new BigDecimal("1800000"), f7.maxPrice());
+    }
+
+    @Test
+    void testChatbot_Under1Tr5BudgetConstraint() throws Exception {
+        var resultActions = mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"nhưng tôi cần vợt tầm 1tr5 trở xuống thì có k\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        String responseJson = resultActions.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(responseJson);
+        com.fasterxml.jackson.databind.JsonNode products = root.path("data").path("suggestedProducts");
+
+        // Verify that ANY returned product strictly respects the <= 1.500.000 limit
+        if (products.isArray()) {
+            for (com.fasterxml.jackson.databind.JsonNode prod : products) {
+                double price = prod.hasNonNull("salePrice") ? prod.get("salePrice").asDouble() : prod.get("price").asDouble();
+                assertTrue(price <= 1500000.0, "Sản phẩm " + prod.path("name").asText() + " có giá " + price + " vượt quá ngân sách 1tr5!");
+            }
+        }
     }
 }

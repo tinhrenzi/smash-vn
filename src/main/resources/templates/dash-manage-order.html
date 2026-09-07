@@ -596,12 +596,12 @@
                                                          <span>Thông báo: Đơn hàng đã được hoàn tiền thành công</span>
                                                      </div>
                                                      <div style="margin-top: 6px; color: #166534;">
-                                                         Shop đã hoàn tất thủ tục hoàn tiền cho đơn hàng này. Quý khách vui lòng kiểm tra số dư tài khoản ngân hàng hoặc phương thức thanh toán đã nhận tiền hoàn.
+                                                         <span th:text="${order['phuongThucHoanTien'] == 'TIEN_MAT' ? 'Shop đã hoàn tất thủ tục hoàn tiền mặt cho đơn hàng này. Quý khách vui lòng kiểm tra tiền mặt đã nhận trực tiếp từ Shop.' : 'Shop đã hoàn tất thủ tục hoàn tiền cho đơn hàng này. Quý khách vui lòng kiểm tra số dư tài khoản ngân hàng hoặc phương thức thanh toán đã nhận tiền hoàn.'}">Shop đã hoàn tất thủ tục hoàn tiền cho đơn hàng này. Quý khách vui lòng kiểm tra số dư tài khoản ngân hàng hoặc phương thức thanh toán đã nhận tiền hoàn.</span>
                                                      </div>
                                                      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #86efac; font-size: 13px; color: #14532d;">
                                                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
                                                              <div><strong>Số tiền hoàn:</strong> <span style="font-size: 15px; font-weight: 700; color: #dc2626;" th:text="${#numbers.formatDecimal(order['soTienHoan'] != null ? order['soTienHoan'] : order['tongTien'], 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></span></div>
-                                                             <div><strong>Phương thức hoàn:</strong> <span th:text="${order['phuongThucHoanTien'] != null and !#strings.isEmpty(order['phuongThucHoanTien']) ? order['phuongThucHoanTien'] : 'Chuyển khoản ngân hàng'}"></span></div>
+                                                             <div><strong>Phương thức hoàn:</strong> <span th:text="${order['phuongThucHoanTien'] == 'TIEN_MAT' ? 'Tiền mặt' : (order['phuongThucHoanTien'] == 'CHUYEN_KHOAN' ? 'Chuyển khoản ngân hàng' : (order['phuongThucHoanTien'] != null and !#strings.isEmpty(order['phuongThucHoanTien']) ? order['phuongThucHoanTien'] : 'Chuyển khoản ngân hàng'))}"></span></div>
                                                              <div th:if="${order['maGiaoDichHoanTien'] != null and !#strings.isEmpty(order['maGiaoDichHoanTien'])}"><strong>Mã giao dịch hoàn:</strong> <code style="background: #dcfce7; padding: 2px 6px; border-radius: 4px; color: #166534; font-weight: 600;" th:text="${order['maGiaoDichHoanTien']}"></code></div>
                                                              <div th:if="${order['thoiGianHoanTien'] != null and !#strings.isEmpty(order['thoiGianHoanTien'])}"><strong>Thời gian hoàn:</strong> <span th:text="${order['thoiGianHoanTien']}"></span></div>
                                                          </div>
@@ -610,7 +610,7 @@
                                                          </div>
                                                          <div th:if="${order['anhChungTuHoanTien'] != null and !#strings.isEmpty(order['anhChungTuHoanTien'])}" style="margin-top: 10px;">
                                                              <a th:href="${order['anhChungTuHoanTien']}" target="_blank" class="btn btn-sm" style="font-size: 12px; padding: 6px 14px; border-radius: 6px; background-color: #16a34a; color: #ffffff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
-                                                                 <i class="fas fa-file-invoice-dollar"></i> Xem chứng từ chuyển khoản hoàn tiền
+                                                                 <i class="fas fa-file-invoice-dollar"></i> <span th:text="${order['phuongThucHoanTien'] == 'TIEN_MAT' ? 'Xem biên nhận hoàn tiền mặt' : 'Xem chứng từ chuyển khoản hoàn tiền'}">Xem chứng từ hoàn tiền</span>
                                                              </a>
                                                          </div>
                                                      </div>
@@ -674,7 +674,7 @@
                                                      </div>
                                                      <div th:if="${order['anhChungTuHoanTien'] != null and !#strings.isEmpty(order['anhChungTuHoanTien'])}" style="margin-top: 8px;">
                                                          <a th:href="${order['anhChungTuHoanTien']}" target="_blank" class="btn btn-sm btn-outline-success" style="font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid #198754; color: #198754; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-                                                             <i class="fas fa-file-invoice-dollar"></i> Xem chứng từ chuyển khoản
+                                                             <i class="fas fa-file-invoice-dollar"></i> <span th:text="${order['phuongThucHoanTien'] == 'TIEN_MAT' ? 'Xem biên nhận hoàn tiền mặt' : 'Xem chứng từ chuyển khoản'}">Xem chứng từ chuyển khoản</span>
                                                          </a>
                                                      </div>
                                                  </div>
@@ -991,6 +991,10 @@
                                                             <strong>Transaction ID:</strong> <span th:text="${order.transactionId}">SIM_...</span>
                                                         </div>
                                                         <div><strong>Phương thức thanh toán:</strong> <span th:text="${order.phuongThucThanhToan}">COD</span></div>
+                                                        <div th:if="${order['phuongThucHoanTien'] != null and !#strings.isEmpty(order['phuongThucHoanTien'])}">
+                                                            <strong>Phương thức hoàn tiền:</strong> 
+                                                            <span class="badge" th:classappend="${order['phuongThucHoanTien'] == 'TIEN_MAT' ? 'bg-success text-white' : 'bg-primary text-white'}" th:text="${order['phuongThucHoanTien'] == 'TIEN_MAT' ? 'Tiền mặt' : (order['phuongThucHoanTien'] == 'CHUYEN_KHOAN' ? 'Chuyển khoản ngân hàng' : order['phuongThucHoanTien'])}">Tiền mặt</span>
+                                                        </div>
                                                         <div>
                                                             <strong>Trạng thái thanh toán:</strong> 
                                                             <span class="badge" th:classappend="${order.trangThaiThanhToan == 'DA_THANH_TOAN' ? 'bg-success' : (order.trangThaiThanhToan == 'CHO_HOAN_TIEN' ? 'bg-warning text-dark' : (order.trangThaiThanhToan == 'DA_HOAN_TIEN' or order.trangThaiThanhToan == 'REFUNDED' ? 'bg-info text-white' : (order.trangThaiThanhToan == 'HUY' or order.trangThaiThanhToan == 'CANCELLED' ? 'bg-danger' : 'bg-warning text-dark')))}" th:text="${order.trangThaiThanhToan == 'DA_THANH_TOAN' ? 'Đã thanh toán' : (order.trangThaiThanhToan == 'CHO_HOAN_TIEN' ? 'Chờ hoàn tiền' : (order.trangThaiThanhToan == 'DA_HOAN_TIEN' or order.trangThaiThanhToan == 'REFUNDED' ? 'Đã hoàn tiền' : (order.trangThaiThanhToan == 'HUY' or order.trangThaiThanhToan == 'CANCELLED' ? 'Đã hủy' : 'Chờ thanh toán')))}">Chờ thanh toán</span>

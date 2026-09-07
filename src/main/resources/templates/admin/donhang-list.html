@@ -228,13 +228,18 @@
                                                 <td class="text-danger fw-bold text-nowrap"
                                                     th:text="${hd.tongTien != null ? #numbers.formatDecimal(hd.tongTien, 0, 'COMMA', 0, 'POINT') + ' đ' : '0 đ'}">
                                                     1,000,000 đ</td>
-                                                <td class="text-nowrap">
+                                                <td class="text-nowrap order-payment-cell">
                                                     <span class="badge bg-dark text-white"
                                                         th:text="${hd.phuongThucThanhToan != null ? hd.phuongThucThanhToan.tenPhuongThuc : 'N/A'}">COD</span><br>
                                                     <small
                                                         th:with="statusInfo=${orderViewService.getPaymentStatusInfo(hd.trangThaiThanhToan)}"
                                                         th:class="'admin-status mt-1 ' + ${statusInfo.badgeClass}"
                                                         th:text="${statusInfo.label}">Chưa thanh toán</small>
+                                                    <div th:if="${hd.phuongThucHoanTien != null and !#strings.isEmpty(hd.phuongThucHoanTien)}" class="mt-1">
+                                                        <span class="badge bg-success-subtle text-success-emphasis border border-success" style="font-size: 0.72rem;">
+                                                            <i class="fas fa-undo-alt me-1"></i>Hoàn: <strong th:text="${hd.phuongThucHoanTien == 'TIEN_MAT' ? 'Tiền mặt' : (hd.phuongThucHoanTien == 'CHUYEN_KHOAN' ? 'Chuyển khoản' : hd.phuongThucHoanTien)}">Tiền mặt</strong>
+                                                        </span>
+                                                    </div>
                                                     <div th:if="${hd.maGiaoDich != null &amp;&amp; !hd.maGiaoDich.isEmpty()}"
                                                         class="mt-1" style="font-size: 0.75rem;">
                                                         <span class="text-muted">GD:</span> <code class="text-dark"
@@ -513,10 +518,15 @@
                                                 <td class="fw-bold text-danger text-nowrap"
                                                     th:text="${#numbers.formatDecimal(hd.tongTien, 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                                     100.000 đ</td>
-                                                <td class="text-nowrap">
+                                                <td class="text-nowrap order-payment-cell">
                                                     <span
                                                         th:class="'badge ' + (${hd.paymentMethod == 'COD'} ? 'bg-dark' : 'bg-primary')"
                                                         th:text="${hd.paymentMethod != null ? hd.paymentMethod : 'COD'}">COD</span>
+                                                    <div th:if="${hd.phuongThucHoanTien != null and !#strings.isEmpty(hd.phuongThucHoanTien)}" class="mt-1">
+                                                        <span class="badge bg-success-subtle text-success-emphasis border border-success" style="font-size: 0.72rem;">
+                                                            <i class="fas fa-undo-alt me-1"></i>Hoàn: <strong th:text="${hd.phuongThucHoanTien == 'TIEN_MAT' ? 'Tiền mặt' : (hd.phuongThucHoanTien == 'CHUYEN_KHOAN' ? 'Chuyển khoản' : hd.phuongThucHoanTien)}">Tiền mặt</strong>
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td class="text-nowrap order-status-cell">
                                                     <span
@@ -1301,6 +1311,35 @@
                         `;
                     }
 
+                    // Update payment cell
+                    const paymentCell = row.querySelector('.order-payment-cell');
+                    if (paymentCell) {
+                        const refundMethodText = data.phuongThucHoanTien === 'TIEN_MAT' ? 'Tiền mặt' : (data.phuongThucHoanTien === 'CHUYEN_KHOAN' ? 'Chuyển khoản' : (data.phuongThucHoanTien || ''));
+                        let refundBadgeHtml = '';
+                        if (refundMethodText) {
+                            refundBadgeHtml = `
+                                <div class="mt-1">
+                                    <span class="badge bg-success-subtle text-success-emphasis border border-success" style="font-size: 0.72rem;">
+                                        <i class="fas fa-undo-alt me-1"></i>Hoàn: <strong>${escapeHtml(refundMethodText)}</strong>
+                                    </span>
+                                </div>
+                            `;
+                        }
+                        const pMethod = escapeHtml(data.paymentMethod || 'N/A');
+                        const pStatus = escapeHtml(formatPaymentStatus(data.paymentStatusLabel || data.paymentStatus || 'Chưa thanh toán'));
+                        const pBadgeClass = data.paymentStatusBadgeClass ? data.paymentStatusBadgeClass : 'bg-secondary';
+                        let gdHtml = '';
+                        if (data.maGiaoDich) {
+                            gdHtml = `<div class="mt-1" style="font-size: 0.75rem;"><span class="text-muted">GD:</span> <code class="text-dark">${escapeHtml(data.maGiaoDich)}</code></div>`;
+                        }
+                        paymentCell.innerHTML = `
+                            <span class="badge bg-dark text-white">${pMethod}</span><br>
+                            <small class="admin-status mt-1 ${pBadgeClass}">${pStatus}</small>
+                            ${refundBadgeHtml}
+                            ${gdHtml}
+                        `;
+                    }
+
                     // Update action cell
                     const actionCell = row.querySelector('.order-action-cell');
                     if (actionCell) {
@@ -2031,7 +2070,7 @@
                                         ${data.phuongThucHoanTien ? `
                                         <div class="order-detail-field mt-1">
                                             <span class="order-detail-label">Phương thức hoàn</span>
-                                            <span class="order-detail-value">${data.phuongThucHoanTien === 'CHUYEN_KHOAN' ? 'Chuyển khoản ngân hàng' : (data.phuongThucHoanTien === 'TIEN_MAT' ? 'Tiền mặt' : escapeHtml(data.phuongThucHoanTien))}</span>
+                                            <span class="order-detail-value"><span class="badge ${data.phuongThucHoanTien === 'TIEN_MAT' ? 'bg-success text-white' : 'bg-primary text-white'}">${data.phuongThucHoanTien === 'CHUYEN_KHOAN' ? 'Chuyển khoản ngân hàng' : (data.phuongThucHoanTien === 'TIEN_MAT' ? 'Tiền mặt' : escapeHtml(data.phuongThucHoanTien))}</span></span>
                                         </div>` : ''}
                                         ${data.maGiaoDichHoanTien ? `
                                         <div class="order-detail-field mt-1">
