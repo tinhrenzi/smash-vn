@@ -29,6 +29,7 @@ import com.smashvn.shop.exception.GhnCreateIndeterminateException;
 import com.smashvn.shop.exception.GhnUnsupportedRouteException;
 import com.smashvn.shop.repository.HoaDonChiTietRepository;
 import com.smashvn.shop.repository.HoaDonRepository;
+import com.smashvn.shop.repository.SoDiaChiRepository;
 import com.smashvn.shop.repository.TaiKhoanRepository;
 import com.smashvn.shop.service.api.GhnService;
 import com.smashvn.shop.service.api.GhnStatusMapper;
@@ -60,6 +61,7 @@ public class GhnRestController {
     private final GhnConfig ghnConfig;
     private final TaiKhoanRepository taiKhoanRepository;
     private final InventoryLotService inventoryLotService;
+    private final SoDiaChiRepository soDiaChiRepository;
 
     /**
      * Lấy danh sách tỉnh/thành phố
@@ -285,15 +287,20 @@ public class GhnRestController {
 
             if (finalDistrictId == null || finalWardCode == null || finalWardCode.isBlank()) {
                 if (hd.getDiaChi() != null) {
-                    SoDiaChi dc = hd.getDiaChi();
-                    if (dc.getDistrictId() != null && dc.getWardCode() != null && !dc.getWardCode().isBlank()) {
-                        finalDistrictId = dc.getDistrictId();
-                        finalWardCode = dc.getWardCode();
-                    } else {
-                        GhnService.GhnAddressMapping mapping = ghnService.resolveGhnAddressOrThrow(dc);
-                        if (mapping != null && mapping.getDistrictId() != null && mapping.getWardCode() != null) {
-                            finalDistrictId = mapping.getDistrictId();
-                            finalWardCode = mapping.getWardCode();
+                    SoDiaChi dc = null;
+                    if (hd.getDiaChi().getId() != null) {
+                        dc = soDiaChiRepository.findById(hd.getDiaChi().getId()).orElse(null);
+                    }
+                    if (dc != null) {
+                        if (dc.getDistrictId() != null && dc.getWardCode() != null && !dc.getWardCode().isBlank()) {
+                            finalDistrictId = dc.getDistrictId();
+                            finalWardCode = dc.getWardCode();
+                        } else {
+                            GhnService.GhnAddressMapping mapping = ghnService.resolveGhnAddressOrThrow(dc);
+                            if (mapping != null && mapping.getDistrictId() != null && mapping.getWardCode() != null) {
+                                finalDistrictId = mapping.getDistrictId();
+                                finalWardCode = mapping.getWardCode();
+                            }
                         }
                     }
                 }

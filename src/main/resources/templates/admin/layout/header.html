@@ -25,27 +25,30 @@
                     <i class="fas fa-bars"></i>
                 </button>
 
-                <button class="admin-search-toggle" id="adminSearchToggle" type="button"
-                        title="Mở tìm kiếm sản phẩm" aria-label="Mở tìm kiếm sản phẩm"
-                        aria-controls="adminProductSearch" aria-expanded="false">
-                    <i class="fas fa-search"></i>
-                </button>
-
-                <div class="admin-search-bar" id="adminProductSearch" role="search">
-                    <input type="search" id="adminGlobalSearch" placeholder="Tìm sản phẩm..."
-                           aria-label="Tìm sản phẩm" autocomplete="off">
-                    <button class="search-clear-btn" id="adminSearchClear" type="button"
-                            title="Xóa từ khóa" aria-label="Xóa từ khóa tìm kiếm" hidden>
-                        <i class="fas fa-times"></i>
-                    </button>
-                    <button class="search-btn" type="button" title="Tìm sản phẩm" aria-label="Tìm sản phẩm">
+                <!-- Thanh tìm kiếm nhanh sản phẩm (Ẩn đối với vai trò Nhân viên, chỉ hiển thị cho Quản lý) -->
+                <th:block th:if="${session.activeRole != 'NV' and session.vaiTro != 'NV'}">
+                    <button class="admin-search-toggle" id="adminSearchToggle" type="button"
+                            title="Mở tìm kiếm sản phẩm" aria-label="Mở tìm kiếm sản phẩm"
+                            aria-controls="adminProductSearch" aria-expanded="false">
                         <i class="fas fa-search"></i>
                     </button>
-                    <button class="search-mobile-close" id="adminSearchMobileClose" type="button"
-                            title="Đóng tìm kiếm" aria-label="Đóng tìm kiếm sản phẩm">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+
+                    <div class="admin-search-bar" id="adminProductSearch" role="search">
+                        <input type="search" id="adminGlobalSearch" placeholder="Tìm sản phẩm..."
+                               aria-label="Tìm sản phẩm" autocomplete="off">
+                        <button class="search-clear-btn" id="adminSearchClear" type="button"
+                                title="Xóa từ khóa" aria-label="Xóa từ khóa tìm kiếm" hidden>
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="search-btn" type="button" title="Tìm sản phẩm" aria-label="Tìm sản phẩm">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="search-mobile-close" id="adminSearchMobileClose" type="button"
+                                title="Đóng tìm kiếm" aria-label="Đóng tìm kiếm sản phẩm">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </th:block>
             </div>
 
             <!-- CỤM BÊN PHẢI: Trang chủ / Tổng quan + Tài khoản User Dropdown -->

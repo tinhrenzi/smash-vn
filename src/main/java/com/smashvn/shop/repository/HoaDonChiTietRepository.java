@@ -81,8 +81,9 @@ public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, In
     List<Integer> findOrderedVariantIdsBySanPhamId(@Param("sanPhamId") Integer sanPhamId);
 
     /**
-     * Phase 2 – Kho San Pham Loi: Tim cac HoaDonChiTiet da tung ghi nhan dua bien the nay vao kho loi.
-     * Dieu kien: hdct.sanPhamChiTiet.id = :spctId va hoaDon.trangThaiXuLyHangHoan = DA_CHUYEN_KHO_LOI.
+     * Phase 2 – Kho San Pham Loi: Tim cac HoaDonChiTiet da tung ghi nhan dua
+     * bien the nay vao kho loi. Dieu kien: hdct.sanPhamChiTiet.id = :spctId va
+     * hoaDon.trangThaiXuLyHangHoan = DA_CHUYEN_KHO_LOI.
      */
     @Query("""
         SELECT hdct

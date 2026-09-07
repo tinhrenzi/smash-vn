@@ -418,6 +418,34 @@ public class GhnService {
         }
     }
 
+    public void clearUnknownGhnCreateStatus(Integer idHoaDon) {
+        if (idHoaDon == null) return;
+        try {
+            jdbcTemplate.update(
+                "DELETE FROM TichHopVanChuyen WHERE id_hoa_don = ? AND nha_cung_cap = 'GHN' AND trang_thai = 'GHN_CREATE_UNKNOWN'",
+                idHoaDon
+            );
+            log.info("Cleared GHN_CREATE_UNKNOWN status for HoaDon #{}", idHoaDon);
+        } catch (Exception e) {
+            log.warn("Failed to clear GHN_CREATE_UNKNOWN status for HoaDon #{}: {}", idHoaDon, e.getMessage());
+        }
+    }
+
+    public SoDiaChi getHoaDonDiaChiSafe(HoaDon hoaDon) {
+        if (hoaDon == null || hoaDon.getDiaChi() == null) {
+            return null;
+        }
+        try {
+            Integer diaChiId = hoaDon.getDiaChi().getId();
+            if (diaChiId != null) {
+                return soDiaChiRepository.findById(diaChiId).orElse(null);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to retrieve SoDiaChi safely for HoaDon #{}: {}", hoaDon.getId(), e.getMessage());
+        }
+        return null;
+    }
+
     /**
      * Tra cứu thông tin vận đơn GHN theo client_order_code (mã đơn shop)
      * Theo tài liệu chính thức GHN API v2, response có trường "data" là Array/List các order.
@@ -459,6 +487,25 @@ public class GhnService {
             log.debug("GHN detail-by-client-code query failed for client_order_code {}: {}", clientOrderCode, e.getMessage());
         }
         return null;
+    }
+
+    public boolean isOrderNotFoundOnGhn(String clientOrderCode) {
+        if (clientOrderCode == null || clientOrderCode.isBlank()) {
+            return false;
+        }
+        try {
+            String url = ghnConfig.getBaseUrl() + "/shiip/public-api/v2/shipping-order/detail-by-client-code";
+            Map<String, Object> body = Map.of("client_order_code", clientOrderCode.trim());
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, buildSimpleHeaders());
+            ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, request, String.class);
+            return false;
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            String respBody = e.getResponseBodyAsString();
+            if (respBody != null && (respBody.contains("Đơn hàng không tồn tại") || respBody.contains("not found"))) {
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
     /**
@@ -594,26 +641,33 @@ public class GhnService {
                     return reconciledCode;
                 }
 
-                // If reconcile did not find order and admin did not explicitly confirm force retry -> BLOCK
-                if (!forceRetry) {
+                // If GHN confirms order does not exist, clear the unknown lock
+                if (isOrderNotFoundOnGhn(hoaDon.getMaDonHang())) {
+                    log.info("[GHN_RECONCILE] GHN confirmed order {} does not exist. Clearing GHN_CREATE_UNKNOWN status for HoaDon #{}.",
+                            hoaDon.getMaDonHang(), hoaDon.getId());
+                    clearUnknownGhnCreateStatus(hoaDon.getId());
+                } else if (!forceRetry) {
+                    // If reconcile did not find order and admin did not explicitly confirm force retry -> BLOCK
                     log.warn("[GHN_CREATE_UNKNOWN_BLOCKED] Order #{} is in GHN_CREATE_UNKNOWN state. Blocked automatic retry.", hoaDon.getId());
                     throw new GhnCreateIndeterminateException("Kết quả tạo vận đơn GHN trước đó chưa xác định (GHN_CREATE_UNKNOWN). Vui lòng kiểm tra trên GHN trước khi tạo lại để tránh tạo trùng vận đơn.");
                 } else {
                     log.info("[GHN_FORCE_RETRY] Admin confirmed force retry for HoaDon #{}.", hoaDon.getId());
+                    clearUnknownGhnCreateStatus(hoaDon.getId());
                 }
             }
 
             if (toDistrictId == null || toWardCode == null || toWardCode.isBlank()) {
-                if (hoaDon.getDiaChi() != null && hoaDon.getDiaChi().getDistrictId() != null && hoaDon.getDiaChi().getWardCode() != null) {
-                    toDistrictId = hoaDon.getDiaChi().getDistrictId();
-                    toWardCode = hoaDon.getDiaChi().getWardCode();
+                SoDiaChi dc = getHoaDonDiaChiSafe(hoaDon);
+                if (dc != null && dc.getDistrictId() != null && dc.getWardCode() != null) {
+                    toDistrictId = dc.getDistrictId();
+                    toWardCode = dc.getWardCode();
                 } else if (hoaDon.getKhachHang() != null) {
                     try {
                         List<SoDiaChi> addresses = soDiaChiRepository.findByKhachHang_Id(hoaDon.getKhachHang().getId());
                         if (addresses != null) {
                             for (SoDiaChi sdc : addresses) {
                                 if (sdc.getSdtNguoiNhan() != null 
-                                        && sdc.getSdtNguoiNhan().trim().equalsIgnoreCase(hoaDon.getSdtNhan().trim())
+                                        && sdc.getSdtNguoiNhan().trim().equalsIgnoreCase(hoaDon.getSdtNhan() != null ? hoaDon.getSdtNhan().trim() : "")
                                         && sdc.getGhnDistrictId() != null 
                                         && sdc.getGhnWardCode() != null) {
                                     toDistrictId = sdc.getGhnDistrictId();
@@ -987,8 +1041,9 @@ public class GhnService {
         try {
             Integer toDistrictId = ghnConfig.getFromDistrictId();
             String toWardCode = ghnConfig.getFromWardCode();
-            Integer fromDistrictId = hoaDon.getDiaChi() != null ? hoaDon.getDiaChi().getDistrictId() : ghnConfig.getFromDistrictId();
-            String fromWardCode = hoaDon.getDiaChi() != null ? hoaDon.getDiaChi().getWardCode() : ghnConfig.getFromWardCode();
+            SoDiaChi returnDc = getHoaDonDiaChiSafe(hoaDon);
+            Integer fromDistrictId = (returnDc != null && returnDc.getDistrictId() != null) ? returnDc.getDistrictId() : ghnConfig.getFromDistrictId();
+            String fromWardCode = (returnDc != null && returnDc.getWardCode() != null) ? returnDc.getWardCode() : ghnConfig.getFromWardCode();
             
             String shopIdStr = getGhnShopId();
             String tokenStr = getGhnToken();
@@ -1074,16 +1129,17 @@ public class GhnService {
     public String createExchangeShippingOrderOrThrow(HoaDon hoaDon, List<HoaDonChiTiet> items,
                                                      Integer toDistrictId, String toWardCode) throws Exception {
         if (toDistrictId == null || toWardCode == null || toWardCode.isBlank()) {
-            if (hoaDon.getDiaChi() != null && hoaDon.getDiaChi().getDistrictId() != null && hoaDon.getDiaChi().getWardCode() != null) {
-                toDistrictId = hoaDon.getDiaChi().getDistrictId();
-                toWardCode = hoaDon.getDiaChi().getWardCode();
+            SoDiaChi dc = getHoaDonDiaChiSafe(hoaDon);
+            if (dc != null && dc.getDistrictId() != null && dc.getWardCode() != null) {
+                toDistrictId = dc.getDistrictId();
+                toWardCode = dc.getWardCode();
             } else if (hoaDon.getKhachHang() != null) {
                 try {
                     List<SoDiaChi> addresses = soDiaChiRepository.findByKhachHang_Id(hoaDon.getKhachHang().getId());
                     if (addresses != null) {
                         for (SoDiaChi sdc : addresses) {
                             if (sdc.getSdtNguoiNhan() != null 
-                                    && sdc.getSdtNguoiNhan().trim().equalsIgnoreCase(hoaDon.getSdtNhan().trim())
+                                    && sdc.getSdtNguoiNhan().trim().equalsIgnoreCase(hoaDon.getSdtNhan() != null ? hoaDon.getSdtNhan().trim() : "")
                                     && sdc.getGhnDistrictId() != null 
                                     && sdc.getGhnWardCode() != null) {
                                 toDistrictId = sdc.getGhnDistrictId();
