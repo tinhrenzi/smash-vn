@@ -100,7 +100,6 @@ public class GhnDecouplingAndConcurrencyTest {
             for (Integer id : createdHoaDonIds) {
                 try {
                     jdbcTemplate.update("DELETE FROM GiaoDichThanhToan WHERE id_hoa_don = ?", id);
-                    jdbcTemplate.update("DELETE FROM LichSuTrangThaiDonHang WHERE id_hoa_don = ?", id);
                     jdbcTemplate.update("DELETE FROM TichHopVanChuyen WHERE id_hoa_don = ?", id);
                     jdbcTemplate.update("DELETE FROM HoaDonChiTiet WHERE id_hoa_don = ?", id);
                     jdbcTemplate.update("DELETE FROM EditLog WHERE ten_bang = 'HoaDon' AND id_ban_ghi = ?", id);

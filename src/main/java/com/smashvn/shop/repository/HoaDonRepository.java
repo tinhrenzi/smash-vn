@@ -119,10 +119,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
     @Query("SELECT COUNT(DISTINCT hd.id) FROM HoaDon hd WHERE (LOWER(hd.trangThaiThanhToan) = 'paid' OR hd.trangThaiThanhToan = 'DA_THANH_TOAN' OR hd.trangThaiThanhToan = 'CHO_HOAN_TIEN' OR LOWER(hd.trangThaiThanhToan) = 'refunded' OR hd.trangThaiThanhToan = 'REFUNDED' OR (LOWER(hd.trangThaiThanhToan) = 'cancelled' AND hd.ngayThanhToan IS NOT NULL) OR hd.trangThaiDonHang IN ('da_giao', 'hoan_thanh')) AND hd.ngayTao BETWEEN :start AND :end")
     Long countTransactionsInPeriod(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.transaction.annotation.Transactional
-    @Query(value = "DELETE FROM LichSuTrangThaiDonHang WHERE id_hoa_don = :orderId", nativeQuery = true)
-    void deleteOrderStatusHistoryByOrderId(@Param("orderId") Integer orderId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT hd FROM HoaDon hd WHERE hd.id = :id")
