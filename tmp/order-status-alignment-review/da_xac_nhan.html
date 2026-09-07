@@ -1,0 +1,390 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Order preview da_xac_nhan</title><link rel="stylesheet" href="file:///C:/Users/NITRO%205/Documents/workspace-spring-tool-suite-4-4.27.0.RELEASE/SMASH-VN_Shop-ban-vot-cau-long/src/main/resources/static/css/vendor.css"><link rel="stylesheet" href="file:///C:/Users/NITRO%205/Documents/workspace-spring-tool-suite-4-4.27.0.RELEASE/SMASH-VN_Shop-ban-vot-cau-long/src/main/resources/static/css/utility.css"><link rel="stylesheet" href="file:///C:/Users/NITRO%205/Documents/workspace-spring-tool-suite-4-4.27.0.RELEASE/SMASH-VN_Shop-ban-vot-cau-long/src/main/resources/static/css/app.css"><style>
+        /* ===== Badge Trạng thái ===== */
+        .manage-o__badge {
+            width: auto !important;
+            min-width: 5.9375rem !important;
+            white-space: nowrap !important;
+            padding: 6px 14px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .badge--pending   { background-color: #fff3cd !important; color: #856404 !important; }
+        .badge--warning   { background-color: #ffeeb3 !important; color: #856404 !important; }
+        .badge--processing{ background-color: #cce5ff !important; color: #004085 !important; }
+        .badge--confirmed { background-color: #d0f0fd !important; color: #005f7a !important; }
+        .badge--shipping  { background-color: #d1ecf1 !important; color: #0c5460 !important; }
+        .badge--delivered { background-color: #d4edda !important; color: #155724 !important; }
+        .badge--cancelled { background-color: #f8d7da !important; color: #721c24 !important; }
+        .badge--conflict  { background-color: #ffe5b4 !important; color: #7a4500 !important; }
+
+        /* ===== Nút hủy đơn ===== */
+        #btn-huy-don {
+            background-color: #e53935;
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.2s ease;
+            font-size: 14px;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #btn-huy-don:hover { background-color: #c62828; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(229,57,53,.35); }
+        #btn-huy-don:active { transform: translateY(0); }
+        #btn-huy-don:disabled { background-color: #aaa; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ===== Modal Xác nhận hủy ===== */
+        .cancel-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .cancel-modal-overlay.active { display: flex; }
+        .cancel-modal {
+            background: #fff;
+            border-radius: 14px;
+            padding: 36px 32px 28px;
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,.22);
+            animation: modalIn 0.28s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        @keyframes modalIn {
+            from { opacity:0; transform: scale(0.88) translateY(20px); }
+            to   { opacity:1; transform: scale(1) translateY(0); }
+        }
+        .cancel-modal__icon { font-size: 52px; margin-bottom: 14px; display: block; }
+        .cancel-modal__title { font-size: 20px; font-weight: 800; color: #212121; margin-bottom: 8px; }
+        .cancel-modal__desc  { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.6; }
+        .cancel-modal__actions { display: flex; gap: 12px; justify-content: center; }
+        .btn-modal-confirm {
+            background: #e53935; color: #fff; border: none;
+            padding: 11px 28px; border-radius: 7px; font-weight: 700;
+            cursor: pointer; font-size: 14px; transition: background 0.2s ease;
+        }
+        .btn-modal-confirm:hover { background: #c62828; }
+        .btn-modal-cancel {
+            background: #f5f5f5; color: #555; border: 1px solid #ddd;
+            padding: 11px 28px; border-radius: 7px; font-weight: 600;
+            cursor: pointer; font-size: 14px; transition: background 0.2s ease;
+        }
+        .btn-modal-cancel:hover { background: #e8e8e8; }
+
+        /* ===== Guest First Order Success Modal ===== */
+        .guest-success-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .guest-success-modal-overlay.active {
+            display: flex;
+        }
+        .guest-success-modal {
+            background: #ffffff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+            animation: modalIn 0.25s cubic-bezier(.34,1.56,.64,1) both;
+            color: #1e293b;
+        }
+        .guest-success-modal__header {
+            padding: 24px 24px 0;
+            display: flex;
+            align-items: center;
+            color: #10b981;
+            font-size: 20px;
+            font-weight: 700;
+            gap: 10px;
+        }
+        .guest-success-modal__body {
+            padding: 16px 24px 24px;
+            text-align: left;
+        }
+        .guest-success-modal__btn {
+            background: #ff4500;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .guest-success-modal__btn:hover {
+            background: #e03e00;
+        }
+
+        /* ===== Timeline: connect adjacent circles at their centers ===== */
+        .timeline-stepper {
+            --timeline-circle-size: 68px;
+            --timeline-line-size: 4px;
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            position: relative !important;
+            padding: 24px 0 !important;
+            margin: 20px 0 !important;
+            width: 100% !important;
+            overflow-x: auto;
+            isolation: isolate;
+        }
+        .timeline-stepper-step {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            flex: 1 0 120px !important;
+            min-width: 0;
+            position: relative !important;
+            width: auto !important;
+        }
+        .timeline-stepper-step + .timeline-stepper-step::before {
+            content: "";
+            position: absolute;
+            top: calc((var(--timeline-circle-size) - var(--timeline-line-size)) / 2);
+            left: -50%;
+            width: 100%;
+            height: var(--timeline-line-size);
+            background-color: #e0e0e0;
+            z-index: 0;
+        }
+        .timeline-stepper-step.finish + .timeline-stepper-step.finish::before {
+            background-color: var(--step-color, #2ec155);
+        }
+        .timeline-stepper-icon-circle {
+            box-sizing: border-box;
+            width: var(--timeline-circle-size) !important;
+            height: var(--timeline-circle-size) !important;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+            border-radius: 50% !important;
+            background-color: #fff !important;
+            border: 4px solid #e0e0e0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 20px !important;
+            color: #bdbdbd !important;
+            margin-bottom: 12px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+        }
+        .timeline-stepper-step.active .timeline-stepper-icon-circle {
+            border-color: var(--step-color, #2ec155) !important;
+            color: var(--step-color, #2ec155) !important;
+        }
+        .timeline-stepper-step.finish .timeline-stepper-icon-circle {
+            border-color: var(--step-color, #2ec155) !important;
+            background-color: var(--step-color, #2ec155) !important;
+            color: #fff !important;
+        }
+        .timeline-stepper-label {
+            box-sizing: border-box;
+            padding: 0 4px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #757575;
+            margin-bottom: 4px;
+            max-width: 140px;
+            line-height: 1.3;
+        }
+        .timeline-stepper-step.active .timeline-stepper-label,
+        .timeline-stepper-step.finish .timeline-stepper-label {
+            color: #212121;
+        }
+        .timeline-stepper-time {
+            font-size: 11px;
+            color: #9e9e9e;
+        }
+        .timeline-stepper-step.active .timeline-stepper-time,
+        .timeline-stepper-step.finish .timeline-stepper-time {
+            color: #616161;
+        }
+
+        /* Section order header */
+        .order-header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .order-meta-group { display: flex; flex-direction: column; gap: 6px; }
+        .order-status-group { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+
+        /* Overrides to make the product list stack vertically and display beautifully */
+        .manage-o__description {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+        }
+
+        .manage-o__description-item {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            gap: 16px !important;
+            padding: 20px 0 !important;
+            border-bottom: 1px solid #eee !important;
+        }
+
+        .description__container {
+            display: flex !important;
+            align-items: center !important;
+            flex: 1 1 300px !important;
+        }
+
+        .description__img-wrap {
+            width: 80px !important;
+            height: 80px !important;
+            margin-right: 16px !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+            border: 1px solid #e9ecef !important;
+            flex-shrink: 0 !important;
+            background: #fff !important;
+        }
+
+        .description__img-wrap img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 8px !important;
+            min-width: unset !important;
+        }
+
+        .description-title {
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            color: #1e2229 !important;
+            margin-left: 0 !important;
+            margin-bottom: 6px !important;
+            line-height: 1.4 !important;
+        }
+
+        .description__info-wrap {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            flex-wrap: wrap !important;
+            gap: 24px !important;
+            flex: 2 1 400px !important;
+        }
+
+        .info-detail-col {
+            display: flex !important;
+            flex-direction: column !important;
+            font-size: 0.82rem !important;
+            color: #6c757d !important;
+        }
+
+        .info-detail-val {
+            color: #1e2229 !important;
+            font-weight: 700 !important;
+            font-size: 0.9rem !important;
+            white-space: nowrap !important;
+            margin-top: 4px !important;
+        }
+
+        .info-detail-val.price {
+            color: #ff4500 !important;
+        }
+
+        @media (max-width: 767.98px) {
+            .manage-o__description-item {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            .description__info-wrap {
+                justify-content: flex-start !important;
+                width: 100% !important;
+                border-top: 1px dashed #eee !important;
+                padding-top: 12px !important;
+                gap: 16px !important;
+            }
+        }
+    </style><style>body{background:#fafafa;margin:0;padding:20px;box-sizing:border-box}.review-wrap{width:934px;max-width:100%;margin:auto;padding:28px;background:white;box-sizing:border-box;border-radius:16px}.review-label{margin-bottom:20px;font-size:14px;font-weight:600}</style></head><body><main class="review-wrap"><div class="review-label">da_xac_nhan</div><button id="btn-huy-don" data-order-id="84" data-order-code="#84" onclick="moModalHuyDon(this)" title="Hủy đơn hàng này" style="margin-bottom: 0;">
+                                                     <i class="fas fa-times-circle"></i> Hủy đơn hàng
+                                                 </button>
+<div class="timeline-stepper">
+                                                    
+                                                    <!-- Bước 1: Đơn Hàng Đã Đặt -->
+                                                    <div class="timeline-stepper-step finish">
+                                                        <div class="timeline-stepper-icon-circle">
+                                                            <i class="fas fa-file-invoice"></i>
+                                                        </div>
+                                                        <span class="timeline-stepper-label">Đơn Hàng Đã Đặt</span>
+                                                        <span class="timeline-stepper-time">15:45 07-09-2026</span>
+                                                    </div>
+                                                    
+                                                    <!-- Bước 2: Đã Xác Nhận / Thanh Toán -->
+                                                     <div class="timeline-stepper-step finish">
+                                                        <div class="timeline-stepper-icon-circle">
+                                                            <i class="fas fa-money-bill-wave"></i>
+                                                        </div>
+                                                        <span class="timeline-stepper-label">Đã Xác Nhận</span>
+                                                        <span class="timeline-stepper-time"></span>
+                                                    </div>
+                                                    
+                                                    <!-- Bước 3: Đang Chuẩn Bị / Lấy Hàng / Bàn Giao GHN -->
+                                                     <div class="timeline-stepper-step ">
+                                                        <div class="timeline-stepper-icon-circle">
+                                                            <i class="fas fa-box-open"></i>
+                                                        </div>
+                                                        <span class="timeline-stepper-label">Đang Lấy Hàng</span>
+                                                        <span class="timeline-stepper-time"></span>
+                                                    </div>
+                                                    
+                                                    <!-- Bước 4: Đang Giao / Giao Thất Bại -->
+                                                     <div class="timeline-stepper-step ">
+                                                        <div class="timeline-stepper-icon-circle">
+                                                            <i class="fas fa-truck"></i>
+                                                        </div>
+                                                        <span class="timeline-stepper-label">Đang Giao</span>
+                                                        <span class="timeline-stepper-time"></span>
+                                                    </div>
+                                                    
+                                                    <!-- Bước 5: Đã giao thành công -->
+                                                     <div class="timeline-stepper-step ">
+                                                        <div class="timeline-stepper-icon-circle">
+                                                            <i class="fas fa-inbox"></i>
+                                                        </div>
+                                                        <span class="timeline-stepper-label">Đã Giao Thành Công</span>
+                                                        <span class="timeline-stepper-time"></span>
+                                                    </div>
+                                                    
+                                                    <!-- Bước 6: Đánh Giá -->
+                                                     <div class="timeline-stepper-step ">
+                                                        <div class="timeline-stepper-icon-circle">
+                                                            <i class="fas fa-star"></i>
+                                                        </div>
+                                                        <span class="timeline-stepper-label">Đánh Giá</span>
+                                                        <span class="timeline-stepper-time"></span>
+                                                    </div>
+                                                </div>
+</main></body></html>

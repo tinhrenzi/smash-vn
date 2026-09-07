@@ -160,8 +160,10 @@
             background: #e03e00;
         }
 
-        /* ===== Custom Green Timeline Stepper (Matches 2nd image) ===== */
+        /* ===== Timeline: connect adjacent circles at their centers ===== */
         .timeline-stepper {
+            --timeline-circle-size: 68px;
+            --timeline-line-size: 4px;
             display: flex !important;
             flex-direction: row !important;
             justify-content: space-between !important;
@@ -170,40 +172,39 @@
             padding: 24px 0 !important;
             margin: 20px 0 !important;
             width: 100% !important;
-        }
-        .timeline-stepper::before {
-            content: "" !important;
-            position: absolute !important;
-            top: 32px !important;
-            left: 8% !important;
-            right: 8% !important;
-            height: 4px !important;
-            background-color: #e0e0e0 !important;
-            z-index: 1 !important;
-        }
-        .timeline-stepper-progress {
-            position: absolute !important;
-            top: 32px !important;
-            left: 8% !important;
-            max-width: 84% !important;
-            height: 4px !important;
-            background-color: #2ec155 !important;
-            z-index: 2 !important;
-            transition: width 0.4s ease !important;
+            overflow-x: auto;
+            isolation: isolate;
         }
         .timeline-stepper-step {
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
             text-align: center !important;
-            flex: 1 1 0% !important;
-            z-index: 3 !important;
+            flex: 1 0 120px !important;
+            min-width: 0;
             position: relative !important;
             width: auto !important;
         }
+        .timeline-stepper-step + .timeline-stepper-step::before {
+            content: "";
+            position: absolute;
+            top: calc((var(--timeline-circle-size) - var(--timeline-line-size)) / 2);
+            left: -50%;
+            width: 100%;
+            height: var(--timeline-line-size);
+            background-color: #e0e0e0;
+            z-index: 0;
+        }
+        .timeline-stepper-step.finish + .timeline-stepper-step.finish::before {
+            background-color: var(--step-color, #2ec155);
+        }
         .timeline-stepper-icon-circle {
-            width: 60px !important;
-            height: 60px !important;
+            box-sizing: border-box;
+            width: var(--timeline-circle-size) !important;
+            height: var(--timeline-circle-size) !important;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
             border-radius: 50% !important;
             background-color: #fff !important;
             border: 4px solid #e0e0e0 !important;
@@ -226,6 +227,8 @@
             color: #fff !important;
         }
         .timeline-stepper-label {
+            box-sizing: border-box;
+            padding: 0 4px;
             font-size: 13px;
             font-weight: 700;
             color: #757575;
@@ -626,11 +629,11 @@
                                                  </div>
                                              </div>
 
-                                              <!-- Thông báo không thể hủy (khi đang giao / đã giao và chưa có yêu cầu trả hàng) -->
-                                              <div th:if="${(order['trangThaiDonHang'] == 'dang_giao' or order['trangThaiDonHang'] == 'da_giao' or order['trangThaiDonHang'] == 'giao_that_bai') and order['trangThaiHoanHang'] == null}"
+                                              <!-- Thông báo vận chuyển (chỉ khi đang giao / giao lại và chưa có yêu cầu trả hàng) -->
+                                              <div th:if="${(order['trangThaiDonHang'] == 'dang_giao' or order['trangThaiDonHang'] == 'giao_that_bai') and order['trangThaiHoanHang'] == null}"
                                                   style="margin-top: 14px; padding: 10px 14px; background: #f8f9fa; border-left: 4px solid #90a4ae; border-radius: 4px; font-size: 13px; color: #546e7a;">
                                                  <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
-                                                 <span th:text="${order['trangThaiDonHang'] == 'giao_that_bai' ? 'Giao hàng không thành công (Khách hẹn giao lại hoặc sai địa chỉ). Đơn vị vận chuyển sẽ thử giao lại.' : 'Đơn hàng đang được vận chuyển hoặc đã giao, không thể hủy đơn.'}">Đơn hàng đang được vận chuyển hoặc đã giao, không thể hủy đơn.</span>
+                                                 <span th:text="${order['trangThaiDonHang'] == 'giao_that_bai' ? 'Giao hàng không thành công (Khách hẹn giao lại hoặc sai địa chỉ). Đơn vị vận chuyển sẽ thử giao lại.' : 'Đơn hàng đang được vận chuyển, không thể hủy đơn.'}">Đơn hàng đang được vận chuyển, không thể hủy đơn.</span>
                                               </div>
 
                                             <!-- Thông báo đơn đã bị hủy -->
@@ -721,7 +724,6 @@
                                                 <!-- Timeline - hiển thị theo trạng thái -->
                                                  <!-- Trường hợp 1: ĐÃ HỦY (Chỉ khi KHÔNG PHẢI đơn hoàn trả hàng) -->
                                                  <div th:if="${order['trangThaiHoanHang'] == null and order['trangThaiDonHang'] == 'da_huy'}" class="timeline-stepper">
-                                                     <div class="timeline-stepper-progress" style="width: 42%; background-color: #e53935;"></div>
                                                      
                                                      <div class="timeline-stepper-step finish">
                                                          <div class="timeline-stepper-icon-circle">
@@ -750,7 +752,6 @@
 
                                                  <!-- Trường hợp 2: BÌNH THƯỜNG (Chỉ khi KHÔNG PHẢI đơn hoàn trả hàng) -->
                                                  <div th:if="${order['trangThaiHoanHang'] == null and order['trangThaiDonHang'] != 'da_huy'}" class="timeline-stepper">
-                                                      <div class="timeline-stepper-progress" th:style="${'width: ' + ((order['trangThaiDonHang'] == 'da_giao' or order['trangThaiDonHang'] == 'hoan_thanh') ? '80%' : ((order['trangThaiDonHang'] == 'dang_giao' or order['trangThaiDonHang'] == 'giao_that_bai') ? '60%' : ((order['trangThaiDonHang'] == 'da_ban_giao_ghn' or order['trangThaiDonHang'] == 'da_tao_van_don_ghn' or order['trangThaiDonHang'] == 'dang_lay_hang') ? '40%' : ((order['trangThaiDonHang'] == 'san_sang_giao' or order['trangThaiDonHang'] == 'dang_chuan_bi_hang') ? '30%' : ((order['trangThaiDonHang'] == 'da_xac_nhan' or order['trangThaiThanhToan'] == 'DA_THANH_TOAN' or order['trangThaiThanhToan'] == 'CHO_HOAN_TIEN' or order['status'] == 'paid') ? '20%' : '0%')))))}"></div>
                                                     
                                                     <!-- Bước 1: Đơn Hàng Đã Đặt -->
                                                     <div class="timeline-stepper-step finish">
@@ -814,7 +815,6 @@
 
                                                  <!-- Trường hợp: ĐỔI TRẢ & HOÀN TIỀN (Stepper 5 bước) -->
                                                  <div th:if="${order['trangThaiHoanHang'] != null}" class="timeline-stepper timeline-stepper--return">
-                                                     <div class="timeline-stepper-progress" th:style="${'width: ' + (order['trangThaiHoanHang'] == 'REFUNDED' or order['trangThaiHoanHang'] == 'EXCHANGED' ? '100%' : ((order['trangThaiHoanHang'] == 'RETURNED' or order['trangThaiHoanHang'] == 'PENDING_RETURN' or order['trangThaiHoanHang'] == 'EXCHANGE_STOCK_ALLOCATED' or order['trangThaiHoanHang'] == 'EXCHANGE_SHIPPING') ? '75%' : ((order['trangThaiHoanHang'] == 'DELIVERED_TO_SHOP' or order['trangThaiHoanHang'] == 'RETURNING' or order['trangThaiHoanHang'] == 'PICKED_UP') ? '50%' : (order['trangThaiHoanHang'] == 'WAITING_FOR_PICKUP' ? '25%' : '0%'))))}"></div>
                                                      
                                                      <!-- Bước 1: Gửi Yêu Cầu -->
                                                      <div class="timeline-stepper-step finish">

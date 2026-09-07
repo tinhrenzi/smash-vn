@@ -1,0 +1,472 @@
+{
+  "cases": [
+    {
+      "case": "bac-giang",
+      "bytes": 9268,
+      "featureCount": 7,
+      "featureKeys": [
+        "address",
+        "bbox",
+        "center",
+        "context",
+        "geometry",
+        "id",
+        "language",
+        "language_vi",
+        "place_name",
+        "place_name_vi",
+        "place_type",
+        "place_type_name",
+        "properties",
+        "relevance",
+        "text",
+        "text_vi",
+        "type"
+      ],
+      "propertyKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "kind",
+        "place_designation",
+        "place_type_name",
+        "ref",
+        "wikidata"
+      ],
+      "contextKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "id",
+        "kind",
+        "language",
+        "language_vi",
+        "place_designation",
+        "ref",
+        "text",
+        "text_vi",
+        "wikidata"
+      ],
+      "hasContext": true,
+      "hasParentField": false,
+      "hasAlternateNameField": false,
+      "hasMatchingNameField": false,
+      "hasVietnamAdminCodeField": false,
+      "providerIdentifiers": [
+        {
+          "id": "address.4332270",
+          "ref": "osm:w325370785",
+          "wikidata": null
+        },
+        {
+          "id": "postal_code.1956506",
+          "ref": "osm:n12868314620",
+          "wikidata": null
+        },
+        {
+          "id": "place.3777235",
+          "ref": "osm:n12621938946",
+          "wikidata": null
+        },
+        {
+          "id": "municipality.240344",
+          "ref": "osm:r18758357",
+          "wikidata": "Q134980445"
+        },
+        {
+          "id": "region.783",
+          "ref": "osm:r1902690",
+          "wikidata": "Q33408"
+        },
+        {
+          "id": "country.173",
+          "ref": "osm:r49915",
+          "wikidata": "Q881"
+        },
+        {
+          "id": "continental_marine.5",
+          "ref": "osm:n36966065",
+          "wikidata": "Q48"
+        }
+      ]
+    },
+    {
+      "case": "phan-thiet",
+      "bytes": 11391,
+      "featureCount": 8,
+      "featureKeys": [
+        "address",
+        "bbox",
+        "center",
+        "context",
+        "geometry",
+        "id",
+        "language",
+        "language_vi",
+        "place_name",
+        "place_name_vi",
+        "place_type",
+        "place_type_name",
+        "properties",
+        "relevance",
+        "text",
+        "text_vi",
+        "type"
+      ],
+      "propertyKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "kind",
+        "place_designation",
+        "place_type_name",
+        "ref",
+        "wikidata"
+      ],
+      "contextKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "id",
+        "kind",
+        "language",
+        "language_vi",
+        "place_designation",
+        "ref",
+        "text",
+        "text_vi",
+        "wikidata"
+      ],
+      "hasContext": true,
+      "hasParentField": false,
+      "hasAlternateNameField": false,
+      "hasMatchingNameField": false,
+      "hasVietnamAdminCodeField": false,
+      "providerIdentifiers": [
+        {
+          "id": "address.13782217",
+          "ref": "osm:w219619110",
+          "wikidata": null
+        },
+        {
+          "id": "postal_code.750970",
+          "ref": "osm:n9160610604",
+          "wikidata": null
+        },
+        {
+          "id": "municipality.186810",
+          "ref": "osm:r14478488",
+          "wikidata": "Q136721539"
+        },
+        {
+          "id": "place.5128078",
+          "ref": "osm:n3140507587",
+          "wikidata": "Q25315"
+        },
+        {
+          "id": "major_landform.2414008",
+          "ref": "osm:r18762677",
+          "wikidata": null
+        },
+        {
+          "id": "region.757",
+          "ref": "osm:r1885367",
+          "wikidata": "Q36721"
+        },
+        {
+          "id": "country.173",
+          "ref": "osm:r49915",
+          "wikidata": "Q881"
+        },
+        {
+          "id": "continental_marine.5",
+          "ref": "osm:n36966065",
+          "wikidata": "Q48"
+        }
+      ]
+    },
+    {
+      "case": "thu-dau-mot",
+      "bytes": 14422,
+      "featureCount": 9,
+      "featureKeys": [
+        "bbox",
+        "center",
+        "context",
+        "geometry",
+        "id",
+        "language",
+        "language_vi",
+        "place_name",
+        "place_name_vi",
+        "place_type",
+        "place_type_name",
+        "properties",
+        "relevance",
+        "text",
+        "text_vi",
+        "type"
+      ],
+      "propertyKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "kind",
+        "place_designation",
+        "place_type_name",
+        "ref",
+        "wikidata"
+      ],
+      "contextKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "id",
+        "kind",
+        "language",
+        "language_vi",
+        "place_designation",
+        "ref",
+        "text",
+        "text_vi",
+        "wikidata"
+      ],
+      "hasContext": true,
+      "hasParentField": false,
+      "hasAlternateNameField": false,
+      "hasMatchingNameField": false,
+      "hasVietnamAdminCodeField": false,
+      "providerIdentifiers": [
+        {
+          "id": "address.7149818",
+          "ref": "osm:w126154661",
+          "wikidata": null
+        },
+        {
+          "id": "postal_code.1973357",
+          "ref": "osm:n7490126248",
+          "wikidata": null
+        },
+        {
+          "id": "place.3783531",
+          "ref": "osm:n12666417898",
+          "wikidata": null
+        },
+        {
+          "id": "neighbourhood.72480",
+          "ref": "osm:r21080497",
+          "wikidata": null
+        },
+        {
+          "id": "municipality.156012",
+          "ref": "osm:r8448188",
+          "wikidata": "Q2186928"
+        },
+        {
+          "id": "major_landform.3170648",
+          "ref": "osm:r9856326",
+          "wikidata": "Q1060805"
+        },
+        {
+          "id": "region.938",
+          "ref": "osm:r1973756",
+          "wikidata": "Q1854"
+        },
+        {
+          "id": "country.173",
+          "ref": "osm:r49915",
+          "wikidata": "Q881"
+        },
+        {
+          "id": "continental_marine.5",
+          "ref": "osm:n36966065",
+          "wikidata": "Q48"
+        }
+      ]
+    },
+    {
+      "case": "vi-thanh",
+      "bytes": 11048,
+      "featureCount": 8,
+      "featureKeys": [
+        "bbox",
+        "center",
+        "context",
+        "geometry",
+        "id",
+        "language",
+        "language_vi",
+        "place_name",
+        "place_name_vi",
+        "place_type",
+        "place_type_name",
+        "properties",
+        "relevance",
+        "text",
+        "text_vi",
+        "type"
+      ],
+      "propertyKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "kind",
+        "place_designation",
+        "place_type_name",
+        "ref",
+        "wikidata"
+      ],
+      "contextKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "id",
+        "kind",
+        "language",
+        "language_vi",
+        "place_designation",
+        "ref",
+        "text",
+        "text_vi",
+        "wikidata"
+      ],
+      "hasContext": true,
+      "hasParentField": false,
+      "hasAlternateNameField": false,
+      "hasMatchingNameField": false,
+      "hasVietnamAdminCodeField": false,
+      "providerIdentifiers": [
+        {
+          "id": "road.282528",
+          "ref": "osm:r14972524",
+          "wikidata": "Q10811003"
+        },
+        {
+          "id": "postal_code.2364196",
+          "ref": "osm:n13344700548",
+          "wikidata": null
+        },
+        {
+          "id": "municipality.188377",
+          "ref": "osm:r14908444",
+          "wikidata": null
+        },
+        {
+          "id": "place.5125733",
+          "ref": "osm:n369487024",
+          "wikidata": "Q36114"
+        },
+        {
+          "id": "major_landform.2429410",
+          "ref": "osm:r9196416",
+          "wikidata": null
+        },
+        {
+          "id": "region.653",
+          "ref": "osm:r1874283",
+          "wikidata": "Q216075"
+        },
+        {
+          "id": "country.173",
+          "ref": "osm:r49915",
+          "wikidata": "Q881"
+        },
+        {
+          "id": "continental_marine.5",
+          "ref": "osm:n36966065",
+          "wikidata": "Q48"
+        }
+      ]
+    },
+    {
+      "case": "vung-tau",
+      "bytes": 9111,
+      "featureCount": 7,
+      "featureKeys": [
+        "address",
+        "bbox",
+        "center",
+        "context",
+        "geometry",
+        "id",
+        "language",
+        "language_vi",
+        "place_name",
+        "place_name_vi",
+        "place_type",
+        "place_type_name",
+        "properties",
+        "relevance",
+        "text",
+        "text_vi",
+        "type"
+      ],
+      "propertyKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "kind",
+        "place_designation",
+        "place_type_name",
+        "ref",
+        "wikidata"
+      ],
+      "contextKeys": [
+        "categories",
+        "country_code",
+        "feature_tags",
+        "id",
+        "kind",
+        "language",
+        "language_vi",
+        "place_designation",
+        "ref",
+        "text",
+        "text_vi",
+        "wikidata"
+      ],
+      "hasContext": true,
+      "hasParentField": false,
+      "hasAlternateNameField": false,
+      "hasMatchingNameField": false,
+      "hasVietnamAdminCodeField": false,
+      "providerIdentifiers": [
+        {
+          "id": "address.15148225",
+          "ref": "osm:w35923632",
+          "wikidata": null
+        },
+        {
+          "id": "postal_code.1555260",
+          "ref": "osm:n11601268350",
+          "wikidata": null
+        },
+        {
+          "id": "place.1852877",
+          "ref": "osm:n5556791358",
+          "wikidata": null
+        },
+        {
+          "id": "municipality.107321",
+          "ref": "osm:r3610162",
+          "wikidata": "Q1818274"
+        },
+        {
+          "id": "major_landform.2408886",
+          "ref": "osm:w225083359",
+          "wikidata": null
+        },
+        {
+          "id": "region.938",
+          "ref": "osm:r1973756",
+          "wikidata": "Q1854"
+        },
+        {
+          "id": "country.173",
+          "ref": "osm:r49915",
+          "wikidata": "Q881"
+        }
+      ]
+    }
+  ]
+}

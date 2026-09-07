@@ -1,0 +1,111 @@
+{
+  "results": [
+    {
+      "slug": "thu-dau-mot",
+      "expectedLegacy": {
+        "province": "Bình Dương",
+        "district": "Thủ Dầu Một",
+        "ward": "Phú Cường"
+      },
+      "currentAddressResolutionCandidates": {
+        "province": [
+          "Thành phố Hồ Chí Minh"
+        ],
+        "district": [],
+        "ward": [
+          "Phú Cường 7",
+          "Khu phố Phú Cường 6",
+          "Phường Thủ Dầu Một"
+        ]
+      },
+      "containsExpectedLegacyProvince": false,
+      "containsExpectedLegacyDistrict": false,
+      "containsExpectedLegacyWard": false
+    },
+    {
+      "slug": "vung-tau",
+      "expectedLegacy": {
+        "province": "Bà Rịa - Vũng Tàu",
+        "district": "Vũng Tàu",
+        "ward": "Thắng Tam"
+      },
+      "currentAddressResolutionCandidates": {
+        "province": [
+          "Thành phố Hồ Chí Minh"
+        ],
+        "district": [],
+        "ward": [
+          "Khu phố 13",
+          "Phường Vũng Tàu"
+        ]
+      },
+      "containsExpectedLegacyProvince": false,
+      "containsExpectedLegacyDistrict": false,
+      "containsExpectedLegacyWard": false
+    },
+    {
+      "slug": "bac-giang",
+      "expectedLegacy": {
+        "province": "Bắc Giang",
+        "district": "Bắc Giang",
+        "ward": "Ngô Quyền"
+      },
+      "currentAddressResolutionCandidates": {
+        "province": [
+          "Tỉnh Bắc Ninh"
+        ],
+        "district": [],
+        "ward": [
+          "Ngô Quyền",
+          "Phường Bắc Giang"
+        ]
+      },
+      "containsExpectedLegacyProvince": false,
+      "containsExpectedLegacyDistrict": false,
+      "containsExpectedLegacyWard": true
+    },
+    {
+      "slug": "phan-thiet",
+      "expectedLegacy": {
+        "province": "Bình Thuận",
+        "district": "Phan Thiết",
+        "ward": "Bình Hưng"
+      },
+      "currentAddressResolutionCandidates": {
+        "province": [
+          "Tỉnh Lâm Đồng"
+        ],
+        "district": [
+          "Phan Thiết"
+        ],
+        "ward": [
+          "Phan Thiết"
+        ]
+      },
+      "containsExpectedLegacyProvince": false,
+      "containsExpectedLegacyDistrict": true,
+      "containsExpectedLegacyWard": false
+    },
+    {
+      "slug": "vi-thanh",
+      "expectedLegacy": {
+        "province": "Hậu Giang",
+        "district": "Vị Thanh",
+        "ward": "Vị Tân"
+      },
+      "currentAddressResolutionCandidates": {
+        "province": [
+          "Thành phố Cần Thơ"
+        ],
+        "district": [],
+        "ward": [
+          "Phường Vị Tân",
+          "Vị Thanh"
+        ]
+      },
+      "containsExpectedLegacyProvince": false,
+      "containsExpectedLegacyDistrict": false,
+      "containsExpectedLegacyWard": false
+    }
+  ]
+}

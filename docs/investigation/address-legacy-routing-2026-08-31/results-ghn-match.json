@@ -1,0 +1,183 @@
+{
+  "testedAt": "2026-08-31T18:53:18.6756421+07:00",
+  "baseHost": "dev-online-gateway.ghn.vn",
+  "provinceCatalogCount": 65,
+  "results": [
+    {
+      "case": "thu-dau-mot",
+      "inputOldProvince": "BìnhDương",
+      "inputOldDistrict": "ThủDầuMột",
+      "inputOldWard": "PhúCường",
+      "wardSource": "GADM",
+      "provinceId": 205,
+      "provinceName": "Bình Dương",
+      "provinceMatchCount": 1,
+      "districtId": 1538,
+      "districtName": "Thành phố Thủ Dầu Một",
+      "districtMatchCount": 1,
+      "wardCode": "440107",
+      "wardName": "Phường Phú Cường",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "vung-tau",
+      "inputOldProvince": "BàRịa-VũngTàu",
+      "inputOldDistrict": "VũngTàu",
+      "inputOldWard": "ThắngTam",
+      "wardSource": "GADM",
+      "provinceId": 206,
+      "provinceName": "Bà Rịa - Vũng Tàu",
+      "provinceMatchCount": 1,
+      "districtId": 1544,
+      "districtName": "Thành phố Vũng Tàu",
+      "districtMatchCount": 1,
+      "wardCode": "520116",
+      "wardName": "Phường Thắng Tam",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "COMPACT_NORMALIZED_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "bac-giang",
+      "inputOldProvince": "BắcGiang",
+      "inputOldDistrict": "BắcGiang",
+      "inputOldWard": "NgôQuyền",
+      "wardSource": "GADM",
+      "provinceId": 248,
+      "provinceName": "Bắc Giang",
+      "provinceMatchCount": 1,
+      "districtId": 1643,
+      "districtName": "Thành phố Bắc Giang",
+      "districtMatchCount": 1,
+      "wardCode": "180106",
+      "wardName": "Phường Ngô Quyền",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "phan-thiet",
+      "inputOldProvince": "BìnhThuận",
+      "inputOldDistrict": "PhanThiết",
+      "inputOldWard": "BìnhHưng",
+      "wardSource": "GADM",
+      "provinceId": 258,
+      "provinceName": "Bình Thuận",
+      "provinceMatchCount": 1,
+      "districtId": 1666,
+      "districtName": "Thành phố Phan Thiết",
+      "districtMatchCount": 1,
+      "wardCode": "470101",
+      "wardName": "Phường Bình Hưng",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "vi-thanh",
+      "inputOldProvince": "HậuGiang",
+      "inputOldDistrict": "VịThanh",
+      "inputOldWard": "Vị Tân",
+      "wardSource": "MapTiler/Nominatim candidate; GADM ward value corrupted as V",
+      "provinceId": 250,
+      "provinceName": "Hậu Giang",
+      "provinceMatchCount": 1,
+      "districtId": 1653,
+      "districtName": "Thành phố Vị Thanh",
+      "districtMatchCount": 1,
+      "wardCode": "640109",
+      "wardName": "Xã Vị Tân",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "multi-phu-cuong",
+      "inputOldProvince": "BìnhDương",
+      "inputOldDistrict": "ThủDầuMột",
+      "inputOldWard": "PhúCường",
+      "wardSource": "GADM",
+      "provinceId": 205,
+      "provinceName": "Bình Dương",
+      "provinceMatchCount": 1,
+      "districtId": 1538,
+      "districtName": "Thành phố Thủ Dầu Một",
+      "districtMatchCount": 1,
+      "wardCode": "440107",
+      "wardName": "Phường Phú Cường",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "multi-phu-tho",
+      "inputOldProvince": "BìnhDương",
+      "inputOldDistrict": "ThủDầuMột",
+      "inputOldWard": "PhúThọ",
+      "wardSource": "GADM",
+      "provinceId": 205,
+      "provinceName": "Bình Dương",
+      "provinceMatchCount": 1,
+      "districtId": 1538,
+      "districtName": "Thành phố Thủ Dầu Một",
+      "districtMatchCount": 1,
+      "wardCode": "440112",
+      "wardName": "Phường Phú Thọ",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    },
+    {
+      "case": "multi-chanh-nghia",
+      "inputOldProvince": "BìnhDương",
+      "inputOldDistrict": "ThủDầuMột",
+      "inputOldWard": "ChánhNghĩa",
+      "wardSource": "GADM",
+      "provinceId": 205,
+      "provinceName": "Bình Dương",
+      "provinceMatchCount": 1,
+      "districtId": 1538,
+      "districtName": "Thành phố Thủ Dầu Một",
+      "districtMatchCount": 1,
+      "wardCode": "440102",
+      "wardName": "Phường Chánh Nghĩa",
+      "wardMatchCount": 1,
+      "matchMode": {
+        "province": "CURRENT_EXACT",
+        "district": "CURRENT_EXACT",
+        "ward": "CURRENT_EXACT"
+      },
+      "status": "FULL_UNIQUE"
+    }
+  ]
+}

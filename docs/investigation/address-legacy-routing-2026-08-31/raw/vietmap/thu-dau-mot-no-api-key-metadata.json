@@ -1,0 +1,15 @@
+{
+  "testedAt": "2026-08-31T19:03:42+07:00",
+  "method": "GET",
+  "endpoint": "https://maps.vietmap.vn/api/migrate-address/v3",
+  "query": {
+    "text": "Phường Thủ Dầu Một, Thành phố Hồ Chí Minh",
+    "focus": "10.9804,106.6519",
+    "migrate_type": 2,
+    "apikey": null
+  },
+  "httpStatus": 401,
+  "responseBodyBytes": 0,
+  "responseBody": null,
+  "interpretation": "The current project has no VietMap API key, so the migration result could not be runtime-verified."
+}
