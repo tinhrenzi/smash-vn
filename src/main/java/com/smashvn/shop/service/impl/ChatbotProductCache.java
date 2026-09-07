@@ -65,15 +65,24 @@ public class ChatbotProductCache {
 
     @PostConstruct
     public void init() {
-        refreshCache();
+        try {
+            refreshCache();
+        } catch (Exception e) {
+            log.warn("Initial ChatbotProductCache refresh deferred: {}", e.getMessage());
+        }
     }
 
     public void ensureFreshCache() {
         if (Instant.now().isAfter(lastRefreshed.plusSeconds(CACHE_TTL_SECONDS))) {
-            refreshCache();
+            try {
+                refreshCache();
+            } catch (Exception e) {
+                log.warn("Background ChatbotProductCache refresh failed: {}", e.getMessage());
+            }
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public void refreshCache() {
         rwLock.writeLock().lock();
         try {
@@ -97,7 +106,12 @@ public class ChatbotProductCache {
                 String catName = (sp.getDanhMuc() != null) ? sp.getDanhMuc().getTenDanhMuc() : "";
 
                 BigDecimal basePrice = v.getGiaBan();
-                BigDecimal salePrice = sp.getGiaSauGiam(basePrice);
+                BigDecimal salePrice = null;
+                try {
+                    salePrice = sp.getGiaSauGiam(basePrice);
+                } catch (Exception ex) {
+                    salePrice = basePrice;
+                }
                 boolean hasSale = salePrice != null && salePrice.compareTo(BigDecimal.ZERO) > 0 && salePrice.compareTo(basePrice) < 0;
 
                 String imgUrl = "/images/placeholder.png";

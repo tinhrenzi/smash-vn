@@ -138,7 +138,7 @@ public class SanPham {
     }
 
     public int getTongSoLuongTon() {
-        if (sanPhamChiTiets == null || sanPhamChiTiets.isEmpty()) {
+        if (!org.hibernate.Hibernate.isInitialized(sanPhamChiTiets) || sanPhamChiTiets == null || sanPhamChiTiets.isEmpty()) {
             return 0;
         }
         return sanPhamChiTiets.stream()
@@ -147,7 +147,7 @@ public class SanPham {
     }
 
     public int getTongSoLuongTonDangBan() {
-        if (sanPhamChiTiets == null || sanPhamChiTiets.isEmpty()) {
+        if (!org.hibernate.Hibernate.isInitialized(sanPhamChiTiets) || sanPhamChiTiets == null || sanPhamChiTiets.isEmpty()) {
             return 0;
         }
         return sanPhamChiTiets.stream()
@@ -157,7 +157,7 @@ public class SanPham {
     }
 
     public Integer getActiveGiamGiaPhanTram() {
-        if (cacDotGiamGia == null || cacDotGiamGia.isEmpty()) {
+        if (!org.hibernate.Hibernate.isInitialized(cacDotGiamGia) || cacDotGiamGia == null || cacDotGiamGia.isEmpty()) {
             return 0;
         }
         return cacDotGiamGia.stream()
@@ -177,7 +177,7 @@ public class SanPham {
     }
 
     public String getActiveChienDichNgayKetThuc() {
-        if (cacDotGiamGia == null || cacDotGiamGia.isEmpty()) {
+        if (!org.hibernate.Hibernate.isInitialized(cacDotGiamGia) || cacDotGiamGia == null || cacDotGiamGia.isEmpty()) {
             return "2027/01/01 00:00:00";
         }
         return cacDotGiamGia.stream()
@@ -190,7 +190,7 @@ public class SanPham {
     }
 
     public java.math.BigDecimal getMinGiaBan() {
-        if (sanPhamChiTiets == null || sanPhamChiTiets.isEmpty()) {
+        if (!org.hibernate.Hibernate.isInitialized(sanPhamChiTiets) || sanPhamChiTiets == null || sanPhamChiTiets.isEmpty()) {
             return java.math.BigDecimal.ZERO;
         }
         return sanPhamChiTiets.stream()
