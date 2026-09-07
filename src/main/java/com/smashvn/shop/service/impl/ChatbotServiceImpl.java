@@ -174,12 +174,11 @@ public class ChatbotServiceImpl implements ChatbotService {
             greetingMsg.setConversation(conversation);
             greetingMsg.setVaiTro("ASSISTANT");
             greetingMsg.setNoiDung("Xin chào! 👋 Mình là trợ lý ảo của SmashVN Shop.\n"
-                    + "Mình có thể hỗ trợ bạn:\n"
-                    + "🏸 Tư vấn chọn vợt theo lối chơi, lực tay\n"
-                    + "🔥 Tìm kiếm sản phẩm, giày, vợt, cước cầu lông\n"
-                    + "🎟️ Cập nhật mã giảm giá & voucher hôm nay\n"
-                    + "📦 Tra cứu tiến độ đơn hàng\n"
-                    + "Bạn cần SmashVN hỗ trợ thông tin gì?");
+                    + "Tôi hỗ trợ tư vấn và giải đáp các thắc mắc đối với các sản phẩm cầu lông tại cửa hàng:\n"
+                    + "🏸 Tư vấn chọn vợt theo lối chơi (tấn công, phòng thủ, toàn diện)\n"
+                    + "🔰 Gợi ý sản phẩm phù hợp với trình độ và mức giá\n"
+                    + "👟 Giải đáp thông số, giá bán và tình trạng còn hàng của sản phẩm\n"
+                    + "Bạn cần tư vấn sản phẩm nào hôm nay?");
             greetingMsg.setTrangThai("SUCCESS");
             greetingMsg = chatbotDbHelper.saveMessage(greetingMsg);
             chatbotDbHelper.updateConversationTime(conversation.getId());

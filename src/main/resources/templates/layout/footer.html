@@ -200,16 +200,16 @@
                     
                     <!-- Quick Suggestions Area -->
                     <div class="chatbot-quick-chips">
-                        <button type="button" class="chatbot-chip" data-query="Tư vấn vợt theo lối chơi">🏸 Tư vấn vợt</button>
+                        <button type="button" class="chatbot-chip" data-query="Tư vấn vợt theo lối chơi">🏸 Tư vấn lối chơi</button>
+                        <button type="button" class="chatbot-chip" data-query="Vợt cho người mới chơi">🔰 Vợt người mới</button>
                         <button type="button" class="chatbot-chip" data-query="Vợt đang giảm giá">🔥 Vợt giảm giá</button>
-                        <button type="button" class="chatbot-chip" data-query="Shop có mã giảm giá nào không?">🎟️ Mã voucher</button>
-                        <button type="button" class="chatbot-chip" data-query="Kiểm tra đơn hàng của tôi">📦 Tra cứu đơn</button>
-                        <button type="button" class="chatbot-chip" data-query="Địa chỉ và hotline của shop">🏪 Địa chỉ shop</button>
+                        <button type="button" class="chatbot-chip" data-query="Tìm vợt Yonex">🏸 Vợt Yonex</button>
+                        <button type="button" class="chatbot-chip" data-query="Giày cầu lông">👟 Giày cầu lông</button>
                     </div>
 
                     <!-- Input Form Area -->
                     <div class="chatbot-input-area">
-                        <input type="text" id="chatbot-input-field" placeholder="Hỏi sản phẩm, đơn hàng, voucher..." autocomplete="off">
+                        <input type="text" id="chatbot-input-field" placeholder="Hỏi về sản phẩm, giá, cách chọn vợt..." autocomplete="off">
                         <button id="chatbot-send-btn" type="button" title="Gửi tin nhắn">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -780,7 +780,7 @@
                     function showWelcomeMessage() {
                         const now = new Date();
                         const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-                        renderMessage(0, "BOT", "Xin chào! 👋 Mình là trợ lý ảo của SmashVN. Mình có thể giúp bạn tìm sản phẩm, tư vấn vợt hoặc giải đáp thông tin cửa hàng.", timeStr);
+                        renderMessage(0, "BOT", "Xin chào! 👋 Mình là trợ lý ảo của SmashVN. Mình hỗ trợ tư vấn và giải đáp các thắc mắc về các sản phẩm (vợt, giày, phụ kiện...) tại cửa hàng. Bạn cần tư vấn sản phẩm nào?", timeStr);
                     }
 
                     function parseJsonResponse(response) {
