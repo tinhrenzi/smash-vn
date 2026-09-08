@@ -724,6 +724,60 @@
                 });
         }
 
+        function formatPosVariantAttributes(v) {
+            if (!v) return 'Tiêu chuẩn';
+            const parts = [];
+            const isValid = (val) => val !== null && val !== undefined && String(val).trim() !== '' && String(val).trim().toUpperCase() !== 'N/A' && String(val).trim() !== 'NULL';
+
+            if (isValid(v.mauSac) && v.mauSac !== 'Mặc định') {
+                parts.push(String(v.mauSac).trim());
+            }
+            if (isValid(v.kichThuoc)) {
+                const kt = String(v.kichThuoc).trim();
+                parts.push(kt.toLowerCase().startsWith('size') ? kt : `Size ${kt}`);
+            }
+            if (isValid(v.trongLuong)) {
+                parts.push(String(v.trongLuong).trim());
+            }
+            if (isValid(v.mucCang)) {
+                const mc = String(v.mucCang).trim();
+                parts.push(mc.toLowerCase().includes('căng') || mc.toLowerCase().includes('lbs') ? mc : `Sức căng: ${mc}`);
+            }
+
+            if (parts.length > 0) {
+                return parts.join(' · ');
+            }
+
+            if (isValid(v.phanLoai) && v.phanLoai !== 'Mặc định') {
+                const parsed = v.phanLoai.split(',')
+                    .map(part => {
+                        const kv = part.split(':');
+                        const val = (kv.length > 1 ? kv[1] : kv[0]).trim();
+                        const key = (kv.length > 1 ? kv[0] : '').toLowerCase();
+                        if (!isValid(val)) return null;
+                        if (key.includes('kích thước') || key.includes('size')) {
+                            return val.toLowerCase().startsWith('size') ? val : `Size ${val}`;
+                        }
+                        return val;
+                    })
+                    .filter(Boolean);
+                if (parsed.length > 0) {
+                    return parsed.join(' · ');
+                }
+            }
+
+            return 'Tiêu chuẩn';
+        }
+
+        function getPosVariantAttrTitle(v) {
+            if (!v) return '';
+            const isValid = (val) => val !== null && val !== undefined && String(val).trim() !== '' && String(val).trim().toUpperCase() !== 'N/A';
+            if (isValid(v.phanLoai) && v.phanLoai !== 'Mặc định') {
+                return v.phanLoai;
+            }
+            return formatPosVariantAttributes(v);
+        }
+
         function renderProductGrid() {
             const grid = document.getElementById("productGrid");
             grid.innerHTML = "";
@@ -766,6 +820,8 @@
                 const showOriginal = hasDiscount && v.giaNiemYet && parseFloat(v.giaNiemYet) > parseFloat(v.giaBan);
                 const originalPriceHtml = showOriginal ? `<div class="product-price-original text-muted text-decoration-line-through small" style="font-size:0.75rem;">${formatVND(v.giaNiemYet)}</div>` : '';
                 const skuHtml = v.sku ? `<div class="product-sku text-muted font-monospace mb-1" style="font-size:0.68rem;">${v.sku}</div>` : '';
+                const attrDisplay = formatPosVariantAttributes(v);
+                const attrTitle = getPosVariantAttrTitle(v);
 
                 card.innerHTML = `
                     ${discountBadgeHtml}
@@ -775,7 +831,7 @@
                         </div>
                         <div class="product-name" title="${v.tenSanPham}">${v.tenSanPham}</div>
                         ${skuHtml}
-                        <div class="product-attr" title="${v.mauSac} | ${v.trongLuong} | Sức căng: ${v.mucCang}">${v.mauSac} · ${v.trongLuong} · ${v.mucCang}</div>
+                        <div class="product-attr" title="${attrTitle}">${attrDisplay}</div>
                         ${saleNameHtml}
                         ${originalPriceHtml}
                         <div class="product-price mb-1">${formatVND(v.giaBan)}</div>
@@ -866,7 +922,9 @@
                 cart.push({
                     id: variant.id,
                     tenSanPham: variant.tenSanPham,
+                    phanLoai: variant.phanLoai,
                     mauSac: variant.mauSac,
+                    kichThuoc: variant.kichThuoc,
                     trongLuong: variant.trongLuong,
                     mucCang: variant.mucCang,
                     giaBan: variant.giaBan,
@@ -912,11 +970,18 @@
                         ${item.tenDotGiamGia ? `<span style="font-size:0.65rem;color:#888;">(${item.tenDotGiamGia})</span>` : ''}
                     </div>` : '';
 
+                const cartAttr = (item.phanLoai && item.phanLoai !== 'Mặc định' && item.phanLoai !== 'N/A')
+                    ? item.phanLoai
+                    : formatPosVariantAttributes(item);
+                const cartAttrHtml = (cartAttr && cartAttr !== 'Tiêu chuẩn')
+                    ? `<div class="product-attr">${cartAttr}</div>`
+                    : '';
+
                 cartItem.innerHTML = `
                     <img src="${imgUrl}" alt="${item.tenSanPham}" onerror="this.src='/images/preloader.png'">
                     <div class="cart-item-info">
                         <div class="cart-item-name">${item.tenSanPham}</div>
-                        <div class="product-attr">${item.mauSac} | ${item.trongLuong} | Sức căng: ${item.mucCang}</div>
+                        ${cartAttrHtml}
                         ${cartDiscountHtml}
                         <div class="cart-item-price">${formatVND(item.giaBan)}</div>
                     </div>

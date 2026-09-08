@@ -84,9 +84,10 @@ public class AdminPosController {
             map.put("maSanPham", v.getSanPham() != null && v.getSanPham().getMaSanPham() != null ? v.getSanPham().getMaSanPham() : "");
             map.put("tenSanPham", v.getSanPham() != null && v.getSanPham().getTenSanPham() != null ? v.getSanPham().getTenSanPham() : "Sản phẩm");
             map.put("phanLoai", v.getPhanLoaiHienThi());
-            map.put("mauSac", v.getMauSac() != null ? v.getMauSac() : "N/A");
-            map.put("trongLuong", v.getTrongLuong() != null ? v.getTrongLuong() : "N/A");
-            map.put("mucCang", v.getMucCang() != null ? v.getMucCang() : "N/A");
+            map.put("mauSac", v.getMauSac() != null ? v.getMauSac() : "");
+            map.put("kichThuoc", v.getKichThuoc() != null ? v.getKichThuoc() : "");
+            map.put("trongLuong", v.getTrongLuong() != null ? v.getTrongLuong() : "");
+            map.put("mucCang", v.getMucCang() != null ? v.getMucCang() : "");
             // Giá bán thực sau khi áp dụng đợt giảm giá (nếu có)
             map.put("giaBan", snap.giaBanSauGiam() != null ? snap.giaBanSauGiam() : BigDecimal.ZERO);
             // Giá niêm yết gốc để gạch ngang trên UI
