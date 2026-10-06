@@ -33,9 +33,10 @@ public class ShippingApiController {
     public ResponseEntity<Map<String, Object>> getShippingFee(
             @RequestParam(value = "carrierId", required = false) Integer carrierId,
             @RequestParam(value = "districtId", required = false) Integer districtId,
+            @RequestParam(value = "wardCode", required = false) String wardCode,
             @RequestParam(value = "address", required = false) String address) {
 
-        log.debug("Received request to calculate shipping fee: carrierId={}, districtId={}, address={}", carrierId, districtId, address);
+        log.debug("Received request to calculate shipping fee: carrierId={}, districtId={}, wardCode={}, address={}", carrierId, districtId, wardCode, address);
 
         DonViVanChuyen carrier = null;
         if (carrierId != null) {
@@ -45,8 +46,14 @@ public class ShippingApiController {
                         .findFirst()
                         .orElse(null);
             } catch (Exception e) {
-                log.warn("Invalid or errored carrierId: {}, using null default", carrierId, e);
+                log.warn("Invalid or errored carrierId: {}", carrierId, e);
             }
+        }
+        if (carrier == null) {
+            carrier = adminShippingService.getAllCarriers().stream()
+                    .filter(c -> DonViVanChuyen.isGhnCarrier(c))
+                    .findFirst()
+                    .orElse(null);
         }
 
         BigDecimal fee;
@@ -54,7 +61,7 @@ public class ShippingApiController {
         String carrierCode;
 
         try {
-            fee = feeCalculator.calculateFee(carrier, districtId, address);
+            fee = feeCalculator.calculateFee(carrier, districtId, wardCode, address);
             zone = zoneResolver.resolveZone(districtId, address);
             carrierCode = feeCalculator.getCarrierCode(carrier);
         } catch (Exception e) {
@@ -70,5 +77,10 @@ public class ShippingApiController {
         response.put("carrier", carrierCode);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/carriers")
+    public ResponseEntity<java.util.List<DonViVanChuyen>> getCarriers() {
+        return ResponseEntity.ok(adminShippingService.getAllCarriers());
     }
 }

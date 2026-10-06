@@ -11,5 +11,8 @@ public interface ThuongHieuRepository extends JpaRepository<ThuongHieu, Integer>
 
     /** Duplicate check for edit: case-insensitive, excludes the brand being edited */
     boolean existsByTenThuongHieuIgnoreCaseAndIdNot(String tenThuongHieu, Integer id);
+
+    /** Lấy danh sách thương hiệu đang hiển thị (trangThai = true) */
+    java.util.List<ThuongHieu> findByTrangThaiTrue();
 }
 

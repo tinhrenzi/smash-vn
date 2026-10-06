@@ -1,6 +1,5 @@
 package com.smashvn.shop.controller.admin;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -10,13 +9,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.smashvn.shop.dto.SanPhamCreateRequest;
 import com.smashvn.shop.entity.SanPham;
 import com.smashvn.shop.repository.DanhMucRepository;
 import com.smashvn.shop.repository.SanPhamRepository;
 import com.smashvn.shop.repository.ThuongHieuRepository;
+import com.smashvn.shop.service.admin.AdminBienTheService;
 import com.smashvn.shop.service.admin.AdminSanPhamService;
+import com.smashvn.shop.service.inventory.InventoryLotService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -31,122 +33,103 @@ public class AdminSanPhamController {
     private final DanhMucRepository danhMucRepository;
     private final ThuongHieuRepository thuongHieuRepository;
     private final AdminSanPhamService adminSanPhamService;
-
-    // Các thuộc tính thuộc phân loại vợt cầu lông
-    private final List<String> listMauSacConfig = List.of("Đỏ", "Xanh dương", "Đen", "Trắng", "Vàng", "Cam");
-    private final List<String> listTrongLuongConfig = List.of("3U", "4U", "5U");
-    private final List<String> listMucCangConfig = List.of("10.5 kg", "11.0 kg", "11.5 kg", "12.0 kg", "12.5 kg");
+    private final AdminBienTheService adminBienTheService;
+    private final InventoryLotService inventoryLotService;
+    private final com.smashvn.shop.controller.product.SanPhamController sanPhamController;
 
     @GetMapping
     public String hienThiDanhSach(Model model) {
-        model.addAttribute("danhSachSanPham", sanPhamRepository.findAll());
+        model.addAttribute("danhSachSanPham", sanPhamRepository.findAllByOrderByIdDesc());
         return "admin/sanpham-list";
     }
 
     @GetMapping("/them")
     public String hienThiFormThem(Model model) {
-        model.addAttribute("listDanhMuc", danhMucRepository.findAll());
-        model.addAttribute("listThuongHieu", thuongHieuRepository.findAll());
-
-        // Đổ động thuộc tính ra Model phục vụ checkbox
-        model.addAttribute("listMauSac", listMauSacConfig);
-        model.addAttribute("listTrongLuong", listTrongLuongConfig);
-        model.addAttribute("listMucCang", listMucCangConfig);
-
+        populateFormModel(model);
         return "admin/sanpham-add";
     }
 
     @PostMapping("/them")
     public String xuLyThemSanPham(
-            @RequestParam("tenSanPham") String tenSanPham,
-            @RequestParam("idDanhMuc") Integer idDanhMuc,
-            @RequestParam("idThuongHieu") Integer idThuongHieu,
-            @RequestParam("moTa") String moTa,
-            @RequestParam(value = "giaBan", required = false) BigDecimal giaBan,
-            @RequestParam(value = "soLuongTon", required = false) Integer soLuongTon,
-            @RequestParam("fileAnh") MultipartFile fileAnh,
-            @RequestParam(value = "mauSacs", required = false) List<String> mauSacs,
-            @RequestParam(value = "trongLuongs", required = false) List<String> trongLuongs,
-            @RequestParam(value = "mucCangs", required = false) List<String> mucCangs,
-            org.springframework.web.multipart.MultipartHttpServletRequest request,
+            @org.springframework.web.bind.annotation.ModelAttribute SanPhamCreateRequest requestDto,
+            HttpServletRequest request,
             HttpSession session,
-            Model model) {
+            org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
         try {
-            java.util.Map<String, MultipartFile> variantImageMap = new java.util.HashMap<>();
-            request.getFileMap().forEach((key, file) -> {
-                if (key.startsWith("variantImages[")) {
-                    String variantKey = key.substring(key.indexOf("[") + 1, key.lastIndexOf("]"));
-                    variantImageMap.put(variantKey, file);
-                }
-            });
-
-            java.util.Map<String, java.math.BigDecimal> variantPriceMap = new java.util.HashMap<>();
-            java.util.Map<String, Integer> variantQuantityMap = new java.util.HashMap<>();
-
-            request.getParameterMap().forEach((key, values) -> {
-                if (key.startsWith("variantPrices[")) {
-                    String variantKey = key.substring(key.indexOf("[") + 1, key.lastIndexOf("]"));
-                    if (values != null && values.length > 0) {
-                        String trimmed = values[0].trim();
-                        if (!trimmed.isEmpty()) {
-                            variantPriceMap.put(variantKey, new java.math.BigDecimal(trimmed));
-                        }
-                    }
-                } else if (key.startsWith("variantQuantities[")) {
-                    String variantKey = key.substring(key.indexOf("[") + 1, key.lastIndexOf("]"));
-                    if (values != null && values.length > 0) {
-                        String trimmed = values[0].trim();
-                        if (!trimmed.isEmpty()) {
-                            variantQuantityMap.put(variantKey, Integer.parseInt(trimmed));
-                        }
-                    }
-                }
-            });
-
-            BigDecimal defaultGia = (giaBan != null) ? giaBan : new BigDecimal("3500000");
-            Integer defaultKho = (soLuongTon != null) ? soLuongTon : 10;
-
+            Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
             adminSanPhamService.themSanPhamVaBienThe(
-                    tenSanPham, idDanhMuc, idThuongHieu, moTa,
-                    defaultGia, defaultKho, fileAnh,
-                    mauSacs, trongLuongs, mucCangs,
-                    variantImageMap,
-                    variantPriceMap,
-                    variantQuantityMap,
-                    (Integer) session.getAttribute("idNguoiDung"),
+                    requestDto,
+                    idNguoiDung,
                     request.getRemoteAddr()
             );
-            return "redirect:/admin/san-pham?thanhcong";
+            redirectAttributes.addFlashAttribute("success", "Thêm mới sản phẩm '" + requestDto.getTenSanPham() + "' thành công!");
+            return "redirect:/admin/san-pham";
         } catch (Exception e) {
-            // Khi lỗi, giữ lại thông tin nhập, ném lỗi ra màn hình
-            model.addAttribute("loi", e.getMessage());
-            model.addAttribute("tenSanPham", tenSanPham);
-            model.addAttribute("idDanhMuc", idDanhMuc);
-            model.addAttribute("idThuongHieu", idThuongHieu);
-            model.addAttribute("moTa", moTa);
-            model.addAttribute("giaBan", giaBan);
-            model.addAttribute("soLuongTon", soLuongTon);
-            model.addAttribute("selectedMauSacs", mauSacs);
-            model.addAttribute("selectedTrongLuongs", trongLuongs);
-            model.addAttribute("selectedMucCangs", mucCangs);
-
-            // Re-populate lists
-            model.addAttribute("listDanhMuc", danhMucRepository.findAll());
-            model.addAttribute("listThuongHieu", thuongHieuRepository.findAll());
-            model.addAttribute("listMauSac", listMauSacConfig);
-            model.addAttribute("listTrongLuong", listTrongLuongConfig);
-            model.addAttribute("listMucCang", listMucCangConfig);
-
-            return "admin/sanpham-add";
+            String cleanMsg = e.getMessage();
+            if (cleanMsg == null || cleanMsg.isBlank()
+                    || cleanMsg.contains("java.lang")
+                    || cleanMsg.contains("Unresolved compilation")
+                    || cleanMsg.contains("Handler dispatch")
+                    || cleanMsg.contains("NullPointerException")
+                    || cleanMsg.contains("could not execute statement")) {
+                cleanMsg = "Không thể thêm sản phẩm do lỗi xử lý hệ thống. Vui lòng thử lại!";
+            }
+            redirectAttributes.addFlashAttribute("loi", cleanMsg);
+            redirectAttributes.addFlashAttribute("error", cleanMsg);
+            redirectAttributes.addFlashAttribute("errorMsg", cleanMsg);
+            return "redirect:/admin/san-pham/them";
         }
+    }
+
+    private void populateFormModel(Model model) {
+        List<com.smashvn.shop.entity.DanhMuc> activeCategories = danhMucRepository.findByTrangThaiTrue();
+        model.addAttribute("listDanhMuc", activeCategories);
+        model.addAttribute("listThuongHieu", thuongHieuRepository.findByTrangThaiTrue());
+
+        java.util.Map<Integer, String> categoryTypes = new java.util.HashMap<>();
+        for (com.smashvn.shop.entity.DanhMuc dm : activeCategories) {
+            com.smashvn.shop.constant.CategoryType type = com.smashvn.shop.constant.CategoryType.fromDanhMuc(dm);
+            categoryTypes.put(dm.getId(), type.name());
+        }
+        model.addAttribute("categoryTypes", categoryTypes);
+
+        model.addAttribute("listMauSac", com.smashvn.shop.constant.SanPhamAttributeConfig.DEFAULT_MAU_SAC);
+        model.addAttribute("listTrongLuong", com.smashvn.shop.constant.SanPhamAttributeConfig.WHITELIST_TRONG_LUONG_VOT);
+        model.addAttribute("listKichThuocGiay", com.smashvn.shop.constant.SanPhamAttributeConfig.WHITELIST_KICH_THUOC_GIAY);
+        model.addAttribute("listKichThuocTrangPhuc", com.smashvn.shop.constant.SanPhamAttributeConfig.WHITELIST_KICH_THUOC_TRANG_PHUC);
     }
 
     @GetMapping("/sua/{id}")
     public String hienThiFormSua(@PathVariable("id") Integer id, Model model) {
         SanPham sp = sanPhamRepository.findById(id).orElseThrow();
         model.addAttribute("sp", sp);
-        model.addAttribute("listDanhMuc", danhMucRepository.findAll());
-        model.addAttribute("listThuongHieu", thuongHieuRepository.findAll());
+
+        List<com.smashvn.shop.entity.DanhMuc> activeCategories = danhMucRepository.findByTrangThaiTrue();
+        if (sp.getDanhMuc() != null && Boolean.FALSE.equals(sp.getDanhMuc().getTrangThai())) {
+            if (!activeCategories.contains(sp.getDanhMuc())) {
+                activeCategories.add(sp.getDanhMuc());
+            }
+        }
+        model.addAttribute("listDanhMuc", activeCategories);
+
+        List<com.smashvn.shop.entity.ThuongHieu> activeBrands = thuongHieuRepository.findByTrangThaiTrue();
+        if (sp.getThuongHieu() != null && Boolean.FALSE.equals(sp.getThuongHieu().getTrangThai())) {
+            if (!activeBrands.contains(sp.getThuongHieu())) {
+                activeBrands.add(sp.getThuongHieu());
+            }
+        }
+        model.addAttribute("listThuongHieu", activeBrands);
+
+        // Tải 3 Tab dữ liệu (Thông tin SP, Biến thể gom nhóm, Lô hàng)
+        model.addAttribute("danhSachBienThe", adminBienTheService.layDanhSachBienThe(id));
+        model.addAttribute("groupVariants", inventoryLotService.calculateAggregatedVariants(id));
+        model.addAttribute("lotSummaries", inventoryLotService.calculateLotSummaries(id));
+        model.addAttribute("lichSuNhapHang", inventoryLotService.getLichSuNhapHang(id));
+        model.addAttribute("categoryAttributes", sp.getDanhMuc().getThuocTinhList());
+
+        model.addAttribute("categoryType",
+                com.smashvn.shop.constant.CategoryType.fromDanhMuc(sp.getDanhMuc()).name());
+
         return "admin/sanpham-edit";
     }
 
@@ -157,35 +140,90 @@ public class AdminSanPhamController {
             @RequestParam("idThuongHieu") Integer idThuongHieu,
             @RequestParam("moTa") String moTa,
             HttpSession session,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes) {
         try {
             Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
             adminSanPhamService.capNhatSanPham(idSanPham, tenSanPham, idDanhMuc, idThuongHieu, moTa, idNguoiDung, request.getRemoteAddr());
-            return "redirect:/admin/san-pham?suaThanhCong";
+            redirectAttributes.addFlashAttribute("success", "Cập nhật thông tin sản phẩm thành công!");
+            return "redirect:/admin/san-pham/sua/" + idSanPham;
         } catch (Exception e) {
-            return "redirect:/admin/san-pham/sua/" + idSanPham + "?loi=LoiHeThong";
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật: " + e.getMessage());
+            return "redirect:/admin/san-pham/sua/" + idSanPham;
         }
     }
 
-    @PostMapping("/xoa/{id}")
-    public String xuLyXoaSanPham(@PathVariable("id") Integer id, HttpSession session, HttpServletRequest request) {
+    @PostMapping({"/ngung-hien-thi/{id}", "/xoa/{id}"})
+    public String xuLyNgungHienThiSanPham(@PathVariable("id") Integer id, 
+                                          @RequestParam(value = "redirectUrl", required = false) String redirectUrl,
+                                          HttpSession session, 
+                                          HttpServletRequest request,
+                                          RedirectAttributes redirectAttributes) {
+        String target = (redirectUrl != null && !redirectUrl.isBlank()) ? redirectUrl : "redirect:/admin/san-pham";
         try {
             Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
-            adminSanPhamService.xoaSanPham(id, idNguoiDung, request.getRemoteAddr());
-            return "redirect:/admin/san-pham?xoaThanhCong";
+            adminSanPhamService.ngungHienThi(id, idNguoiDung, request.getRemoteAddr());
+            redirectAttributes.addFlashAttribute("success", "Đã ngưng hiển thị sản phẩm thành công!");
+            return target.startsWith("redirect:") ? target : "redirect:" + target;
         } catch (Exception e) {
-            return "redirect:/admin/san-pham?loiXoa";
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi ngưng hiển thị: " + e.getMessage());
+            return target.startsWith("redirect:") ? target : "redirect:" + target;
         }
     }
 
-    @PostMapping("/mo-ban-lai/{id}")
-    public String xuLyMoBanLaiSanPham(@PathVariable("id") Integer id, HttpSession session, HttpServletRequest request) {
+    @PostMapping({"/dang-ban/{id}", "/mo-ban-lai/{id}"})
+    public String xuLyDangBanSanPham(@PathVariable("id") Integer id, 
+                                     @RequestParam(value = "redirectUrl", required = false) String redirectUrl,
+                                     HttpSession session, 
+                                     HttpServletRequest request,
+                                     RedirectAttributes redirectAttributes) {
+        String target = (redirectUrl != null && !redirectUrl.isBlank()) ? redirectUrl : "redirect:/admin/san-pham";
         try {
             Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
-            adminSanPhamService.moBanLaiSanPham(id, idNguoiDung, request.getRemoteAddr());
-            return "redirect:/admin/san-pham?moBanLaiThanhCong";
+            adminSanPhamService.dangBan(id, idNguoiDung, request.getRemoteAddr());
+            redirectAttributes.addFlashAttribute("success", "Đã đăng bán sản phẩm thành công!");
+            return target.startsWith("redirect:") ? target : "redirect:" + target;
         } catch (Exception e) {
-            return "redirect:/admin/san-pham?loiMoBanLai";
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return target.startsWith("redirect:") ? target : "redirect:" + target;
+        }
+    }
+
+    @GetMapping("/xem-truoc/{id}")
+    public String xemTruocSanPham(@PathVariable("id") Integer id, Model model, HttpSession session) {
+        SanPham sp = sanPhamRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm này!"));
+        sanPhamController.populateProductDetailModel(sp, model, session, true);
+        return "product-detail";
+    }
+
+    // ─── API: lịch sử nhập hàng theo biến thể ───────────────────────────────
+    @GetMapping("/bien-the/{idSpct}/lich-su-nhap")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public org.springframework.http.ResponseEntity<?> getLichSuNhapBySpct(
+            @PathVariable("idSpct") Integer idSpct) {
+        try {
+            var summary = inventoryLotService.getSummaryBySpct(idSpct);
+            var history = inventoryLotService.getLichSuPhieuNhapBySpct(idSpct);
+            return org.springframework.http.ResponseEntity.ok(
+                    java.util.Map.of("summary", summary, "history", history));
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ─── API: chi tiết phiếu nhập ────────────────────────────────────────────
+    @GetMapping("/phieu-nhap/{idPhieuNhap}")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public org.springframework.http.ResponseEntity<?> getChiTietPhieuNhap(
+            @PathVariable("idPhieuNhap") Integer idPhieuNhap) {
+        try {
+            var dto = inventoryLotService.getPhieuNhapDetail(idPhieuNhap);
+            return org.springframework.http.ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", e.getMessage()));
         }
     }
 }

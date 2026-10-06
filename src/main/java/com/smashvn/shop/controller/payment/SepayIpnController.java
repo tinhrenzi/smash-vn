@@ -44,6 +44,7 @@ public class SepayIpnController {
     private final HoaDonRepository hoaDonRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final AuditService auditService;
+    private final com.smashvn.shop.service.order.GioHangService gioHangService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/api/payment/sepay/ipn")
@@ -142,14 +143,7 @@ public class SepayIpnController {
             @PathVariable("maDonHang") String maDonHang,
             HttpSession session) {
 
-        // 1. Ownership: Validate session customer ID exists
-        boolean isDebug = sepayConfig.isDebug();
-        Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
-        if (!isDebug && idNguoiDung == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(createErrorResponse("Unauthorized session. Please login."));
-        }
-
-        // 2. Retrieve order
+        // 1. Retrieve order first so the query can fall back safely for guest orders
         Optional<HoaDon> orderOpt = hoaDonRepository.findByMaDonHang(maDonHang);
         if (!orderOpt.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorResponse("Order not found."));
@@ -157,35 +151,74 @@ public class SepayIpnController {
 
         HoaDon order = orderOpt.get();
 
-        // 3. Ownership: Validate order owner matches session customer OR user is staff/admin
-        if (!isDebug) {
-            boolean isStaff = Boolean.TRUE.equals(session.getAttribute("laNhanVien"))
-                    || Boolean.TRUE.equals(session.getAttribute("laQuanLy"));
+        // 2. Ownership check: signed-in member needs to match the order owner, while guest orders are allowed to poll by order code.
+        boolean isDebug = sepayConfig.isDebug();
+        Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
+        String sessionRole = (String) session.getAttribute("vaiTro");
+        boolean isStaff = "NV".equals(sessionRole) || "QL".equals(sessionRole);
+        boolean isGuestOrder = order.getKhachHang() == null 
+                || order.getKhachHang().getTaiKhoan() == null
+                || order.getKhachHang().getTaiKhoan().getTrangThaiTaiKhoan() == com.smashvn.shop.entity.AccountStatus.GUEST;
 
-            if (!isStaff) {
-                if (order.getKhachHang() == null || order.getKhachHang().getTaiKhoan() == null
-                        || !order.getKhachHang().getTaiKhoan().getId().equals(idNguoiDung)) {
-                    log.warn("SePay Query: Ownership validation failed for user #{} trying to query order code {}", idNguoiDung, maDonHang);
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(createErrorResponse("Access Denied."));
+        Object allowedAccessesAttr = session.getAttribute("allowedGuestOrderAccesses");
+        if (allowedAccessesAttr instanceof java.util.List<?>) {
+            for (Object item : (java.util.List<?>) allowedAccessesAttr) {
+                if (item instanceof com.smashvn.shop.controller.order.CheckoutController.GuestOrderAccess access) {
+                    if (access.getOrderId().equals(order.getId()) && !access.isExpired()) {
+                        isGuestOrder = true;
+                        break;
+                    }
                 }
             }
         }
 
-        // 4. Return standardized query API response
+        if (!isDebug && !isStaff && idNguoiDung == null && !isGuestOrder) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(createErrorResponse("Unauthorized session. Please login."));
+        }
+
+        if (!isDebug && !isStaff && idNguoiDung != null && !isGuestOrder) {
+            if (order.getKhachHang() == null || order.getKhachHang().getTaiKhoan() == null
+                    || !order.getKhachHang().getTaiKhoan().getId().equals(idNguoiDung)) {
+                log.warn("SePay Query: Ownership validation failed for user #{} trying to query order code {}", idNguoiDung, maDonHang);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(createErrorResponse("Access Denied."));
+            }
+        }
+
+        // 3. Return standardized query API response
         Map<String, Object> resp = new HashMap<>();
         resp.put("success", true);
         resp.put("orderCode", order.getMaDonHang());
-        
+
         String paymentStatus = order.getPaymentStatus();
-        if ("DA_THANH_TOAN".equals(order.getTrangThaiThanhToan()) || "DA_THANH_TOAN".equals(paymentStatus) || "paid".equals(paymentStatus)) {
+        String trangThaiThanhToan = order.getTrangThaiThanhToan();
+
+        // Check 180s expiration for pending orders (Skip if already paid)
+        boolean isAlreadyPaid = "DA_THANH_TOAN".equalsIgnoreCase(trangThaiThanhToan) || "paid".equalsIgnoreCase(paymentStatus);
+        if (!isAlreadyPaid && ("cho_thanh_toan".equalsIgnoreCase(order.getTrangThaiDonHang()) || "pending".equalsIgnoreCase(paymentStatus))) {
+            if (order.getNgayTao() != null && LocalDateTime.now().isAfter(order.getNgayTao().plusSeconds(180))) {
+                gioHangService.expirePendingOrder(order);
+                paymentStatus = "expired";
+                resp.put("paymentStatus", "expired");
+                resp.put("orderStatus", "da_huy");
+                resp.put("trangThaiThanhToan", "HỦY");
+                resp.put("message", "Đã hết thời gian chờ thanh toán. Phiên thanh toán đã bị hủy.");
+                return ResponseEntity.ok(resp);
+            }
+        }
+
+        if ("DA_THANH_TOAN".equalsIgnoreCase(trangThaiThanhToan) || "DA_THANH_TOAN".equalsIgnoreCase(paymentStatus) || "paid".equalsIgnoreCase(paymentStatus)) {
             paymentStatus = "paid";
-        } else if ("CHO_THANH_TOAN".equals(order.getTrangThaiThanhToan()) || "CHO_THANH_TOAN".equals(paymentStatus) || "pending".equals(paymentStatus)) {
+        } else if ("expired".equalsIgnoreCase(paymentStatus) || "da_huy".equalsIgnoreCase(order.getTrangThaiDonHang())) {
+            paymentStatus = "expired";
+        } else if ("CHO_THANH_TOAN".equalsIgnoreCase(trangThaiThanhToan) || "CHO_THANH_TOAN".equalsIgnoreCase(paymentStatus) || "pending".equalsIgnoreCase(paymentStatus) || paymentStatus == null) {
             paymentStatus = "pending";
         }
-        
+
         resp.put("paymentStatus", paymentStatus);
         resp.put("orderStatus", order.getTrangThaiDonHang());
-        resp.put("trangThaiThanhToan", order.getTrangThaiThanhToan());
+        resp.put("trangThaiThanhToan", trangThaiThanhToan);
+        resp.put("isGuest", isGuestOrder);
+        resp.put("orderId", order.getId());
         return ResponseEntity.ok(resp);
     }
 

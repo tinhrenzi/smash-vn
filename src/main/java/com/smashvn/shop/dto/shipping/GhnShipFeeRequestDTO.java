@@ -12,6 +12,9 @@ public class GhnShipFeeRequestDTO {
     @JsonProperty("service_type_id")
     private Integer serviceTypeId = 2; // 2 = E-Commerce
 
+    @JsonProperty("service_id")
+    private Integer serviceId;
+
     @JsonProperty("from_district_id")
     private Integer fromDistrictId;
 

@@ -74,13 +74,16 @@ public class OrderPricingIntegrationTest {
     private HoaDonChiTietRepository hoaDonChiTietRepository;
 
     @Autowired
-    private TrangThaiGioHangRepository trangThaiGioHangRepository;
-
-    @Autowired
     private PhieuGiamGiaRepository phieuGiamGiaRepository;
 
     @Autowired
     private PaymentTransactionRepository paymentTransactionRepository;
+
+    @Autowired
+    private TokenKhoiPhucRepository tokenRepository;
+
+    @Autowired
+    private EditLogRepository editLogRepository;
 
     @Autowired
     private GioHangChiTietRepository gioHangChiTietRepository;
@@ -100,6 +103,9 @@ public class OrderPricingIntegrationTest {
     @Autowired
     private org.springframework.cache.CacheManager cacheManager;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private MockMvc mockMvc;
     private TaiKhoan testUser;
     private KhachHang testKhachHang;
@@ -118,7 +124,7 @@ public class OrderPricingIntegrationTest {
         // Clean up any stray temp test users/customers from previous interrupted runs
         try {
             List<TaiKhoan> strayUsers = taiKhoanRepository.findAll().stream()
-                    .filter(tk -> tk.getEmail() != null && tk.getEmail().startsWith("temp_r_"))
+                    .filter(tk -> tk.getUsername() != null && (tk.getUsername().startsWith("temp_r_") || tk.getUsername().contains("tester_pricing_")))
                     .toList();
             for (TaiKhoan tk : strayUsers) {
                 KhachHang kh = khachHangRepository.findByTaiKhoan_Id(tk.getId());
@@ -138,6 +144,9 @@ public class OrderPricingIntegrationTest {
                     }
                     khachHangRepository.delete(kh);
                 }
+                // Delete account-owned records first to avoid FK constraints
+                deleteEditLogsForAccount(tk.getId());
+                tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(tk.getId()));
                 taiKhoanRepository.delete(tk);
             }
         } catch (Exception e) {
@@ -158,11 +167,11 @@ public class OrderPricingIntegrationTest {
 
         // Seed test user
         testUser = new TaiKhoan();
-        testUser.setEmail("tester_pricing_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
+        testUser.setUsername("tester_pricing_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
         testUser.setMatKhau("testpass123");
         testUser.setVaiTro("KH");
         testUser.setTrangThai("hoat_dong");
-        testUser.setLaKhachHang(true);
+
         testUser = taiKhoanRepository.save(testUser);
 
         testKhachHang = new KhachHang();
@@ -187,11 +196,11 @@ public class OrderPricingIntegrationTest {
 
         NhanVien nv = nhanVienRepository.findAll().stream().findFirst().orElseGet(() -> {
             TaiKhoan staffTk = new TaiKhoan();
-            staffTk.setEmail("staff_pricing_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
+            staffTk.setUsername("staff_pricing_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
             staffTk.setMatKhau("testpass123");
             staffTk.setVaiTro("NV");
             staffTk.setTrangThai("hoat_dong");
-            staffTk.setLaNhanVien(true);
+
             staffTk = taiKhoanRepository.save(staffTk);
 
             NhanVien n = new NhanVien();
@@ -265,12 +274,6 @@ public class OrderPricingIntegrationTest {
             pttt.setTenPhuongThuc("COD");
             phuongThucThanhToanDAO.save(pttt);
         }
-
-        if (!trangThaiGioHangRepository.existsById(1)) {
-            TrangThaiGioHang tt = new TrangThaiGioHang();
-            tt.setTenTrangThai("Trạng thái mặc định");
-            trangThaiGioHangRepository.save(tt);
-        }
     }
 
     @Test
@@ -279,9 +282,6 @@ public class OrderPricingIntegrationTest {
         mockMvc.perform(post("/gio-hang/them")
                         .sessionAttr("idNguoiDung", testUser.getId())
                         .sessionAttr("vaiTro", "KH")
-                        .sessionAttr("laKhachHang", true)
-                        .sessionAttr("laNhanVien", false)
-                        .sessionAttr("laQuanLy", false)
                         .requestAttr("_csrf", csrfToken)
                         .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
                         .param("soLuong", "1"))
@@ -290,13 +290,13 @@ public class OrderPricingIntegrationTest {
         MvcResult checkoutResult = mockMvc.perform(post("/checkout/submit")
                         .sessionAttr("idNguoiDung", testUser.getId())
                         .sessionAttr("vaiTro", "KH")
-                        .sessionAttr("laKhachHang", true)
-                        .sessionAttr("laNhanVien", false)
-                        .sessionAttr("laQuanLy", false)
                         .requestAttr("_csrf", csrfToken)
                         .param("hoTenNhan", "Người nhận test")
                         .param("sdtNhan", "0912123456")
                         .param("diaChiNhan", "123 Đường Láng, Hà Nội")
+                        .param("ghnProvinceId", "201")
+                        .param("ghnToDistrictId", "1454")
+                        .param("ghnToWardCode", "21012")
                         .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
                         .param("phuongThucThanhToan", "COD"))
                 .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
@@ -326,17 +326,17 @@ public class OrderPricingIntegrationTest {
 
         // Step 3: Fetch order detail JSON and verify historical fields are intact
         TaiKhoan testAdmin = new TaiKhoan();
-        testAdmin.setEmail("admin_pricing_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
+        testAdmin.setUsername("admin_pricing_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
         testAdmin.setMatKhau("testpass123");
         testAdmin.setVaiTro("QL");
         testAdmin.setTrangThai("hoat_dong");
-        testAdmin.setLaQuanLy(true);
+
         testAdmin = taiKhoanRepository.save(testAdmin);
         adminUserIdsToClean.add(testAdmin.getId());
 
         org.springframework.security.core.context.SecurityContext securityContext = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
         org.springframework.security.authentication.UsernamePasswordAuthenticationToken securityAuth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                testAdmin.getEmail(),
+                testAdmin.getUsername(),
                 null,
                 java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_QL"))
         );
@@ -345,9 +345,6 @@ public class OrderPricingIntegrationTest {
         MvcResult detailResult = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/don-hang/detail-json")
                         .sessionAttr("idNguoiDung", testAdmin.getId())
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
-                        .sessionAttr("laKhachHang", false)
-                        .sessionAttr("laNhanVien", false)
                         .sessionAttr(org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext)
                         .param("id", String.valueOf(orderId)))
                 .andExpect(status().isOk())
@@ -377,9 +374,6 @@ public class OrderPricingIntegrationTest {
         mockMvc.perform(post("/gio-hang/them")
                         .sessionAttr("idNguoiDung", testUser.getId())
                         .sessionAttr("vaiTro", "KH")
-                        .sessionAttr("laKhachHang", true)
-                        .sessionAttr("laNhanVien", false)
-                        .sessionAttr("laQuanLy", false)
                         .requestAttr("_csrf", csrfToken)
                         .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
                         .param("soLuong", "1"))
@@ -388,13 +382,13 @@ public class OrderPricingIntegrationTest {
         MvcResult onlineCheckoutResult = mockMvc.perform(post("/checkout/submit")
                         .sessionAttr("idNguoiDung", testUser.getId())
                         .sessionAttr("vaiTro", "KH")
-                        .sessionAttr("laKhachHang", true)
-                        .sessionAttr("laNhanVien", false)
-                        .sessionAttr("laQuanLy", false)
                         .requestAttr("_csrf", csrfToken)
                         .param("hoTenNhan", "Người nhận Online")
                         .param("sdtNhan", "0912123456")
                         .param("diaChiNhan", "Hà Nội")
+                        .param("ghnProvinceId", "201")
+                        .param("ghnToDistrictId", "1454")
+                        .param("ghnToWardCode", "21012")
                         .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
                         .param("phuongThucThanhToan", "COD"))
                 .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
@@ -428,12 +422,11 @@ public class OrderPricingIntegrationTest {
         HoaDonChiTiet posDetail = hoaDonChiTietRepository.findByHoaDon_Id(posOrder.getId()).get(0);
 
         // Verify pricing snapshots are identical
-        assertEquals(onlineDetail.getGiaNiemYet(), posDetail.getGiaNiemYet());
+        assertEquals(onlineDetail.getGiaGoc(), posDetail.getGiaGoc());
+        assertEquals(onlineDetail.getGiaSauGiam(), posDetail.getGiaSauGiam());
         assertEquals(onlineDetail.getDonGia(), posDetail.getDonGia());
-        assertEquals(onlineDetail.getPhanTramGiam(), posDetail.getPhanTramGiam());
-        assertEquals(onlineDetail.getSoTienGiamSanPham(), posDetail.getSoTienGiamSanPham());
-        assertEquals(onlineDetail.getTenDotGiamGia(), posDetail.getTenDotGiamGia());
-        assertEquals(onlineDetail.getIdDotGiamGia(), posDetail.getIdDotGiamGia());
+        assertEquals(onlineDetail.getTenSanPhamSnapshot(), posDetail.getTenSanPhamSnapshot());
+        assertEquals(onlineDetail.getSkuSnapshot(), posDetail.getSkuSnapshot());
     }
 
     @Test
@@ -458,12 +451,11 @@ public class OrderPricingIntegrationTest {
                 try {
                     // Seed cart for this temporary user
                     TaiKhoan tempUser = new TaiKhoan();
-                    tempUser.setEmail("temp_r_" + index + "_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
+                    tempUser.setUsername("temp_r_" + index + "_" + UUID.randomUUID().toString().substring(0, 8) + "@gmail.com");
                     tempUser.setMatKhau("pass123");
                     tempUser.setVaiTro("KH");
                     tempUser.setTrangThai("hoat_dong");
-                    tempUser.setLaKhachHang(true);
-                    
+
                     synchronized (this) {
                         tempUser = taiKhoanRepository.save(tempUser);
                         tempUserIds.add(tempUser.getId());
@@ -581,6 +573,9 @@ public class OrderPricingIntegrationTest {
             }
             for (Integer userId : tempUserIds) {
                 try {
+                    deleteEditLogsForAccount(userId);
+                    tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(userId));
+                    tokenRepository.flush();
                     taiKhoanRepository.deleteById(userId);
                 } catch (Exception e) {}
             }
@@ -611,6 +606,7 @@ public class OrderPricingIntegrationTest {
                 try {
                     dotGiamGiaDAO.deleteById(testDgg.getId());
                     dotGiamGiaDAO.flush();
+                    testDgg = null;
                 } catch (Exception e) {
                     System.err.println("Error deleting testDgg in finally: " + e.getMessage());
                 }
@@ -625,6 +621,7 @@ public class OrderPricingIntegrationTest {
                 try {
                     sanPhamRepository.deleteById(testSpct.getSanPham().getId());
                     sanPhamRepository.flush();
+                    testSpct = null;
                 } catch (Exception e) {
                     System.err.println("Error deleting SanPham in finally: " + e.getMessage());
                 }
@@ -633,14 +630,19 @@ public class OrderPricingIntegrationTest {
                 try {
                     khachHangRepository.deleteById(testKhachHang.getId());
                     khachHangRepository.flush();
+                    testKhachHang = null;
                 } catch (Exception e) {
                     System.err.println("Error deleting testKhachHang in finally: " + e.getMessage());
                 }
             }
             if (testUser != null) {
                 try {
+                    deleteEditLogsForAccount(testUser.getId());
+                    tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(testUser.getId()));
+                    tokenRepository.flush();
                     taiKhoanRepository.deleteById(testUser.getId());
                     taiKhoanRepository.flush();
+                    testUser = null;
                 } catch (Exception e) {
                     System.err.println("Error deleting testUser in finally: " + e.getMessage());
                 }
@@ -652,6 +654,9 @@ public class OrderPricingIntegrationTest {
     void tearDown() {
         // Clean up any test-specific orders created in the tests
         for (Integer orderId : orderIdsToClean) {
+            try {
+                jdbcTemplate.update("DELETE FROM TichHopVanChuyen WHERE id_hoa_don = ?", orderId);
+            } catch (Exception e) {}
             try {
                 paymentTransactionRepository.deleteAll(paymentTransactionRepository.findByOrder_Id(orderId));
                 paymentTransactionRepository.flush();
@@ -669,6 +674,9 @@ public class OrderPricingIntegrationTest {
         // Clean up test admin users
         for (Integer adminId : adminUserIdsToClean) {
             try {
+                deleteEditLogsForAccount(adminId);
+                tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(adminId));
+                tokenRepository.flush();
                 taiKhoanRepository.deleteById(adminId);
                 taiKhoanRepository.flush();
             } catch (Exception e) {}
@@ -722,6 +730,13 @@ public class OrderPricingIntegrationTest {
         }
         try {
             if (testKhachHang != null) {
+                // Delete cart first
+                GioHang gh = gioHangRepository.findByKhachHang_Id(testKhachHang.getId());
+                if (gh != null) {
+                    gioHangChiTietRepository.deleteAll(gioHangChiTietRepository.findByGioHang_Id(gh.getId()));
+                    gioHangRepository.delete(gh);
+                    gioHangRepository.flush();
+                }
                 khachHangRepository.deleteById(testKhachHang.getId());
                 khachHangRepository.flush();
             }
@@ -730,6 +745,10 @@ public class OrderPricingIntegrationTest {
         }
         try {
             if (testUser != null) {
+                // Delete account-owned records first to avoid FK constraints
+                deleteEditLogsForAccount(testUser.getId());
+                tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(testUser.getId()));
+                tokenRepository.flush();
                 taiKhoanRepository.deleteById(testUser.getId());
                 taiKhoanRepository.flush();
             }
@@ -738,7 +757,7 @@ public class OrderPricingIntegrationTest {
         }
         try {
             List<TaiKhoan> strayStaff = taiKhoanRepository.findAll().stream()
-                    .filter(tk -> tk.getEmail() != null && tk.getEmail().startsWith("staff_pricing_"))
+                    .filter(tk -> tk.getUsername() != null && tk.getUsername().startsWith("staff_pricing_"))
                     .toList();
             for (TaiKhoan tk : strayStaff) {
                 NhanVien nv = nhanVienRepository.findByTaiKhoanId(tk.getId());
@@ -746,12 +765,58 @@ public class OrderPricingIntegrationTest {
                     nhanVienRepository.delete(nv);
                     nhanVienRepository.flush();
                 }
+                deleteEditLogsForAccount(tk.getId());
+                tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(tk.getId()));
+                tokenRepository.flush();
                 taiKhoanRepository.delete(tk);
                 taiKhoanRepository.flush();
             }
         } catch (Exception e) {
             System.err.println("Error deleting strayStaff in tearDown: " + e.getMessage());
         }
+
+        try {
+            List<TaiKhoan> strayPricingUsers = taiKhoanRepository.findAll().stream()
+                    .filter(tk -> tk.getUsername() != null && tk.getUsername().contains("tester_pricing_"))
+                    .toList();
+            for (TaiKhoan tk : strayPricingUsers) {
+                KhachHang kh = khachHangRepository.findByTaiKhoan_Id(tk.getId());
+                if (kh != null) {
+                    GioHang gh = gioHangRepository.findByKhachHang_Id(kh.getId());
+                    if (gh != null) {
+                        gioHangChiTietRepository.deleteAll(gioHangChiTietRepository.findByGioHang_Id(gh.getId()));
+                        gioHangRepository.delete(gh);
+                        gioHangRepository.flush();
+                    }
+                    List<HoaDon> orders = hoaDonRepository.findByKhachHang_Id(kh.getId());
+                    for (HoaDon hd : orders) {
+                        try {
+                            jdbcTemplate.update("DELETE FROM TichHopVanChuyen WHERE id_hoa_don = ?", hd.getId());
+                        } catch (Exception e) {}
+                        paymentTransactionRepository.deleteAll(paymentTransactionRepository.findByOrder_Id(hd.getId()));
+                        hoaDonChiTietRepository.deleteAll(hoaDonChiTietRepository.findByHoaDon_Id(hd.getId()));
+                        hoaDonRepository.delete(hd);
+                    }
+                    khachHangRepository.delete(kh);
+                    khachHangRepository.flush();
+                }
+                deleteEditLogsForAccount(tk.getId());
+                tokenRepository.deleteAll(tokenRepository.findByTaiKhoan_Id(tk.getId()));
+                tokenRepository.flush();
+                taiKhoanRepository.delete(tk);
+                taiKhoanRepository.flush();
+            }
+        } catch (Exception e) {
+            System.err.println("Error deleting strayPricingUsers in tearDown: " + e.getMessage());
+        }
+    }
+
+    private void deleteEditLogsForAccount(Integer accountId) {
+        if (accountId == null) {
+            return;
+        }
+        editLogRepository.deleteAll(editLogRepository.findByTaiKhoan_Id(accountId));
+        editLogRepository.flush();
     }
 }
 

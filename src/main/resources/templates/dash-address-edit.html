@@ -27,7 +27,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== Ứng dụng chính ======-->
@@ -135,14 +135,14 @@
 
                                             <span class="dash__text u-s-m-b-30">Chúng tôi cần địa chỉ để có thể giao sản phẩm đến cho bạn.</span>
                                             <div class="u-s-m-b-30 dash-address-manipulation">
-											    <button type="button" class="btn btn--e-transparent-brand-b-2" onclick="getCurrentLocation()" id="btn-get-location">
-											        <i class="fas fa-map-marker-alt u-s-m-r-8"></i> LẤY VỊ TRÍ HIỆN TẠI CỦA TÔI
+											    <button type="button" class="btn btn--e-transparent-brand-b-2" id="btn-get-location">
+											        <i class="fas fa-map-marker-alt u-s-m-r-8"></i> LẤY VỊ TRÍ HIỆN TẠI
 											    </button>
 											</div>
 											
 											<!-- Khối hiển thị Bản đồ tương tác -->
 											<div class="u-s-m-b-30" id="map-wrapper" style="width: 100%;">
-											    <label class="gl-label u-s-m-b-10">BẢN ĐỒ VỊ TRÍ (Click bản đồ hoặc kéo thả ghim đỏ để chọn vị trí chính xác) *</label>
+												    <label class="gl-label u-s-m-b-10">BẢN ĐỒ VỊ TRÍ</label>
 											    <div id="map" style="height: 320px; border-radius: 8px; border: 1px solid #ddd; z-index: 1;"></div>
 											</div>
 
@@ -156,57 +156,81 @@
                                                 <!-- Tọa độ bản đồ chọn -->
                                                 <input type="hidden" id="address-lat" th:field="*{latitude}">
                                                 <input type="hidden" id="address-lon" th:field="*{longitude}">
-											    <div class="gl-inline">
-											        <div class="u-s-m-b-30">
-											            <label class="gl-label" for="address-fname">HỌ *</label>
-											            <input class="input-text input-text--primary-style" type="text" id="address-fname" th:field="*{hoNguoiNhan}" maxlength="50" required>
-                                                        <span id="error-fname" class="text-danger u-s-m-t-8" style="display: none; font-size: 12px; color: red;"></span>
-											        </div>
-											        <div class="u-s-m-b-30">
-											            <label class="gl-label" for="address-lname">TÊN *</label>
-											            <input class="input-text input-text--primary-style" type="text" id="address-lname" th:field="*{tenNguoiNhan}" maxlength="50" required>
-                                                        <span id="error-lname" class="text-danger u-s-m-t-8" style="display: none; font-size: 12px; color: red;"></span>
-											        </div>
-											    </div>
-											    <div class="gl-inline">
-											        <div class="u-s-m-b-30">
-											            <label class="gl-label" for="address-phone">SỐ ĐIỆN THOẠI *</label>
-											            <input class="input-text input-text--primary-style" type="text" id="address-phone" th:field="*{sdtNguoiNhan}" maxlength="12" required>
-                                                        <span id="error-phone" class="text-danger u-s-m-t-8" style="display: none; font-size: 12px; color: red;"></span>
-											        </div>
-											        <div class="u-s-m-b-30">
-											            <label class="gl-label" for="address-street">ĐỊA CHỈ CỤ THỂ (Số nhà, Tên đường) *</label>
-											            <input class="input-text input-text--primary-style" type="text" id="address-street" th:field="*{diaChiCuThe}" minlength="5" maxlength="255" required>
-                                                        <span id="error-street" class="text-danger u-s-m-t-8" style="display: none; font-size: 12px; color: red;"></span>
-											        </div>
-											    </div>
-											    <div class="gl-inline">
-											        <div class="u-s-m-b-30">
-											            <label class="gl-label" for="address-state">TỈNH/THÀNH PHỐ *</label>
-											            <input class="input-text input-text--primary-style" type="text" id="address-state" th:field="*{tinhThanh}" maxlength="100" required>
-                                                        <span id="error-state" class="text-danger u-s-m-t-8" style="display: none; font-size: 12px; color: red;"></span>
-											        </div>
-											        <div class="u-s-m-b-30">
-											            <label class="gl-label" for="address-country">QUỐC GIA *</label>
-											            <input class="input-text input-text--primary-style" type="text" id="address-country" th:field="*{quocGia}" maxlength="100" required>
-                                                        <span id="error-country" class="text-danger u-s-m-t-8" style="display: none; font-size: 12px; color: red;"></span>
-											        </div>
-											    </div>
-											    
-											    <div class="u-s-m-b-30" th:if="${!dc.defaultShipping}">
-											        <div class="check-box">
-											            <input type="checkbox" id="make-default-address" th:field="*{defaultAddress}" value="true">
-											            <div class="check-box__state check-box__state--primary">
-											                <label class="check-box__label" for="make-default-address">Đặt làm địa chỉ mặc định</label>
-											            </div>
-											        </div>
-											    </div>
-											    <div class="u-s-m-b-30 text-success fw-bold" th:if="${dc.defaultShipping}">
-											        <i class="fas fa-check-circle"></i> Đây đang là địa chỉ mặc định của bạn.
-											    </div>
-											    
-											    <button class="btn btn--e-brand-b-2" id="btn-submit-address" type="submit">CẬP NHẬT ĐỊA CHỈ</button>
-											</form>
+
+                                                <div class="gl-inline">
+                                                    <div class="u-s-m-b-30">
+                                                        <label class="gl-label" for="address-fname">Họ</label>
+                                                        <input class="input-text input-text--primary-style" type="text" id="address-fname" th:field="*{hoNguoiNhan}" maxlength="50" required>
+                                                        <span id="error-fname" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                        <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('hoNguoiNhan')}" th:errors="*{hoNguoiNhan}"></span>
+                                                    </div>
+                                                    <div class="u-s-m-b-30">
+                                                        <label class="gl-label" for="address-lname">Tên</label>
+                                                        <input class="input-text input-text--primary-style" type="text" id="address-lname" th:field="*{tenNguoiNhan}" maxlength="50" required>
+                                                        <span id="error-lname" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                        <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('tenNguoiNhan')}" th:errors="*{tenNguoiNhan}"></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="u-s-m-b-30">
+                                                    <label class="gl-label" for="address-phone">Số điện thoại</label>
+                                                    <input class="input-text input-text--primary-style" type="tel" id="address-phone" th:field="*{sdtNguoiNhan}" maxlength="12" inputmode="tel" required>
+                                                    <span id="error-phone" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                    <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('sdtNguoiNhan')}" th:errors="*{sdtNguoiNhan}"></span>
+                                                </div>
+
+                                                <div class="u-s-m-b-30" id="address-area-guidance" style="padding:12px; border-radius:4px; background:#eef6ff; color:#1f4f7a; font-size:13px;">
+                                                    Chọn khu vực giao hàng hoặc sử dụng vị trí hiện tại để điền nhanh địa chỉ.
+                                                </div>
+
+                                                <div class="gl-inline">
+                                                    <div class="u-s-m-b-30">
+                                                        <label class="gl-label" for="ghnProvinceId">Tỉnh/Thành phố</label>
+                                                        <select class="select-box select-box--primary-style" id="ghnProvinceId" th:field="*{ghnProvinceId}" th:attr="data-selected-value=*{ghnProvinceId}" required>
+                                                            <option value="">-- Chọn tỉnh/thành phố --</option>
+                                                        </select>
+                                                        <span id="error-ghnProvinceId" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                        <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('ghnProvinceId')}" th:errors="*{ghnProvinceId}"></span>
+                                                    </div>
+                                                    <div class="u-s-m-b-30">
+                                                        <label class="gl-label" for="ghnDistrictId">Quận/Huyện</label>
+                                                        <select class="select-box select-box--primary-style" id="ghnDistrictId" th:field="*{ghnDistrictId}" th:attr="data-selected-value=*{ghnDistrictId}" disabled required>
+                                                            <option value="">-- Chọn quận/huyện --</option>
+                                                        </select>
+                                                        <span id="error-ghnDistrictId" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                        <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('ghnDistrictId')}" th:errors="*{ghnDistrictId}"></span>
+                                                    </div>
+                                                    <div class="u-s-m-b-30">
+                                                        <label class="gl-label" for="ghnWardCode">Phường/Xã</label>
+                                                        <select class="select-box select-box--primary-style" id="ghnWardCode" th:field="*{ghnWardCode}" th:attr="data-selected-value=*{ghnWardCode}" disabled required>
+                                                            <option value="">-- Chọn phường/xã --</option>
+                                                        </select>
+                                                        <span id="error-ghnWardCode" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                        <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('ghnWardCode')}" th:errors="*{ghnWardCode}"></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="u-s-m-b-30">
+                                                    <label class="gl-label" for="address-street">Địa chỉ cụ thể</label>
+                                                    <input class="input-text input-text--primary-style" type="text" id="address-street" th:field="*{diaChiCuThe}" placeholder="Số nhà, tên đường, tòa nhà..." minlength="5" maxlength="255" required>
+                                                    <span id="error-street" class="text-danger u-s-m-t-8" style="display:none; font-size:12px; color:red;"></span>
+                                                    <span class="text-danger u-s-m-t-8" style="display:block; font-size:12px; color:red;" th:if="${#fields.hasErrors('diaChiCuThe')}" th:errors="*{diaChiCuThe}"></span>
+                                                </div>
+
+                                                <div class="u-s-m-b-30" th:if="${!dc.defaultShipping}">
+                                                    <div class="check-box">
+                                                        <input type="checkbox" id="make-default-address" th:field="*{defaultAddress}" value="true">
+                                                        <div class="check-box__state check-box__state--primary">
+                                                            <label class="check-box__label" for="make-default-address">Đặt làm địa chỉ mặc định</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="u-s-m-b-30 text-success fw-bold" th:if="${dc.defaultShipping}">
+                                                    <i class="fas fa-check-circle"></i> Đây đang là địa chỉ mặc định của bạn.
+                                                </div>
+
+                                                <button class="btn btn--e-brand-b-2" id="btn-submit-address" type="submit">CẬP NHẬT ĐỊA CHỈ</button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
@@ -251,193 +275,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!--====== Ứng dụng ======-->
-    <script th:src="@{/js/app.js}"></script>
+    <script th:src="@{/js/app.js(v='1.0.7')}"></script>
+    <script th:src="@{/js/ghn-address-book.js(v='1.0.2')}"></script>
 
-    <!-- Realtime Validation script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form.dash-address-manipulation');
-            if (!form) return;
-
-            const fname = document.getElementById('address-fname');
-            const lname = document.getElementById('address-lname');
-            const phone = document.getElementById('address-phone');
-            const street = document.getElementById('address-street');
-            const state = document.getElementById('address-state');
-            const country = document.getElementById('address-country');
-            const submitBtn = document.getElementById('btn-submit-address');
-
-            const errFname = document.getElementById('error-fname');
-            const errLname = document.getElementById('error-lname');
-            const errPhone = document.getElementById('error-phone');
-            const errStreet = document.getElementById('error-street');
-            const errState = document.getElementById('error-state');
-            const errCountry = document.getElementById('error-country');
-
-            function showError(element, errorSpan, message) {
-                errorSpan.textContent = message;
-                errorSpan.style.display = 'block';
-                element.style.borderColor = 'red';
-            }
-
-            function hideError(element, errorSpan) {
-                errorSpan.textContent = '';
-                errorSpan.style.display = 'none';
-                element.style.borderColor = '';
-            }
-
-            function validateFname(showFeedback = true) {
-                const val = fname.value.trim();
-                if (!val) {
-                    if (showFeedback) showError(fname, errFname, 'Họ người nhận không được để trống.');
-                    return false;
-                }
-                if (val.length > 50) {
-                    if (showFeedback) showError(fname, errFname, 'Họ người nhận không được vượt quá 50 ký tự.');
-                    return false;
-                }
-                hideError(fname, errFname);
-                return true;
-            }
-
-            // Prevent blank-only value for first name
-            fname.addEventListener('change', function() {
-                fname.value = fname.value.trim();
-            });
-
-            function validateLname(showFeedback = true) {
-                const val = lname.value.trim();
-                if (!val) {
-                    if (showFeedback) showError(lname, errLname, 'Tên người nhận không được để trống.');
-                    return false;
-                }
-                if (val.length > 50) {
-                    if (showFeedback) showError(lname, errLname, 'Tên người nhận không được vượt quá 50 ký tự.');
-                    return false;
-                }
-                hideError(lname, errLname);
-                return true;
-            }
-
-            // Prevent blank-only value for last name
-            lname.addEventListener('change', function() {
-                lname.value = lname.value.trim();
-            });
-
-            function validatePhone(showFeedback = true) {
-                const val = phone.value.trim();
-                if (!val) {
-                    if (showFeedback) showError(phone, errPhone, 'Số điện thoại không được để trống.');
-                    return false;
-                }
-                const phoneRegex = /^(0|\+84)[0-9]{9}$/;
-                if (!phoneRegex.test(val)) {
-                    if (showFeedback) showError(phone, errPhone, 'Số điện thoại không đúng định dạng!');
-                    return false;
-                }
-                hideError(phone, errPhone);
-                return true;
-            }
-
-            function validateStreet(showFeedback = true) {
-                const val = street.value.trim();
-                if (!val) {
-                    if (showFeedback) showError(street, errStreet, 'Địa chỉ cụ thể không được để trống.');
-                    return false;
-                }
-                if (val.length < 5 || val.length > 255) {
-                    if (showFeedback) showError(street, errStreet, 'Địa chỉ cụ thể phải từ 5 đến 255 ký tự.');
-                    return false;
-                }
-                hideError(street, errStreet);
-                return true;
-            }
-
-            function validateState(showFeedback = true) {
-                const val = state.value.trim();
-                if (!val) {
-                    if (showFeedback) showError(state, errState, 'Tỉnh/Thành phố không được để trống.');
-                    return false;
-                }
-                if (val.length > 100) {
-                    if (showFeedback) showError(state, errState, 'Tỉnh/Thành phố không được vượt quá 100 ký tự.');
-                    return false;
-                }
-                hideError(state, errState);
-                return true;
-            }
-
-            function validateCountry(showFeedback = true) {
-                const val = country.value.trim();
-                if (!val) {
-                    if (showFeedback) showError(country, errCountry, 'Quốc gia không được để trống.');
-                    return false;
-                }
-                if (val.length > 100) {
-                    if (showFeedback) showError(country, errCountry, 'Quốc gia không được vượt quá 100 ký tự.');
-                    return false;
-                }
-                hideError(country, errCountry);
-                return true;
-            }
-
-            function checkFormValidity(showFeedback = false) {
-                const isFnameValid = validateFname(showFeedback);
-                const isLnameValid = validateLname(showFeedback);
-                const isPhoneValid = validatePhone(showFeedback);
-                const isStreetValid = validateStreet(showFeedback);
-                const isStateValid = validateState(showFeedback);
-                const isCountryValid = validateCountry(showFeedback);
-
-                const isValid = isFnameValid && isLnameValid && isPhoneValid && isStreetValid && isStateValid && isCountryValid;
-                submitBtn.disabled = !isValid;
-                return isValid;
-            }
-
-            const inputs = [fname, lname, phone, street, state, country];
-
-            inputs.forEach(input => {
-                input.dataset.touched = 'false';
-            });
-
-            inputs.forEach(input => {
-                input.addEventListener('input', function() {
-                    const showFeedback = input.dataset.touched === 'true';
-                    if (input === fname) validateFname(showFeedback);
-                    else if (input === lname) validateLname(showFeedback);
-                    else if (input === phone) validatePhone(showFeedback);
-                    else if (input === street) validateStreet(showFeedback);
-                    else if (input === state) validateState(showFeedback);
-                    else if (input === country) validateCountry(showFeedback);
-                    checkFormValidity(false);
-                });
-
-                input.addEventListener('blur', function() {
-                    input.dataset.touched = 'true';
-                    if (input === fname) validateFname(true);
-                    else if (input === lname) validateLname(true);
-                    else if (input === phone) validatePhone(true);
-                    else if (input === street) validateStreet(true);
-                    else if (input === state) validateState(true);
-                    else if (input === country) validateCountry(true);
-                    checkFormValidity(false);
-                });
-            });
-
-            form.addEventListener('submit', function(e) {
-                inputs.forEach(input => {
-                    input.dataset.touched = 'true';
-                });
-                const isValid = checkFormValidity(true);
-                if (!isValid) {
-                    e.preventDefault();
-                }
-            });
-
-            // Run check initially without feedback
-            checkFormValidity(false);
-        });
-    </script>
+    <script th:src="@{/js/address-form-validation.js}"></script>
 
     <!--====== Khi không hỗ trợ JavaScript ======-->
     <noscript>

@@ -8,6 +8,7 @@
     <meta name="author" content="">
     <link th:href="@{/images/favicon.png}" rel="shortcut icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preload" as="image" th:href="@{/images/slider/slide-1.jpg}" fetchpriority="high">
     <title>Smash VN</title>
 
     <!--====== Phông chữ Google ======-->
@@ -20,13 +21,13 @@
     <link rel="stylesheet" th:href="@{/css/utility.css}">
 
     <!--====== Ứng dụng ======-->
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=1.0.3)}">
 </head>
 <body class="config">
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== app js ======-->
@@ -138,28 +139,28 @@
                                 <a class="collection" th:href="@{/shop}">
                                     <div class="aspect aspect--bg-grey aspect--square">
 
-                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-9.png}" alt=""></div>
+                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-9.png}" loading="lazy" decoding="async" alt=""></div>
                                 </a></div>
                             <div class="col-lg-7 col-md-7 u-s-m-b-30">
 
                                 <a class="collection" th:href="@{/shop}">
                                     <div class="aspect aspect--bg-grey aspect--1286-890">
 
-                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-11.png}" alt=""></div>
+                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-11.png}" loading="lazy" decoding="async" alt=""></div>
                                 </a></div>
                             <div class="col-lg-7 col-md-7 u-s-m-b-30">
 
                                 <a class="collection" th:href="@{/shop}">
                                     <div class="aspect aspect--bg-grey aspect--1286-890">
 
-                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-14.png}" alt=""></div>
+                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-14.png}" loading="lazy" decoding="async" alt=""></div>
                                 </a></div>
                             <div class="col-lg-5 col-md-5 u-s-m-b-30">
 
                                 <a class="collection" th:href="@{/shop}">
                                     <div class="aspect aspect--bg-grey aspect--square">
 
-                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-13.png}" alt=""></div>
+                                        <img class="aspect__img collection__img" th:src="@{/images/collection/coll-13.png}" loading="lazy" decoding="async" alt=""></div>
                                 </a></div>
                         </div>
                     </div>
@@ -198,18 +199,19 @@
                                     <div class="filter__category-wrapper">
 										<button class="btn filter__btn filter__btn--style-1 js-checked" type="button" data-filter="*">TẤT CẢ</button>
 									</div>
-										<div class="filter__category-wrapper" th:each="brand : ${brands}">
-										    <button class="btn filter__btn filter__btn--style-1" 
-										            type="button" 
-										            th:attr="data-filter='.' + ${brand.tenThuongHieu.replaceAll(' ', '')}"
-										            th:text="${brand.tenThuongHieu}">
-										        Tên Hãng
-										    </button>
-										</div>
+									<!-- Hiển thị nút lọc cho TẤT CẢ thương hiệu trong CSDL -->
+									<div class="filter__category-wrapper" th:each="brand : ${brands}">
+									    <button class="btn filter__btn filter__btn--style-1" 
+									            type="button" 
+									            th:attr="data-filter=${brand.tenThuongHieu}"
+									            th:text="${brand.tenThuongHieu}">
+									        Tên Hãng
+									    </button>
+									</div>
 	                             </div>
                                 <div class="filter__grid-wrapper u-s-m-t-30">
                                     <div class="row">
-									    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 u-s-m-b-30 filter__item" th:classappend="${product.thuongHieu.tenThuongHieu.replaceAll(' ', '')}" th:each="product, iterStat : ${bestSellers}" th:if="${iterStat.index &lt; 14}">
+									    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 u-s-m-b-30 filter__item" th:attr="data-brand=${product.thuongHieu.tenThuongHieu}" th:each="product : ${bestSellers}">
 									    
 											<div class="product-o product-o--hover-on product-o--radius">
 											    
@@ -217,7 +219,9 @@
 											        <a class="aspect aspect--bg-grey aspect--vertical u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
 											            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;"
 											                 th:if="${!product.sanPhamChiTiets.isEmpty()}"
-											                 th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="Ảnh Sản Phẩm">
+											                 th:src="@{${product.sanPhamChiTiets[0].hinhAnhUrl}}"
+											                 loading="lazy" decoding="async"
+											                 onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh Sản Phẩm">
 											        </a>
 											        <!-- Shopee Discount Badge -->
 											        <div th:if="${product.getActiveGiamGiaPhanTram() > 0}" class="shopee-discount-badge" th:text="'-' + ${product.getActiveGiamGiaPhanTram()} + '%'"></div>
@@ -241,7 +245,7 @@
 											                    </a>
 											                </li>
 											                <li>
-											                	<a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ')'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
+											                	<a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ', this)'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
 													                <i class="fas fa-heart"></i>
 													            </a>
 											                </li>
@@ -319,7 +323,7 @@
                                         <a class="aspect aspect--bg-grey aspect--vertical u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
                                             <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;"
                                                  th:if="${!product.sanPhamChiTiets.isEmpty()}"
-                                                 th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="Ảnh Sản Phẩm">
+                                                 th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" loading="lazy" decoding="async" alt="Ảnh Sản Phẩm">
                                         </a>
                                         <!-- Shopee Discount Badge -->
                                         <div th:if="${product.getActiveGiamGiaPhanTram() > 0}" class="shopee-discount-badge" th:text="'-' + ${product.getActiveGiamGiaPhanTram()} + '%'"></div>
@@ -345,7 +349,7 @@
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ')'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
+                                                    <a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ', this)'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
                                                         <i class="fas fa-heart"></i>
                                                     </a>
                                                 </li>
@@ -410,7 +414,9 @@
                                             <a class="aspect aspect--bg-grey aspect--vertical u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
                                                 <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;"
                                                      th:if="${!product.sanPhamChiTiets.isEmpty()}"
-                                                     th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="Ảnh Sản Phẩm">
+                                                     th:src="@{${product.sanPhamChiTiets[0].hinhAnhUrl}}"
+                                                     loading="lazy" decoding="async"
+                                                     onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh Sản Phẩm">
                                             </a>
                                             <!-- Shopee Discount Badge -->
                                             <div th:if="${product.getActiveGiamGiaPhanTram() > 0}" class="shopee-discount-badge" th:text="'-' + ${product.getActiveGiamGiaPhanTram()} + '%'"></div>
@@ -433,7 +439,7 @@
                                                         </a>
                                                     </li>
                                                     <li>
-                                                        <a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ')'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
+                                                        <a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ', this)'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
                                                             <i class="fas fa-heart"></i>
                                                         </a>
                                                     </li>
@@ -481,10 +487,10 @@
 
                                         <span class="u-c-white" th:text="${hasCamp ? highestDiscountCampaign.tenChienDich : 'Việt Nam'}">Việt Nam</span>
 
-                                        <span class="u-c-brand" th:text="${hasCamp ? ' -' + highestDiscountCampaign.phanTramGiam + '%' : ' Offers'}">Offers</span></div>
+                                        <span class="u-c-brand" th:text="${hasCamp ? ' -' + highestDiscountCampaign.phanTramGiam + '%' : ' Ưu đãi'}">Ưu đãi</span></div>
                                     <div class="banner-bg__text-2">
 
-                                        <span class="u-c-brand" th:text="${hasCamp ? 'SIÊU ƯU ĐÃI' : 'Official Launch'}">Official Launch</span>
+                                        <span class="u-c-brand" th:text="${hasCamp ? 'SIÊU ƯU ĐÃI' : 'Ra mắt chính thức'}">Ra mắt chính thức</span>
 
                                         <span class="u-c-white">Đừng bỏ lỡ!</span></div>
 
@@ -531,7 +537,9 @@
 							            <a class="aspect aspect--bg-grey aspect--vertical u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
 							                <img class="aspect__img" 
 							                     th:if="${!product.sanPhamChiTiets.isEmpty()}"
-							                     th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="Ảnh Sản Phẩm">
+							                     th:src="@{${product.sanPhamChiTiets[0].hinhAnhUrl}}"
+									                     loading="lazy" decoding="async"
+									                     onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh Sản Phẩm">
 							            </a>
 							            <!-- Shopee Discount Badge -->
 							            <div th:if="${product.getActiveGiamGiaPhanTram() > 0}" class="shopee-discount-badge" th:text="'-' + ${product.getActiveGiamGiaPhanTram()} + '%'"></div>
@@ -555,7 +563,7 @@
 											                    </a>
 											                </li>
 											                <li>
-											                	<a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ')'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
+											                	<a href="javascript:void(0)" th:onclick="'addToWishlist(' + ${product.id} + ', this)'" data-tooltip="tooltip" data-placement="top" title="Thêm vào yêu thích">
 													                <i class="fas fa-heart"></i>
 													            </a>
 											                </li>
@@ -600,8 +608,8 @@
                             <!-- Cột 1: Banners & New Products -->
                             <div class="col-lg-4 col-md-4 col-sm-6 u-s-m-b-30">
                                 <a class="promotion" th:href="@{/shop}">
-                                    <div class="aspect aspect--bg-grey aspect--vertical">
-                                        <img class="aspect__img promotion__img" th:src="@{/images/promo/promo-img-1.jpg}" alt="">
+                                    <div class="aspect aspect--bg-grey aspect--square">
+                                        <img class="aspect__img promotion__img" style="object-fit: cover; width: 100%; height: 100%;" th:src="@{/images/promo/promo-img-1.jpg}" loading="lazy" decoding="async" alt="">
                                     </div>
                                     <div class="promotion__content">
                                         <div class="promotion__text-wrap">
@@ -621,12 +629,12 @@
                                 <div class="row align-items-center u-s-m-b-20" th:each="product, iter : ${newProducts}" th:if="${iter.index < 3}">
                                     <div class="col-4">
                                         <a class="aspect aspect--bg-grey aspect--square u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
-                                            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="">
+                                            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" loading="lazy" decoding="async" alt="">
                                         </a>
                                     </div>
                                     <div class="col-8">
-                                        <span class="product-o__category"><a th:href="@{/shop(categoryId=${product.danhMuc.id})}" th:text="${product.danhMuc.tenDanhMuc}">Category</a></span>
-                                        <span class="product-o__name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;"><a th:href="@{/san-pham/{id}(id=${product.id})}" th:text="${product.tenSanPham}">Product Name</a></span>
+                                        <span class="product-o__category"><a th:href="@{/shop(categoryId=${product.danhMuc.id})}" th:text="${product.danhMuc.tenDanhMuc}">Danh mục</a></span>
+                                        <span class="product-o__name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;"><a th:href="@{/san-pham/{id}(id=${product.id})}" th:text="${product.tenSanPham}">Tên sản phẩm</a></span>
                                         <div class="product-o__price" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:with="percent=${product.getActiveGiamGiaPhanTram()}">
                                             <span th:text="${#numbers.formatDecimal(product.getGiaSauGiam(product.sanPhamChiTiets[0].giaBan), 0, 'COMMA', 0, 'POINT')} + ' đ'" style="font-size: 13px; font-weight: 700; color: #ff4500;"></span>
                                         </div>
@@ -637,8 +645,8 @@
                             <!-- Cột 2: Banners & Best Sellers -->
                             <div class="col-lg-4 col-md-4 col-sm-6 u-s-m-b-30">
                                 <a class="promotion" th:href="@{/shop}">
-                                    <div class="aspect aspect--bg-grey aspect--vertical">
-                                        <img class="aspect__img promotion__img" th:src="@{/images/promo/promo-img-2.jpg}" alt="">
+                                    <div class="aspect aspect--bg-grey aspect--square">
+                                        <img class="aspect__img promotion__img" style="object-fit: cover; width: 100%; height: 100%;" th:src="@{/images/promo/promo-img-2.jpg}" loading="lazy" decoding="async" alt="">
                                     </div>
                                     <div class="promotion__content">
                                         <div class="promotion__text-wrap">
@@ -658,12 +666,12 @@
                                 <div class="row align-items-center u-s-m-b-20" th:each="product, iter : ${bestSellers}" th:if="${iter.index < 3}">
                                     <div class="col-4">
                                         <a class="aspect aspect--bg-grey aspect--square u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
-                                            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="">
+                                            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" loading="lazy" decoding="async" alt="">
                                         </a>
                                     </div>
                                     <div class="col-8">
-                                        <span class="product-o__category"><a th:href="@{/shop(categoryId=${product.danhMuc.id})}" th:text="${product.danhMuc.tenDanhMuc}">Category</a></span>
-                                        <span class="product-o__name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;"><a th:href="@{/san-pham/{id}(id=${product.id})}" th:text="${product.tenSanPham}">Product Name</a></span>
+                                        <span class="product-o__category"><a th:href="@{/shop(categoryId=${product.danhMuc.id})}" th:text="${product.danhMuc.tenDanhMuc}">Danh mục</a></span>
+                                        <span class="product-o__name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;"><a th:href="@{/san-pham/{id}(id=${product.id})}" th:text="${product.tenSanPham}">Tên sản phẩm</a></span>
                                         <div class="product-o__price" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:with="percent=${product.getActiveGiamGiaPhanTram()}">
                                             <span th:text="${#numbers.formatDecimal(product.getGiaSauGiam(product.sanPhamChiTiets[0].giaBan), 0, 'COMMA', 0, 'POINT')} + ' đ'" style="font-size: 13px; font-weight: 700; color: #ff4500;"></span>
                                         </div>
@@ -674,8 +682,8 @@
                             <!-- Cột 3: Banners & Featured Products -->
                             <div class="col-lg-4 col-md-4 col-sm-6 u-s-m-b-30">
                                 <a class="promotion" th:href="@{/shop}">
-                                    <div class="aspect aspect--bg-grey aspect--vertical">
-                                        <img class="aspect__img promotion__img" th:src="@{/images/promo/promo-img-3.jpg}" alt="">
+                                    <div class="aspect aspect--bg-grey aspect--square">
+                                        <img class="aspect__img promotion__img" style="object-fit: cover; width: 100%; height: 100%;" th:src="@{/images/promo/promo-img-3.jpg}" loading="lazy" decoding="async" alt="">
                                     </div>
                                     <div class="promotion__content">
                                         <div class="promotion__text-wrap">
@@ -695,12 +703,12 @@
                                 <div class="row align-items-center u-s-m-b-20" th:each="product, iter : ${featuredProducts}" th:if="${iter.index < 3}">
                                     <div class="col-4">
                                         <a class="aspect aspect--bg-grey aspect--square u-d-block" th:href="@{/san-pham/{id}(id=${product.id})}">
-                                            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="">
+                                            <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}" loading="lazy" decoding="async" alt="">
                                         </a>
                                     </div>
                                     <div class="col-8">
-                                        <span class="product-o__category"><a th:href="@{/shop(categoryId=${product.danhMuc.id})}" th:text="${product.danhMuc.tenDanhMuc}">Category</a></span>
-                                        <span class="product-o__name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;"><a th:href="@{/san-pham/{id}(id=${product.id})}" th:text="${product.tenSanPham}">Product Name</a></span>
+                                        <span class="product-o__category"><a th:href="@{/shop(categoryId=${product.danhMuc.id})}" th:text="${product.danhMuc.tenDanhMuc}">Danh mục</a></span>
+                                        <span class="product-o__name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;"><a th:href="@{/san-pham/{id}(id=${product.id})}" th:text="${product.tenSanPham}">Tên sản phẩm</a></span>
                                         <div class="product-o__price" th:if="${!product.sanPhamChiTiets.isEmpty()}" th:with="percent=${product.getActiveGiamGiaPhanTram()}">
                                             <span th:text="${#numbers.formatDecimal(product.getGiaSauGiam(product.sanPhamChiTiets[0].giaBan), 0, 'COMMA', 0, 'POINT')} + ' đ'" style="font-size: 13px; font-weight: 700; color: #ff4500;"></span>
                                         </div>
@@ -727,9 +735,9 @@
                                     <div class="service__icon"><i class="fas fa-truck"></i></div>
                                     <div class="service__info-wrap">
 
-                                        <span class="service__info-text-1">Giao Hàng Miễn Phí</span>
+                                        <span class="service__info-text-1">Giao Hàng Thuận Tiện</span>
 
-                                        <span class="service__info-text-2">Giao hàng miễn phí cho các đơn hàng từ 2.000.000 đ trở lên</span></div>
+                                        <span class="service__info-text-2">Giao hàng nhanh chóng, đóng gói cẩn thận đến tận tay khách hàng</span></div>
                                 </div>
                             </div>
                             <div class="col-lg-4 col-md-6 u-s-m-b-30">
@@ -790,7 +798,7 @@
                                     <div class="bp-mini bp-mini--img u-h-100">
                                         <div class="bp-mini__thumbnail">
                                             <a class="aspect aspect--bg-grey aspect--1366-768 u-d-block" th:href="@{/blog/{slug}(slug=${blog.slug})}">
-                                                <img class="aspect__img" th:src="${#strings.startsWith(blog.image, '/uploads/') ? blog.image : '/images/blog/' + blog.image}" alt="Ảnh bài viết">
+                                                <img class="aspect__img" th:src="${#strings.startsWith(blog.image, '/uploads/') ? blog.image : '/images/blog/' + blog.image}" loading="lazy" decoding="async" alt="Ảnh bài viết">
                                             </a>
                                         </div>
                                         <div class="bp-mini__content">
@@ -815,14 +823,14 @@
                                                 </span>
                                             </div>
                                             <div class="bp-mini__category">
-                                                <a th:text="${blog.category}">Learning</a>
+                                                <a th:text="${blog.category}">Kiến thức</a>
                                             </div>
                                             <span class="bp-mini__h1">
-                                                <a th:href="@{/blog/{slug}(slug=${blog.slug})}" th:text="${blog.title}">Blog Title</a>
+                                                <a th:href="@{/blog/{slug}(slug=${blog.slug})}" th:text="${blog.title}">Tiêu đề bài viết</a>
                                             </span>
-                                            <p class="bp-mini__p" th:text="${blog.summary}">Blog Summary</p>
+                                            <p class="bp-mini__p" th:text="${blog.summary}">Tóm tắt bài viết</p>
                                             <div class="blog-t-w" th:if="${blog.tags != null}">
-                                                <a class="gl-tag btn--e-transparent-hover-brand-b-2" th:each="tag : ${blog.tags}" th:text="${tag}">Tag</a>
+                                                <a class="gl-tag btn--e-transparent-hover-brand-b-2" th:each="tag : ${blog.tags}" th:text="${tag}">Thẻ</a>
                                             </div>
                                         </div>
                                     </div>
@@ -830,98 +838,17 @@
                             </th:block>
 
                             <!-- Khối fallback tĩnh khi DB chưa có bài viết -->
-                            <th:block th:if="${blogs == null || blogs.isEmpty()}">
-                                <!-- Bài 1 -->
-                                <div class="col-lg-4 col-md-6 u-s-m-b-30">
-                                    <div class="bp-mini bp-mini--img u-h-100">
-                                        <div class="bp-mini__thumbnail">
-                                            <a class="aspect aspect--bg-grey aspect--1366-768 u-d-block" th:href="@{/blog}">
-                                                <img class="aspect__img" th:src="@{/images/blog/post-1.jpg}" alt="">
-                                            </a>
-                                        </div>
-                                        <div class="bp-mini__content">
-                                            <div class="bp-mini__stat">
-                                                <span class="bp-mini__stat-wrap">
-                                                    <span class="bp-mini__publish-date">
-                                                        <a><span>20 May 2026</span></a>
-                                                    </span>
-                                                </span>
-                                                <span class="bp-mini__stat-wrap">
-                                                    <span class="bp-mini__preposition">By</span>
-                                                    <span class="bp-mini__author"><a href="#">Vinh</a></span>
-                                                </span>
-                                            </div>
-                                            <div class="bp-mini__category">
-                                                <a>Hướng Dẫn</a>
-                                            </div>
-                                            <span class="bp-mini__h1">
-                                                <a th:href="@{/blog}">Hướng dẫn chọn vợt cầu lông phù hợp cho người mới bắt đầu</a>
-                                            </span>
-                                            <p class="bp-mini__p">Chọn vợt cầu lông phù hợp là bước quan trọng giúp người mới tập chơi tránh chấn thương và nhanh chóng tiến bộ.</p>
-                                        </div>
+                            <div class="col-lg-12 text-center u-s-m-b-30" th:if="${blogs == null || blogs.isEmpty()}">
+                                <div style="background: rgba(255, 69, 0, 0.05); border: 2px dashed rgba(255, 69, 0, 0.2); padding: 40px 20px; border-radius: 12px; max-width: 600px; margin: 0 auto; text-align: center; transition: all 0.3s ease;">
+                                    <div style="background: linear-gradient(135deg, #ff4500, #ff8c00); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 10px 20px rgba(255, 69, 0, 0.2);">
+                                        <i class="far fa-newspaper" style="font-size: 28px; color: #ffffff;"></i>
                                     </div>
+                                    <h3 style="font-size: 20px; font-weight: 700; color: #15171c; margin-bottom: 10px; text-align: center;">Chưa Có Bài Viết Nào Được Đăng</h3>
+                                    <p style="color: #666666; font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto; text-align: center;">
+                                        Hiện tại hệ thống chưa cập nhật tin tức mới. Hãy quay lại sau để đón đọc những thông tin thú vị và mẹo hay về cầu lông nhé!
+                                    </p>
                                 </div>
-                                <!-- Bài 2 -->
-                                <div class="col-lg-4 col-md-6 u-s-m-b-30">
-                                    <div class="bp-mini bp-mini--img u-h-100">
-                                        <div class="bp-mini__thumbnail">
-                                            <a class="aspect aspect--bg-grey aspect--1366-768 u-d-block" th:href="@{/blog}">
-                                                <img class="aspect__img" th:src="@{/images/blog/post-2.jpg}" alt="">
-                                            </a>
-                                        </div>
-                                        <div class="bp-mini__content">
-                                            <div class="bp-mini__stat">
-                                                <span class="bp-mini__stat-wrap">
-                                                    <span class="bp-mini__publish-date">
-                                                        <a><span>25 May 2026</span></a>
-                                                    </span>
-                                                </span>
-                                                <span class="bp-mini__stat-wrap">
-                                                    <span class="bp-mini__preposition">By</span>
-                                                    <span class="bp-mini__author"><a href="#">Quân</a></span>
-                                                </span>
-                                            </div>
-                                            <div class="bp-mini__category">
-                                                <a>Review</a>
-                                            </div>
-                                            <span class="bp-mini__h1">
-                                                <a th:href="@{/blog}">Top 5 cây vợt cầu lông Yonex đáng mua nhất năm 2026</a>
-                                            </span>
-                                            <p class="bp-mini__p">Yonex luôn là ông vua trong làng cầu lông thế giới. Khám phá ngay danh sách 5 cây vợt Yonex được săn đón nhất năm 2026.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Bài 3 -->
-                                <div class="col-lg-4 col-md-6 u-s-m-b-30">
-                                    <div class="bp-mini bp-mini--img u-h-100">
-                                        <div class="bp-mini__thumbnail">
-                                            <a class="aspect aspect--bg-grey aspect--1366-768 u-d-block" th:href="@{/blog}">
-                                                <img class="aspect__img" th:src="@{/images/blog/post-3.jpg}" alt="">
-                                            </a>
-                                        </div>
-                                        <div class="bp-mini__content">
-                                            <div class="bp-mini__stat">
-                                                <span class="bp-mini__stat-wrap">
-                                                    <span class="bp-mini__publish-date">
-                                                        <a><span>28 May 2026</span></a>
-                                                    </span>
-                                                </span>
-                                                <span class="bp-mini__stat-wrap">
-                                                    <span class="bp-mini__preposition">By</span>
-                                                    <span class="bp-mini__author"><a href="#">Nam</a></span>
-                                                </span>
-                                            </div>
-                                            <div class="bp-mini__category">
-                                                <a>Kỹ Thuật</a>
-                                            </div>
-                                            <span class="bp-mini__h1">
-                                                <a th:href="@{/blog}">Kỹ thuật giao cầu lông chuẩn xác và cách khắc phục lỗi thường gặp</a>
-                                            </span>
-                                            <p class="bp-mini__p">Giao cầu là khởi đầu của mọi đường bóng. Nắm vững kỹ thuật giao cầu giúp bạn làm chủ thế trận ngay từ đầu.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </th:block>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -942,7 +869,7 @@
                     background: linear-gradient(135deg, #15171c, #2a2e3d);
                 }
                 .brand-slide {
-                    height: 110px !important;
+                    height: 120px !important;
                 }
                 .brand-slide a {
                     display: flex !important;
@@ -950,7 +877,7 @@
                     align-items: center;
                     justify-content: center;
                     gap: 10px !important;
-                    height: 110px !important;
+                    height: 120px !important;
                     padding: 15px 10px !important;
                     background: #ffffff !important;
                     border: 1px solid rgba(21, 23, 28, 0.08) !important;
@@ -1004,7 +931,7 @@
                                 <!-- Lương Văn Hiệp -->
                                 <div class="testimonial">
                                     <div class="testimonial__img-wrap">    
-                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/Hiep.jpg}">
+                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/Hiep.jpg}" loading="lazy" decoding="async">
                                     </div>
                                     <div class="testimonial__content-wrap">
                                         <span class="testimonial__double-quote"><i class="fas fa-quote-right"></i></span>
@@ -1017,7 +944,7 @@
                                 <!-- Lục Xuân Tĩnh -->
                                 <div class="testimonial">
                                     <div class="testimonial__img-wrap">
-                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/Tinh.jpg}">
+                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/Tinh.jpg}" loading="lazy" decoding="async">
                                     </div>
                                     <div class="testimonial__content-wrap">
                                         <span class="testimonial__double-quote"><i class="fas fa-quote-right"></i></span>
@@ -1030,7 +957,7 @@
                                 <!-- Trần Văn Chung -->
                                 <div class="testimonial">
                                     <div class="testimonial__img-wrap">
-                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/ChungU.jpg}">
+                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/ChungU.jpg}" loading="lazy" decoding="async">
                                     </div>
                                     <div class="testimonial__content-wrap">
                                         <span class="testimonial__double-quote"><i class="fas fa-quote-right"></i></span>
@@ -1043,7 +970,7 @@
                                 <!-- Âu Đình Ngọc Bảo -->
                                 <div class="testimonial">
                                     <div class="testimonial__img-wrap">
-                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/ABao.jpg}">
+                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/ABao.jpg}" loading="lazy" decoding="async">
                                     </div>
                                     <div class="testimonial__content-wrap">
                                         <span class="testimonial__double-quote"><i class="fas fa-quote-right"></i></span>
@@ -1056,7 +983,7 @@
                                 <!-- Nguyễn Anh Tuấn -->
                                 <div class="testimonial">
                                     <div class="testimonial__img-wrap">
-                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/Tuan.jpg}">
+                                        <img class="testimonial__img-avatar" alt="" th:src="@{/images/about/Tuan.jpg}" loading="lazy" decoding="async">
                                     </div>
                                     <div class="testimonial__content-wrap">
                                         <span class="testimonial__double-quote"><i class="fas fa-quote-right"></i></span>
@@ -1086,27 +1013,30 @@
                                 <div class="brand-slide" th:each="brand : ${brands}">
                                     <a th:href="@{/shop(brandId=${brand.id})}">
                                         <!-- Logo Container (Fixed height to keep logos vertically aligned) -->
-                                        <div style="height: 40px; display: flex; align-items: center; justify-content: center; width: 100%;">
+                                        <div style="height: 60px; display: flex; align-items: center; justify-content: center; width: 100%;">
                                             <!-- YONEX -->
-                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'YONEX'}" th:src="@{/images/brand/yonex.png}" alt="YONEX" style="max-height: 35px; max-width: 100px; object-fit: contain;">
+                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'YONEX'}" th:src="@{/images/brand/yonex.png}" alt="YONEX" loading="lazy" decoding="async" style="max-height: 56px; max-width: 120px; object-fit: contain;">
                                             
                                             <!-- VICTOR -->
-                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'VICTOR'}" th:src="@{/images/brand/victor.png}" alt="VICTOR" style="max-height: 35px; max-width: 100px; object-fit: contain;">
+                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'VICTOR'}" th:src="@{/images/brand/victor.png}" alt="VICTOR" loading="lazy" decoding="async" style="max-height: 56px; max-width: 120px; object-fit: contain;">
                                             
                                             <!-- LINING -->
-                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'LINING' || brand.tenThuongHieu.toUpperCase() == 'LI-NING'}" th:src="@{/images/brand/lining.png}" alt="LINING" style="max-height: 30px; max-width: 100px; object-fit: contain;">
+                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'LINING' || brand.tenThuongHieu.toUpperCase() == 'LI-NING'}" th:src="@{/images/brand/lining.png}" alt="LINING" loading="lazy" decoding="async" style="max-height: 46px; max-width: 120px; object-fit: contain;">
                                             
                                             <!-- KAWASAKI -->
-                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'KAWASAKI'}" th:src="@{/images/brand/kawasaki.png}" alt="KAWASAKI" style="max-height: 35px; max-width: 100px; object-fit: contain;">
+                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'KAWASAKI'}" th:src="@{/images/brand/kawasaki.png}" alt="KAWASAKI" loading="lazy" decoding="async" style="max-height: 56px; max-width: 120px; object-fit: contain;">
+                                            
+                                            <!-- MIZUNO -->
+                                            <img th:if="${brand.tenThuongHieu.toUpperCase() == 'MIZUNO'}" th:src="@{/images/brand/mizuno.png}" alt="MIZUNO" loading="lazy" decoding="async" style="max-height: 50px; max-width: 120px; object-fit: contain;">
                                             
                                             <!-- Fallback Logo circle for other brands -->
-                                            <div th:if="${brand.tenThuongHieu.toUpperCase() != 'YONEX' && brand.tenThuongHieu.toUpperCase() != 'VICTOR' && brand.tenThuongHieu.toUpperCase() != 'LINING' && brand.tenThuongHieu.toUpperCase() != 'LI-NING' && brand.tenThuongHieu.toUpperCase() != 'KAWASAKI'}" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #15171c, #2a2e3d); color: #ff4500; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; border: 1.5px solid rgba(255, 69, 0, 0.2);">
+                                            <div th:if="${brand.tenThuongHieu.toUpperCase() != 'YONEX' && brand.tenThuongHieu.toUpperCase() != 'VICTOR' && brand.tenThuongHieu.toUpperCase() != 'LINING' && brand.tenThuongHieu.toUpperCase() != 'LI-NING' && brand.tenThuongHieu.toUpperCase() != 'KAWASAKI' && brand.tenThuongHieu.toUpperCase() != 'MIZUNO'}" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #15171c, #2a2e3d); color: #ff4500; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1.5px solid rgba(255, 69, 0, 0.2);">
                                                 <span th:text="${brand.tenThuongHieu != null && !brand.tenThuongHieu.isEmpty() ? brand.tenThuongHieu.substring(0, 1).toUpperCase() : ''}">B</span>
                                             </div>
                                         </div>
                                         
                                         <!-- Brand Name text label -->
-                                        <span th:text="${brand.tenThuongHieu.toUpperCase()}" style="font-weight: 700; font-size: 0.8rem; letter-spacing: 0.05em; color: #15171c; text-align: center; display: block;">BRAND</span>
+                                        <span th:text="${brand.tenThuongHieu.toUpperCase()}" style="font-weight: 700; font-size: 0.8rem; letter-spacing: 0.05em; color: #15171c; text-align: center; display: block;">THƯƠNG HIỆU</span>
                                     </a>
                                 </div>
                             </div>
@@ -1154,7 +1084,7 @@
     <script th:src="@{/js/jquery.shopnav.js}"></script>
 
     <!--====== Ứng dụng ======-->
-    <script th:src="@{/js/app.js}"></script>
+    <script th:src="@{/js/app.js(v=1.0.3)}"></script>
 
     <!--====== Khi không hỗ trợ JavaScript ======-->
     <noscript>

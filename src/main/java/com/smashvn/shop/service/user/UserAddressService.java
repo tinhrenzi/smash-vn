@@ -12,6 +12,8 @@ import com.smashvn.shop.entity.KhachHang;
 import com.smashvn.shop.entity.SoDiaChi;
 import com.smashvn.shop.repository.SoDiaChiRepository;
 import com.smashvn.shop.dto.user.UserAddressDto;
+import com.smashvn.shop.service.api.GhnService;
+import com.smashvn.shop.service.api.GhnService.GhnAddressDetails;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,7 @@ import com.smashvn.shop.dto.user.UserAddressDto;
 public class UserAddressService {
 
     private final SoDiaChiRepository soDiaChiRepository;
+    private final GhnService ghnService;
 
     // 1. Lấy danh sách địa chỉ của 1 khách hàng
     public List<SoDiaChi> layDanhSachDiaChi(Integer idKhachHang) {
@@ -37,28 +40,28 @@ public class UserAddressService {
         String ten = dto.getTenNguoiNhan() != null ? dto.getTenNguoiNhan().trim() : null;
         String sdt = dto.getSdtNguoiNhan() != null ? dto.getSdtNguoiNhan().trim() : null;
         String diaChiCuThe = dto.getDiaChiCuThe() != null ? dto.getDiaChiCuThe().trim() : null;
-        String tinhThanh = dto.getTinhThanh() != null ? dto.getTinhThanh().trim() : null;
-        String quocGia = dto.getQuocGia() != null ? dto.getQuocGia().trim() : null;
+        String ghnWardCode = dto.getGhnWardCode() != null ? sanitizeInput(dto.getGhnWardCode().trim()) : null;
 
         // 2. Sanitize inputs against XSS using Jsoup
         String sanitizedHo = sanitizeInput(ho);
         String sanitizedTen = sanitizeInput(ten);
         String sanitizedSdt = sanitizeInput(sdt);
         String sanitizedDiaChiCuThe = sanitizeInput(diaChiCuThe);
-        String sanitizedTinhThanh = sanitizeInput(tinhThanh);
-        String sanitizedQuocGia = sanitizeInput(quocGia);
 
         if ((ho != null && !ho.equals(sanitizedHo)) || 
             (ten != null && !ten.equals(sanitizedTen)) || 
             (sdt != null && !sdt.equals(sanitizedSdt)) || 
-            (diaChiCuThe != null && !diaChiCuThe.equals(sanitizedDiaChiCuThe)) || 
-            (tinhThanh != null && !tinhThanh.equals(sanitizedTinhThanh)) || 
-            (quocGia != null && !quocGia.equals(sanitizedQuocGia))) {
+            (diaChiCuThe != null && !diaChiCuThe.equals(sanitizedDiaChiCuThe))) {
             log.warn("[SECURITY_ALERT] XSS payload detected and sanitized in address submission for customer id: {}", khachHang.getId());
         }
 
         // 3. Validate empty/blank/null and length limits on sanitized values
-        validateAddressFields(sanitizedHo, sanitizedTen, sanitizedSdt, sanitizedDiaChiCuThe, sanitizedTinhThanh, sanitizedQuocGia, khachHang.getId());
+        validateAddressFields(sanitizedHo, sanitizedTen, sanitizedSdt, sanitizedDiaChiCuThe,
+                khachHang.getId());
+        validateGhnAddressFields(dto.getGhnProvinceId(), dto.getGhnDistrictId(), ghnWardCode,
+                khachHang.getId());
+        GhnAddressDetails administrativeAddress = resolveAdministrativeAddress(
+                dto.getGhnProvinceId(), dto.getGhnDistrictId(), ghnWardCode, khachHang.getId());
 
         SoDiaChi dc = new SoDiaChi();
         dc.setKhachHang(khachHang);
@@ -66,9 +69,14 @@ public class UserAddressService {
         dc.setTenNguoiNhan(sanitizedTen);
         dc.setSdtNguoiNhan(sanitizedSdt);
         dc.setDiaChiCuThe(sanitizedDiaChiCuThe);
-        dc.setTinhThanh(sanitizedTinhThanh);
-        dc.setThanhPho(sanitizedTinhThanh); // Tạm gán giống Tỉnh thành
-        dc.setQuocGia(sanitizedQuocGia);
+        dc.setTinhThanh(administrativeAddress.getProvinceName());
+        dc.setThanhPho(administrativeAddress.getProvinceName());
+        dc.setQuanHuyen(administrativeAddress.getDistrictName());
+        dc.setPhuongXa(administrativeAddress.getWardName());
+        dc.setProvinceId(administrativeAddress.getProvinceId());
+        dc.setDistrictId(administrativeAddress.getDistrictId());
+        dc.setWardCode(administrativeAddress.getWardCode());
+        dc.setQuocGia("Việt Nam");
         dc.setMaBuuDien("700000"); // Tạm gán mặc định
         dc.setLatitude(dto.getLatitude());
         dc.setLongitude(dto.getLongitude());
@@ -80,7 +88,7 @@ public class UserAddressService {
             dc.setDefaultBilling(true);
         } else {
             // Kiểm tra nếu đây là địa chỉ ĐẦU TIÊN thì tự động cho nó làm mặc định luôn
-            long count = soDiaChiRepository.countByKhachHang_IdAndDefaultShippingTrue(khachHang.getId());
+            long count = soDiaChiRepository.countByKhachHang_IdAndDiaChiMacDinhTrue(khachHang.getId());
             if (count == 0) {
                 dc.setDefaultShipping(true);
                 dc.setDefaultBilling(true);
@@ -140,28 +148,28 @@ public class UserAddressService {
         String ten = dto.getTenNguoiNhan() != null ? dto.getTenNguoiNhan().trim() : null;
         String sdt = dto.getSdtNguoiNhan() != null ? dto.getSdtNguoiNhan().trim() : null;
         String diaChiCuThe = dto.getDiaChiCuThe() != null ? dto.getDiaChiCuThe().trim() : null;
-        String tinhThanh = dto.getTinhThanh() != null ? dto.getTinhThanh().trim() : null;
-        String quocGia = dto.getQuocGia() != null ? dto.getQuocGia().trim() : null;
+        String ghnWardCode = dto.getGhnWardCode() != null ? sanitizeInput(dto.getGhnWardCode().trim()) : null;
 
         // 2. Sanitize inputs against XSS using Jsoup
         String sanitizedHo = sanitizeInput(ho);
         String sanitizedTen = sanitizeInput(ten);
         String sanitizedSdt = sanitizeInput(sdt);
         String sanitizedDiaChiCuThe = sanitizeInput(diaChiCuThe);
-        String sanitizedTinhThanh = sanitizeInput(tinhThanh);
-        String sanitizedQuocGia = sanitizeInput(quocGia);
 
         if ((ho != null && !ho.equals(sanitizedHo)) || 
             (ten != null && !ten.equals(sanitizedTen)) || 
             (sdt != null && !sdt.equals(sanitizedSdt)) || 
-            (diaChiCuThe != null && !diaChiCuThe.equals(sanitizedDiaChiCuThe)) || 
-            (tinhThanh != null && !tinhThanh.equals(sanitizedTinhThanh)) || 
-            (quocGia != null && !quocGia.equals(sanitizedQuocGia))) {
+            (diaChiCuThe != null && !diaChiCuThe.equals(sanitizedDiaChiCuThe))) {
             log.warn("[SECURITY_ALERT] XSS payload detected and sanitized in address edit for customer id: {}", idKhachHang);
         }
 
         // 3. Validate empty/blank/null and length limits on sanitized values
-        validateAddressFields(sanitizedHo, sanitizedTen, sanitizedSdt, sanitizedDiaChiCuThe, sanitizedTinhThanh, sanitizedQuocGia, idKhachHang);
+        validateAddressFields(sanitizedHo, sanitizedTen, sanitizedSdt, sanitizedDiaChiCuThe,
+                idKhachHang);
+        validateGhnAddressFields(dto.getGhnProvinceId(), dto.getGhnDistrictId(), ghnWardCode,
+                idKhachHang);
+        GhnAddressDetails administrativeAddress = resolveAdministrativeAddress(
+                dto.getGhnProvinceId(), dto.getGhnDistrictId(), ghnWardCode, idKhachHang);
 
         SoDiaChi dc = layDiaChiTheoId(idDiaChi, idKhachHang); // Lấy địa chỉ cũ lên
         
@@ -170,9 +178,14 @@ public class UserAddressService {
         dc.setTenNguoiNhan(sanitizedTen);
         dc.setSdtNguoiNhan(sanitizedSdt);
         dc.setDiaChiCuThe(sanitizedDiaChiCuThe);
-        dc.setTinhThanh(sanitizedTinhThanh);
-        dc.setThanhPho(sanitizedTinhThanh); 
-        dc.setQuocGia(sanitizedQuocGia);
+        dc.setTinhThanh(administrativeAddress.getProvinceName());
+        dc.setThanhPho(administrativeAddress.getProvinceName());
+        dc.setQuanHuyen(administrativeAddress.getDistrictName());
+        dc.setPhuongXa(administrativeAddress.getWardName());
+        dc.setProvinceId(administrativeAddress.getProvinceId());
+        dc.setDistrictId(administrativeAddress.getDistrictId());
+        dc.setWardCode(administrativeAddress.getWardCode());
+        dc.setQuocGia("Việt Nam");
         dc.setLatitude(dto.getLatitude());
         dc.setLongitude(dto.getLongitude());
         
@@ -197,10 +210,7 @@ public class UserAddressService {
         }
 
         if (dc.isDefaultShipping()) {
-            List<SoDiaChi> danhSach = layDanhSachDiaChi(idKhachHang);
-            if (danhSach.size() > 1) {
-                throw new RuntimeException("Không thể xóa địa chỉ mặc định. Vui lòng chọn địa chỉ khác làm mặc định trước!");
-            }
+            throw new RuntimeException("Không thể xóa địa chỉ mặc định. Vui lòng chọn địa chỉ khác làm mặc định trước!");
         }
 
         soDiaChiRepository.delete(dc);
@@ -211,7 +221,7 @@ public class UserAddressService {
         return Jsoup.clean(input, Safelist.none());
     }
 
-    private void validateAddressFields(String ho, String ten, String sdt, String diaChi, String tinhThanh, String quocGia, Integer idKhachHang) {
+    private void validateAddressFields(String ho, String ten, String sdt, String diaChi, Integer idKhachHang) {
         if (ho == null || ho.isEmpty()) {
             log.warn("[SECURITY_ALERT] Invalid empty 'hoNguoiNhan' for customer id: {}", idKhachHang);
             throw new IllegalArgumentException("Họ người nhận không được để trống.");
@@ -248,22 +258,45 @@ public class UserAddressService {
             throw new IllegalArgumentException("Địa chỉ cụ thể phải từ 5 đến 255 ký tự.");
         }
 
-        if (tinhThanh == null || tinhThanh.isEmpty()) {
-            log.warn("[SECURITY_ALERT] Invalid empty 'tinhThanh' for customer id: {}", idKhachHang);
-            throw new IllegalArgumentException("Tỉnh/Thành phố không được để trống.");
-        }
-        if (tinhThanh.length() > 100) {
-            log.warn("[SECURITY_ALERT] Invalid length of 'tinhThanh' ({}) for customer id: {}", tinhThanh.length(), idKhachHang);
-            throw new IllegalArgumentException("Tỉnh/Thành phố không được vượt quá 100 ký tự.");
-        }
+    }
 
-        if (quocGia == null || quocGia.isEmpty()) {
-            log.warn("[SECURITY_ALERT] Invalid empty 'quocGia' for customer id: {}", idKhachHang);
-            throw new IllegalArgumentException("Quốc gia không được để trống.");
+    private void validateGhnAddressFields(Integer provinceId, Integer districtId, String wardCode,
+            Integer idKhachHang) {
+        if (provinceId == null || provinceId <= 0 || districtId == null || districtId <= 0
+                || wardCode == null || wardCode.isBlank()) {
+            log.warn("[ADDRESS_VALIDATION] Missing GHN mapping for customer id: {}", idKhachHang);
+            throw new IllegalArgumentException(
+                    "Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã.");
         }
-        if (quocGia.length() > 100) {
-            log.warn("[SECURITY_ALERT] Invalid length of 'quocGia' ({}) for customer id: {}", quocGia.length(), idKhachHang);
-            throw new IllegalArgumentException("Quốc gia không được vượt quá 100 ký tự.");
+        if (wardCode.length() > 50 || !wardCode.matches("^[A-Za-z0-9_-]+$")) {
+            log.warn("[ADDRESS_VALIDATION] Invalid GHN mapping details for customer id: {}", idKhachHang);
+            throw new IllegalArgumentException("Thông tin Phường/Xã đã chọn không hợp lệ.");
         }
+    }
+
+    private GhnAddressDetails resolveAdministrativeAddress(Integer provinceId, Integer districtId,
+            String wardCode, Integer idKhachHang) {
+        try {
+            GhnAddressDetails details = ghnService.validateSelectedAddress(provinceId, districtId, wardCode);
+            details.setProvinceName(sanitizeAdministrativeName(details.getProvinceName()));
+            details.setDistrictName(sanitizeAdministrativeName(details.getDistrictName()));
+            details.setWardName(sanitizeAdministrativeName(details.getWardName()));
+            return details;
+        } catch (IllegalArgumentException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            log.warn("[ADDRESS_VALIDATION] Unable to verify delivery area for customer id {}: {}",
+                    idKhachHang, exception.getMessage());
+            throw new IllegalStateException(
+                    "Không thể kiểm tra khu vực giao hàng lúc này. Vui lòng thử lại sau.");
+        }
+    }
+
+    private String sanitizeAdministrativeName(String value) {
+        String sanitized = sanitizeInput(value == null ? null : value.trim());
+        if (sanitized == null || sanitized.isBlank() || sanitized.length() > 100) {
+            throw new IllegalStateException("Không thể kiểm tra khu vực giao hàng lúc này. Vui lòng thử lại sau.");
+        }
+        return sanitized;
     }
 }

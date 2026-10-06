@@ -49,6 +49,21 @@ public class AdminOrderUpdateTest {
     @Autowired
     private DonViVanChuyenDAO donViVanChuyenDAO;
 
+    @Autowired
+    private SanPhamRepository sanPhamRepository;
+
+    @Autowired
+    private DanhMucRepository danhMucRepository;
+
+    @Autowired
+    private ThuongHieuRepository thuongHieuRepository;
+
+    @Autowired
+    private NhanVienRepository nhanVienRepository;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     private TaiKhoan adminUser;
     private TaiKhoan staffUser;
     private TaiKhoan customerUser;
@@ -62,24 +77,24 @@ public class AdminOrderUpdateTest {
     void setUp() {
         // Create accounts
         adminUser = new TaiKhoan();
-        adminUser.setEmail("admin-test-" + System.nanoTime() + "@smashvn.com");
+        adminUser.setUsername("admin-test-" + System.nanoTime() + "@smashvn.com");
         adminUser.setMatKhau("123");
         adminUser.setVaiTro("QL");
-        adminUser.setLaQuanLy(true);
+
         adminUser = taiKhoanRepository.save(adminUser);
 
         staffUser = new TaiKhoan();
-        staffUser.setEmail("staff-test-" + System.nanoTime() + "@smashvn.com");
+        staffUser.setUsername("staff-test-" + System.nanoTime() + "@smashvn.com");
         staffUser.setMatKhau("123");
         staffUser.setVaiTro("NV");
-        staffUser.setLaNhanVien(true);
+
         staffUser = taiKhoanRepository.save(staffUser);
 
         customerUser = new TaiKhoan();
-        customerUser.setEmail("customer-test-" + System.nanoTime() + "@smashvn.com");
+        customerUser.setUsername("customer-test-" + System.nanoTime() + "@smashvn.com");
         customerUser.setMatKhau("123");
         customerUser.setVaiTro("KH");
-        customerUser.setLaKhachHang(true);
+
         customerUser = taiKhoanRepository.save(customerUser);
 
         // Fetch / Create customer
@@ -90,6 +105,7 @@ public class AdminOrderUpdateTest {
             newKh.setTenKh("Customer");
             newKh.setSoDienThoaiKh("0912345678");
             newKh.setLaTaiKhoanNoiBo(false);
+            newKh.setTaiKhoan(customerUser);
             testKhachHang = khachHangRepository.save(newKh);
         } else {
             testKhachHang = khs.get(0);
@@ -127,10 +143,44 @@ public class AdminOrderUpdateTest {
             testDvvc = dvvcs.get(0);
         }
 
-        // Fetch / Create variant
-        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAll();
-        assertFalse(spcts.isEmpty(), "SanPhamChiTiet table must not be empty for integration tests");
-        testSpct = spcts.get(0);
+        // Seed or fetch NhanVien
+        TaiKhoan nvUser = new TaiKhoan();
+        nvUser.setUsername("staff-nv-" + System.nanoTime() + "@smashvn.com");
+        nvUser.setMatKhau("123");
+        nvUser.setVaiTro("NV");
+
+        nvUser = taiKhoanRepository.save(nvUser);
+        NhanVien nv = new NhanVien();
+        nv.setTaiKhoan(nvUser);
+        nv.setHoTenNv("Test Staff");
+        nv.setChucVu("Nhân viên");
+        nv.setSoDienThoaiNv("0999888777");
+        nv = nhanVienRepository.save(nv);
+
+        // Seed or fetch DanhMuc / ThuongHieu / SanPham / SanPhamChiTiet
+        DanhMuc dm = danhMucRepository.findAll().stream().findFirst().orElseGet(() -> {
+            DanhMuc d = new DanhMuc();
+            d.setTenDanhMuc("Mặc định");
+            return danhMucRepository.save(d);
+        });
+        ThuongHieu th = thuongHieuRepository.findAll().stream().findFirst().orElseGet(() -> {
+            ThuongHieu t = new ThuongHieu();
+            t.setTenThuongHieu("Mặc định");
+            return thuongHieuRepository.save(t);
+        });
+        SanPham sp = new SanPham();
+        sp.setTenSanPham("Vợt Test Admin " + System.nanoTime());
+        sp.setDanhMuc(dm);
+        sp.setThuongHieu(th);
+        sp.setTrangThai("dang_ban");
+        sp.setNhanVien(nv);
+        sp = sanPhamRepository.save(sp);
+        testSpct = new SanPhamChiTiet();
+        testSpct.setSanPham(sp);
+        testSpct.setMauSac("Đen");
+        testSpct.setSoLuongTon(100);
+        testSpct.setGiaBan(BigDecimal.valueOf(500000));
+        testSpct = sanPhamChiTietRepository.save(testSpct);
     }
 
     private HoaDon createTestOrder(String status, String paymentMethod, String paymentStatus, PhuongThucThanhToan pttt, int qty) {
@@ -187,7 +237,7 @@ public class AdminOrderUpdateTest {
     void testCODOrderDeliveredPaymentUpdate() {
         HoaDon hd = createTestOrder("dang_giao", "COD", "pending", ptttCOD, 1);
 
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_giao", "dang_giao", adminUser.getId(), "127.0.0.1");
+        orderViewService.applyShippingStatus(hd.getId(), "da_giao", "delivered");
 
         HoaDon updated = hoaDonRepository.findById(hd.getId()).orElse(null);
         assertNotNull(updated);
@@ -213,30 +263,23 @@ public class AdminOrderUpdateTest {
 
     @Test
     void testDoubleDeductionProtection() {
-        // Under new logic, stock is deducted immediately on checkout (status = cho_xac_nhan)
-        // Status changes: cho_xac_nhan (deducted) -> da_xac_nhan (deducted) -> dang_giao (deducted) -> da_giao (deducted)
+        // Status changes: da_xac_nhan (deducted) -> dang_chuan_bi_hang (deducted) -> san_sang_giao (deducted)
         int initialStock = testSpct.getSoLuongTon();
-        HoaDon hd = createTestOrder("cho_xac_nhan", "COD", "pending", ptttCOD, 2);
-        
-        // Simulate immediate checkout deduction in database
+        HoaDon hd = createTestOrder("da_xac_nhan", "COD", "pending", ptttCOD, 2);
+
+        // Simulate that when order moved to da_xac_nhan, stock was deducted by 2
         testSpct.setSoLuongTon(initialStock - 2);
         sanPhamChiTietRepository.saveAndFlush(testSpct);
 
-        // Move to da_xac_nhan (deducted -> deducted, no change)
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_xac_nhan", "cho_xac_nhan", adminUser.getId(), "127.0.0.1");
-        
+        // Move to dang_chuan_bi_hang (deducted -> deducted, no double deduction)
+        orderViewService.updateOrderStatusByAdmin(hd.getId(), "dang_chuan_bi_hang", "da_xac_nhan", adminUser.getId(), "127.0.0.1");
+
         SanPhamChiTiet updatedSpct = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
         assertNotNull(updatedSpct);
         assertEquals(initialStock - 2, updatedSpct.getSoLuongTon());
 
-        // Move to dang_giao (deducted -> deducted, no change)
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "dang_giao", "da_xac_nhan", adminUser.getId(), "127.0.0.1");
-        updatedSpct = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
-        assertNotNull(updatedSpct);
-        assertEquals(initialStock - 2, updatedSpct.getSoLuongTon());
-
-        // Move to da_giao (deducted -> deducted, no change)
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_giao", "dang_giao", adminUser.getId(), "127.0.0.1");
+        // Move to san_sang_giao (deducted -> deducted, no double deduction)
+        orderViewService.updateOrderStatusByAdmin(hd.getId(), "san_sang_giao", "dang_chuan_bi_hang", adminUser.getId(), "127.0.0.1");
         updatedSpct = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
         assertNotNull(updatedSpct);
         assertEquals(initialStock - 2, updatedSpct.getSoLuongTon());
@@ -272,12 +315,12 @@ public class AdminOrderUpdateTest {
         testSpct.setSoLuongTon(1);
         sanPhamChiTietRepository.saveAndFlush(testSpct);
 
-        // Order needs 2 items, initially in stock_conflict status
-        HoaDon hd = createTestOrder("stock_conflict", "SEPAY", "pending", ptttOnline, 2);
+        // Order needs 2 items, initially in cho_xac_nhan status (stock not yet deducted)
+        HoaDon hd = createTestOrder("cho_xac_nhan", "COD", "pending", ptttCOD, 2);
 
-        // Moving to cho_xac_nhan (STOCK_NOT_DEDUCTED -> STOCK_DEDUCTED) should fail because stock is 1 < 2
+        // Moving to da_xac_nhan (STOCK_NOT_DEDUCTED -> STOCK_DEDUCTED) should fail because stock is 1 < 2
         assertThrows(IllegalArgumentException.class, () -> {
-            orderViewService.updateOrderStatusByAdmin(hd.getId(), "cho_xac_nhan", "stock_conflict", adminUser.getId(), "127.0.0.1");
+            orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_xac_nhan", "cho_xac_nhan", adminUser.getId(), "127.0.0.1");
         });
     }
 
@@ -315,12 +358,12 @@ public class AdminOrderUpdateTest {
         testSpct.setSoLuongTon(0);
         sanPhamChiTietRepository.saveAndFlush(testSpct);
 
-        // Order is in stock_conflict status
-        HoaDon hd = createTestOrder("stock_conflict", "SEPAY", "paid", ptttOnline, 2);
+        // Order is in cho_xac_nhan status
+        HoaDon hd = createTestOrder("cho_xac_nhan", "SEPAY", "paid", ptttOnline, 2);
 
-        // Transition from stock_conflict to cho_xac_nhan should fail when stock is 0
+        // Transition from cho_xac_nhan to da_xac_nhan should fail when stock is 0
         assertThrows(IllegalArgumentException.class, () -> {
-            orderViewService.updateOrderStatusByAdmin(hd.getId(), "cho_xac_nhan", "stock_conflict", adminUser.getId(), "127.0.0.1");
+            orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_xac_nhan", "cho_xac_nhan", adminUser.getId(), "127.0.0.1");
         });
 
         // Add stock back to 5
@@ -328,11 +371,11 @@ public class AdminOrderUpdateTest {
         sanPhamChiTietRepository.saveAndFlush(testSpct);
 
         // Transition should now succeed and deduct stock
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "cho_xac_nhan", "stock_conflict", adminUser.getId(), "127.0.0.1");
+        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_xac_nhan", "cho_xac_nhan", adminUser.getId(), "127.0.0.1");
 
         HoaDon updated = hoaDonRepository.findById(hd.getId()).orElse(null);
         assertNotNull(updated);
-        assertEquals("cho_xac_nhan", updated.getTrangThaiDonHang());
+        assertEquals("da_xac_nhan", updated.getTrangThaiDonHang());
 
         SanPhamChiTiet updatedSpct = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
         assertNotNull(updatedSpct);
@@ -348,7 +391,7 @@ public class AdminOrderUpdateTest {
         hd.setPaidAt(LocalDateTime.now().minusHours(1));
         hd = hoaDonRepository.save(hd);
 
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_giao", "dang_giao", adminUser.getId(), "127.0.0.1");
+        orderViewService.applyShippingStatus(hd.getId(), "da_giao", "delivered");
 
         HoaDon updated = hoaDonRepository.findById(hd.getId()).orElse(null);
         assertNotNull(updated);
@@ -395,20 +438,50 @@ public class AdminOrderUpdateTest {
         hd = hoaDonRepository.findById(hd.getId()).get();
         assertEquals("da_xac_nhan", hd.getTrangThaiDonHang());
 
-        // 3. da_xac_nhan -> dang_giao
+        // 3. da_xac_nhan -> dang_chuan_bi_hang
         orderViewService.moveOrderToNextStatus(hd.getId(), adminUser.getId(), "127.0.0.1");
         hd = hoaDonRepository.findById(hd.getId()).get();
-        assertEquals("dang_giao", hd.getTrangThaiDonHang());
+        assertEquals("dang_chuan_bi_hang", hd.getTrangThaiDonHang());
 
-        // 4. dang_giao -> da_giao
+        // 4. dang_chuan_bi_hang -> san_sang_giao
         orderViewService.moveOrderToNextStatus(hd.getId(), adminUser.getId(), "127.0.0.1");
         hd = hoaDonRepository.findById(hd.getId()).get();
-        assertEquals("da_giao", hd.getTrangThaiDonHang());
+        assertEquals("san_sang_giao", hd.getTrangThaiDonHang());
 
-        // 5. Try to move beyond da_giao -> expect exception
+        // 5. san_sang_giao without ghnOrderCode -> moveOrderToNextStatus MUST be blocked
+        final Integer hdId = hd.getId();
+        assertThrows(IllegalStateException.class, () -> {
+            orderViewService.moveOrderToNextStatus(hdId, adminUser.getId(), "127.0.0.1");
+        });
+
+        // 6. After GHN creates shipment code, order moves to da_tao_van_don_ghn
+        hd.setGhnOrderCode("DEMO-GHN-TEST-123");
+        hd.setGhnStatus("ready_to_pick");
+        hd.setTrangThaiDonHang("da_tao_van_don_ghn");
+        hd = hoaDonRepository.save(hd);
+        assertEquals("da_tao_van_don_ghn", hd.getTrangThaiDonHang());
+        assertNotNull(hd.getGhnOrderCode());
+
+        // 7. Once at da_tao_van_don_ghn, order has GHN order code, manual transition is locked
         final Integer orderId = hd.getId();
         assertThrows(IllegalStateException.class, () -> {
             orderViewService.moveOrderToNextStatus(orderId, adminUser.getId(), "127.0.0.1");
+        });
+    }
+
+    @Test
+    void testDaBanGiaoGhnIsLockedForManualUpdate() {
+        HoaDon hd = createTestOrder("da_ban_giao_ghn", "COD", "pending", ptttCOD, 1);
+        final Integer orderId = hd.getId();
+
+        // 1. Trying to move to next status via moveOrderToNextStatus must fail
+        assertThrows(IllegalStateException.class, () -> {
+            orderViewService.moveOrderToNextStatus(orderId, adminUser.getId(), "127.0.0.1");
+        });
+
+        // 2. Trying to update status via updateOrderStatusByAdmin must fail
+        assertThrows(IllegalArgumentException.class, () -> {
+            orderViewService.updateOrderStatusByAdmin(orderId, "da_giao", "da_ban_giao_ghn", adminUser.getId(), "127.0.0.1");
         });
     }
 
@@ -568,7 +641,7 @@ public class AdminOrderUpdateTest {
         HoaDon hd = createTestOrder("dang_giao", "SEPAY", "paid", ptttOnline, 2);
         
         // Call webhook with exception
-        orderViewService.updateOrderStatusByWebhook(hd.getId(), "da_huy", "exception");
+        orderViewService.applyShippingStatus(hd.getId(), "da_huy", "exception");
         
         HoaDon updated = hoaDonRepository.findById(hd.getId()).orElse(null);
         assertNotNull(updated);
@@ -582,12 +655,12 @@ public class AdminOrderUpdateTest {
         HoaDon hd = createTestOrder("dang_giao", "SEPAY", "paid", ptttOnline, 2);
         
         // Call webhook with lost twice
-        orderViewService.updateOrderStatusByWebhook(hd.getId(), "da_huy", "lost");
-        int logCount1 = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", Long.valueOf(hd.getId())).size();
+        orderViewService.applyShippingStatus(hd.getId(), "da_huy", "lost");
+        int logCount1 = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", hd.getId()).size();
         
         // Second call
-        orderViewService.updateOrderStatusByWebhook(hd.getId(), "da_huy", "lost");
-        int logCount2 = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", Long.valueOf(hd.getId())).size();
+        orderViewService.applyShippingStatus(hd.getId(), "da_huy", "lost");
+        int logCount2 = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", hd.getId()).size();
         
         // Log count should not increase
         assertEquals(logCount1, logCount2);
@@ -596,7 +669,7 @@ public class AdminOrderUpdateTest {
     @org.junit.jupiter.api.Test
     void testInvalidReturnStatusTransitions() {
         HoaDon hd = createTestOrder("dang_giao", "SEPAY", "paid", ptttOnline, 2);
-        orderViewService.updateOrderStatusByWebhook(hd.getId(), "da_huy", "lost"); // Set to LOST
+        orderViewService.applyShippingStatus(hd.getId(), "da_huy", "lost"); // Set to LOST
         
         HoaDon updated = hoaDonRepository.findById(hd.getId()).orElse(null);
         assertEquals(ReturnStatus.LOST, updated.getTrangThaiHoanHang());
@@ -607,7 +680,7 @@ public class AdminOrderUpdateTest {
         });
         
         // Check that a WARNING log was generated
-        List<EditLog> logs = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", Long.valueOf(hd.getId()));
+        List<EditLog> logs = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", hd.getId());
         boolean hasWarning = logs.stream().anyMatch(log -> log.getGhiChu() != null && log.getGhiChu().contains("[WARNING]"));
         assertTrue(hasWarning);
     }
@@ -620,7 +693,7 @@ public class AdminOrderUpdateTest {
         HoaDon hd = createTestOrder("dang_giao", "SEPAY", "paid", ptttOnline, 2);
         
         // Cancel order -> PENDING_RETURN (stock not restored yet)
-        orderViewService.updateOrderStatusByWebhook(hd.getId(), "da_huy", "return");
+        orderViewService.applyShippingStatus(hd.getId(), "da_huy", "return");
         
         SanPhamChiTiet spctPending = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
         assertEquals(initialStock, spctPending.getSoLuongTon()); // Not restored
@@ -632,7 +705,7 @@ public class AdminOrderUpdateTest {
         assertEquals(initialStock + 2, spctReturned.getSoLuongTon()); // Restored
         
         // Verify detailed audit log contents
-        List<EditLog> logs = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", Long.valueOf(hd.getId()));
+        List<EditLog> logs = editLogRepository.findByTenBangAndIdBanGhiOrderByThoiGianAsc("HoaDon", hd.getId());
         EditLog returnLog = logs.stream()
                 .filter(l -> l.getGhiChu() != null && l.getGhiChu().contains("[WAREHOUSE_RETURN_RETURNED]"))
                 .findFirst().orElse(null);
@@ -649,15 +722,15 @@ public class AdminOrderUpdateTest {
     void testRefundAndInventoryIsolation() {
         SanPhamChiTiet freshSpct = sanPhamChiTietRepository.findById(testSpct.getId()).get();
         int initialStock = freshSpct.getSoLuongTon();
-        HoaDon hd = createTestOrder("cho_xac_nhan", "SEPAY", "paid", ptttOnline, 2);
-        
-        // Simulate immediate checkout deduction in database
+        HoaDon hd = createTestOrder("da_xac_nhan", "SEPAY", "paid", ptttOnline, 2);
+
+        // Simulate that when order moved to da_xac_nhan, stock was deducted by 2
         testSpct.setSoLuongTon(initialStock - 2);
         sanPhamChiTietRepository.saveAndFlush(testSpct);
-        
-        // Cancel order -> CHO_HOAN_TIEN (since it was cho_xac_nhan and not shipped, it restores stock immediately)
-        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_huy", "cho_xac_nhan", adminUser.getId(), "127.0.0.1");
-        
+
+        // Cancel order -> CHO_HOAN_TIEN (since it was da_xac_nhan and not shipped, it restores stock immediately)
+        orderViewService.updateOrderStatusByAdmin(hd.getId(), "da_huy", "da_xac_nhan", adminUser.getId(), "127.0.0.1");
+
         // Since it wasn't shipped but was in a deducted state, cancellation restores the stock to initialStock
         SanPhamChiTiet spctCancelled = sanPhamChiTietRepository.findById(testSpct.getId()).get();
         assertEquals(initialStock, spctCancelled.getSoLuongTon());

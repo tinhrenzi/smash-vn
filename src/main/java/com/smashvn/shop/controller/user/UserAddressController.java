@@ -18,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.smashvn.shop.dto.user.UserAddressDto;
 import com.smashvn.shop.entity.KhachHang;
+import com.smashvn.shop.entity.TaiKhoan;
 import com.smashvn.shop.entity.SoDiaChi;
 import com.smashvn.shop.service.user.UserAddressService;
 import com.smashvn.shop.service.user.UserDashboardService;
@@ -40,8 +41,23 @@ public class UserAddressController {
     private final SanPhamYeuThichRepository wishlistRepository;
 
     private KhachHang getLoggedInCustomer(HttpSession session) {
+        if (session == null || Boolean.TRUE.equals(session.getAttribute("isGuestView"))) {
+            return null;
+        }
         Integer idTaiKhoan = (Integer) session.getAttribute("idNguoiDung");
-        return (idTaiKhoan != null) ? dashboardService.layThongTinKhachHang(idTaiKhoan) : null;
+        if (idTaiKhoan == null) {
+            return null;
+        }
+        KhachHang kh = dashboardService.layThongTinKhachHang(idTaiKhoan);
+        if (kh == null || kh.getTaiKhoan() == null) {
+            return null;
+        }
+        TaiKhoan tk = kh.getTaiKhoan();
+        if (tk == null || tk.getTrangThaiTaiKhoan() != com.smashvn.shop.entity.AccountStatus.ACTIVE
+                || (tk.getTrangThai() != null && !"hoat_dong".equalsIgnoreCase(tk.getTrangThai()))) {
+            return null;
+        }
+        return kh;
     }
 
     private String checkRoleAndRedirect(HttpSession session) {
@@ -87,7 +103,8 @@ public class UserAddressController {
     // 2. Form thêm mới
     @GetMapping("/add")
     public String hienThiThemDiaChi(HttpSession session, Model model,
-            @RequestParam(value = "from", required = false) String from) {
+            @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "token", required = false) String token) {
         String redirect = checkRoleAndRedirect(session);
         if (redirect != null) {
             return redirect;
@@ -101,6 +118,7 @@ public class UserAddressController {
         model.addAttribute("kh", kh);
         populateUserStats(kh, model);
         model.addAttribute("fromPage", from); // Truyền trang nguồn vào view
+        model.addAttribute("checkoutToken", token);
         if (!model.containsAttribute("addressDto")) {
             model.addAttribute("addressDto", new UserAddressDto());
         }
@@ -113,6 +131,7 @@ public class UserAddressController {
             @Valid @ModelAttribute("addressDto") UserAddressDto addressDto,
             BindingResult bindingResult,
             @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "token", required = false) String token,
             Model model,
             RedirectAttributes redirectAttributes) {
 
@@ -127,13 +146,20 @@ public class UserAddressController {
         }
 
         // Xác định trang đích sau khi thêm thành công
-        String successRedirect = "checkout".equals(from) ? "redirect:/checkout" : "redirect:/user/address";
+        String successRedirect;
+        if ("checkout".equals(from) && token != null && !token.isBlank()) {
+            successRedirect = "redirect:/checkout?token=" + java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
+        } else {
+            successRedirect = "redirect:/user/address";
+        }
 
         if (bindingResult.hasErrors()) {
             String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
             model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
             model.addAttribute("loi", errorMessage);
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         }
 
@@ -142,14 +168,26 @@ public class UserAddressController {
             redirectAttributes.addFlashAttribute("thongBaoThanhCong", "Đã thêm địa chỉ mới thành công!");
             return successRedirect;
         } catch (IllegalArgumentException e) {
+            addFieldValidationError(bindingResult, e.getMessage());
             model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
             model.addAttribute("loi", e.getMessage());
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
+            return "dash-address-add";
+        } catch (IllegalStateException e) {
+            model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
+            model.addAttribute("loi", e.getMessage());
+            model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         } catch (Exception e) {
             model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
             model.addAttribute("loi", "Có lỗi xảy ra khi thêm địa chỉ.");
             model.addAttribute("fromPage", from);
+            model.addAttribute("checkoutToken", token);
             return "dash-address-add";
         }
     }
@@ -182,6 +220,11 @@ public class UserAddressController {
                         .diaChiCuThe(dc.getDiaChiCuThe())
                         .tinhThanh(dc.getTinhThanh())
                         .quocGia(dc.getQuocGia())
+                        .ghnProvinceId(dc.getProvinceId())
+                        .ghnDistrictId(dc.getDistrictId())
+                        .ghnWardCode(dc.getWardCode())
+                        .quanHuyen(dc.getQuanHuyen())
+                        .phuongXa(dc.getPhuongXa())
                         .latitude(dc.getLatitude())
                         .longitude(dc.getLongitude())
                         .defaultAddress(dc.isDefaultShipping())
@@ -224,6 +267,7 @@ public class UserAddressController {
         if (bindingResult.hasErrors()) {
             String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
             model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
             try {
                 SoDiaChi dc = addressService.layDiaChiTheoId(idDiaChi, kh.getId());
                 model.addAttribute("dc", dc);
@@ -238,7 +282,19 @@ public class UserAddressController {
             redirectAttributes.addFlashAttribute("thongBaoThanhCong", "Cập nhật địa chỉ thành công!");
             return "redirect:/user/address";
         } catch (IllegalArgumentException e) {
+            addFieldValidationError(bindingResult, e.getMessage());
             model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
+            try {
+                SoDiaChi dc = addressService.layDiaChiTheoId(idDiaChi, kh.getId());
+                model.addAttribute("dc", dc);
+            } catch (Exception ignored) {
+            }
+            model.addAttribute("loi", e.getMessage());
+            return "dash-address-edit";
+        } catch (IllegalStateException e) {
+            model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
             try {
                 SoDiaChi dc = addressService.layDiaChiTheoId(idDiaChi, kh.getId());
                 model.addAttribute("dc", dc);
@@ -248,6 +304,7 @@ public class UserAddressController {
             return "dash-address-edit";
         } catch (Exception e) {
             model.addAttribute("kh", kh);
+            populateUserStats(kh, model);
             try {
                 SoDiaChi dc = addressService.layDiaChiTheoId(idDiaChi, kh.getId());
                 model.addAttribute("dc", dc);
@@ -255,6 +312,21 @@ public class UserAddressController {
             }
             model.addAttribute("loi", "Có lỗi xảy ra khi cập nhật địa chỉ.");
             return "dash-address-edit";
+        }
+    }
+
+    private void addFieldValidationError(BindingResult bindingResult, String message) {
+        if (message == null || message.isBlank()) return;
+        String field = null;
+        if (message.startsWith("Họ ")) field = "hoNguoiNhan";
+        else if (message.startsWith("Tên ")) field = "tenNguoiNhan";
+        else if (message.startsWith("Số điện thoại")) field = "sdtNguoiNhan";
+        else if (message.startsWith("Địa chỉ cụ thể")) field = "diaChiCuThe";
+        else if (message.startsWith("Phường/Xã")) field = "ghnWardCode";
+        else if (message.startsWith("Quận/Huyện")) field = "ghnDistrictId";
+        else if (message.startsWith("Tỉnh/Thành phố")) field = "ghnProvinceId";
+        if (field != null && !bindingResult.hasFieldErrors(field)) {
+            bindingResult.rejectValue(field, "address.invalid", message);
         }
     }
 
@@ -297,7 +369,27 @@ public class UserAddressController {
             response.put("trangThai", "ok");
         } catch (RuntimeException e) {
             response.put("trangThai", "loi");
-            response.put("message", e.getMessage());
+            
+            // Check if it's a data integrity / constraint violation / database exception
+            Throwable cause = e;
+            boolean isConstraintViolation = false;
+            while (cause != null) {
+                String name = cause.getClass().getName();
+                if (name.contains("ConstraintViolationException") || name.contains("DataIntegrityViolationException") || name.contains("SQLServerException")) {
+                    isConstraintViolation = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+            
+            if (isConstraintViolation) {
+                response.put("message", "Không thể xóa địa chỉ này vì đang được sử dụng cho các đơn hàng. Vui lòng giữ lại để lưu trữ lịch sử giao hàng!");
+            } else {
+                response.put("message", e.getMessage());
+            }
+        } catch (Exception e) {
+            response.put("trangThai", "loi");
+            response.put("message", "Đã xảy ra lỗi hệ thống khi xóa địa chỉ.");
         }
         return ResponseEntity.ok(response);
     }

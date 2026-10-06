@@ -1,0 +1,127 @@
+[
+  {
+    "case": "thu-dau-mot",
+    "lat": 10.9804,
+    "lng": 106.6519,
+    "matches": [
+      {
+        "GID_3": "VNM.9.8.7_1",
+        "GID_0": "VNM",
+        "COUNTRY": "Vietnam",
+        "GID_1": "VNM.9_1",
+        "NAME_1": "BìnhDương",
+        "NL_NAME_1": "NA",
+        "GID_2": "VNM.9.8_1",
+        "NAME_2": "ThủDầuMột",
+        "NL_NAME_2": "NA",
+        "NAME_3": "PhúCường",
+        "VARNAME_3": "PhuCuong",
+        "NL_NAME_3": "NA",
+        "TYPE_3": "Phường",
+        "ENGTYPE_3": "Ward",
+        "CC_3": "NA",
+        "HASC_3": "NA"
+      }
+    ]
+  },
+  {
+    "case": "vung-tau",
+    "lat": 10.346,
+    "lng": 107.0843,
+    "matches": [
+      {
+        "GID_3": "VNM.7.6.17_1",
+        "GID_0": "VNM",
+        "COUNTRY": "Vietnam",
+        "GID_1": "VNM.7_1",
+        "NAME_1": "BàRịa-VũngTàu",
+        "NL_NAME_1": "NA",
+        "GID_2": "VNM.7.6_1",
+        "NAME_2": "VũngTàu",
+        "NL_NAME_2": "NA",
+        "NAME_3": "ThắngTam",
+        "VARNAME_3": "ThangTam",
+        "NL_NAME_3": "NA",
+        "TYPE_3": "Phường",
+        "ENGTYPE_3": "Ward",
+        "CC_3": "NA",
+        "HASC_3": "NA"
+      }
+    ]
+  },
+  {
+    "case": "bac-giang",
+    "lat": 21.281,
+    "lng": 106.1975,
+    "matches": [
+      {
+        "GID_3": "VNM.3.1.8_1",
+        "GID_0": "VNM",
+        "COUNTRY": "Vietnam",
+        "GID_1": "VNM.3_1",
+        "NAME_1": "BắcGiang",
+        "NL_NAME_1": "NA",
+        "GID_2": "VNM.3.1_1",
+        "NAME_2": "BắcGiang",
+        "NL_NAME_2": "NA",
+        "NAME_3": "NgôQuyền",
+        "VARNAME_3": "NgoQuyen",
+        "NL_NAME_3": "NA",
+        "TYPE_3": "Phường",
+        "ENGTYPE_3": "Ward",
+        "CC_3": "NA",
+        "HASC_3": "NA"
+      }
+    ]
+  },
+  {
+    "case": "phan-thiet",
+    "lat": 10.9289,
+    "lng": 108.1021,
+    "matches": [
+      {
+        "GID_3": "VNM.11.7.1_1",
+        "GID_0": "VNM",
+        "COUNTRY": "Vietnam",
+        "GID_1": "VNM.11_1",
+        "NAME_1": "BìnhThuận",
+        "NL_NAME_1": "NA",
+        "GID_2": "VNM.11.7_1",
+        "NAME_2": "PhanThiết",
+        "NL_NAME_2": "NA",
+        "NAME_3": "BìnhHưng",
+        "VARNAME_3": "BinhHung",
+        "NL_NAME_3": "NA",
+        "TYPE_3": "Phường",
+        "ENGTYPE_3": "Ward",
+        "CC_3": "NA",
+        "HASC_3": "NA"
+      }
+    ]
+  },
+  {
+    "case": "vi-thanh",
+    "lat": 9.7833,
+    "lng": 105.47,
+    "matches": [
+      {
+        "GID_3": "VNM.24.7.7_1",
+        "GID_0": "VNM",
+        "COUNTRY": "Vietnam",
+        "GID_1": "VNM.24_1",
+        "NAME_1": "HậuGiang",
+        "NL_NAME_1": "NA",
+        "GID_2": "VNM.24.7_1",
+        "NAME_2": "VịThanh",
+        "NL_NAME_2": "NA",
+        "NAME_3": "V",
+        "VARNAME_3": "V",
+        "NL_NAME_3": "NA",
+        "TYPE_3": "Phường",
+        "ENGTYPE_3": "Ward",
+        "CC_3": "NA",
+        "HASC_3": "NA"
+      }
+    ]
+  }
+]

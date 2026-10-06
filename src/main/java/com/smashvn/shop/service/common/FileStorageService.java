@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FileStorageService {
 
-    @Value("${app.upload.path}")
+    @Value("${app.upload.path:uploads}")
     private String uploadPathConfig;
 
     private final Tika tika = new Tika();
@@ -119,7 +119,7 @@ public class FileStorageService {
 
             Path targetFilePath = targetFolder.resolve(secureFileName).normalize().toAbsolutePath();
             if (!targetFilePath.startsWith(targetFolder.toAbsolutePath().normalize())) {
-                throw new SecurityException("Đường dẫn tải lên tệp không hợp lệ (ngăn chặn Path Traversal).");
+                throw new SecurityException("Đường dẫn tải lên tệp không hợp lệ.");
             }
 
             // Lưu tệp lên đĩa
@@ -131,13 +131,20 @@ public class FileStorageService {
                 for (String name : savedFileNames) {
                     deleteImage(name, folderName);
                 }
-                throw e;
+                throw new RuntimeException("Không thể lưu hình ảnh. Vui lòng thử lại sau.", e);
             }
 
             savedFileNames.add(secureFileName);
         }
 
         return savedFileNames;
+    }
+
+    public void deleteFiles(List<String> fileNames, String folderName) {
+        if (fileNames == null || fileNames.isEmpty()) return;
+        for (String name : fileNames) {
+            deleteImage(name, folderName);
+        }
     }
 
     /**
@@ -148,7 +155,7 @@ public class FileStorageService {
             return;
         }
         try {
-            Path rootUploadPath = Paths.get(uploadPathConfig).toAbsolutePath().normalize();
+            Path rootUploadPath = Paths.get(uploadPathConfig != null ? uploadPathConfig : "uploads").toAbsolutePath().normalize();
             Path targetFolder = rootUploadPath.resolve(folderName).normalize();
             Path filePath = targetFolder.resolve(fileName).normalize().toAbsolutePath();
 
@@ -159,6 +166,119 @@ public class FileStorageService {
             }
         } catch (Exception e) {
             log.error("[FILE_CLEANUP_ERROR] Failed to delete image file {}: {}", fileName, e.getMessage());
+        }
+    }
+
+    /**
+     * Tải lên và xác thực video bằng chứng đổi/trả một cách an toàn.
+     * Chỉ chấp nhận đúng 1 video hợp lệ (MP4, WEBM, MOV), dung lượng tối đa 50MB.
+     * Lưu vào thư mục uploads/returns/{orderId}/{uuid}.ext
+     */
+    public List<String> storeReturnEvidenceVideos(MultipartFile[] files, Integer orderId) throws Exception {
+        if (orderId == null) {
+            throw new IllegalArgumentException("Mã đơn hàng không hợp lệ.");
+        }
+
+        List<MultipartFile> activeFiles = new ArrayList<>();
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file != null && !file.isEmpty() && file.getSize() > 0) {
+                    activeFiles.add(file);
+                }
+            }
+        }
+
+        if (activeFiles.isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng đính kèm video bằng chứng.");
+        }
+
+        if (activeFiles.size() > 1) {
+            throw new IllegalArgumentException("Mỗi yêu cầu chỉ được đính kèm một video bằng chứng.");
+        }
+
+        MultipartFile file = activeFiles.get(0);
+
+        // 1. Kiểm tra dung lượng tối đa 50MB
+        long maxFileSize = 50 * 1024 * 1024; // 50MB
+        if (file.getSize() > maxFileSize) {
+            throw new IllegalArgumentException("Video bằng chứng không được vượt quá 50MB.");
+        }
+
+        // 2. Kiểm tra phần mở rộng file (extension)
+        String origName = file.getOriginalFilename();
+        String ext = "";
+        if (origName != null && origName.contains(".")) {
+            ext = origName.substring(origName.lastIndexOf(".") + 1).toLowerCase();
+        }
+        List<String> allowedExtensions = List.of("mp4", "webm", "mov");
+        if (!allowedExtensions.contains(ext)) {
+            throw new IllegalArgumentException("Video bằng chứng chỉ hỗ trợ MP4, WEBM hoặc MOV.");
+        }
+
+        // 3. Kiểm tra MIME type thực tế qua Apache Tika (chống giả mạo file .exe/.sh thành .mp4)
+        List<String> allowedMimeTypes = List.of(
+                "video/mp4",
+                "video/webm",
+                "video/quicktime",
+                "video/x-matroska"
+        );
+        try (InputStream is = file.getInputStream()) {
+            String detectedMime = tika.detect(is);
+            if (detectedMime == null || (!allowedMimeTypes.contains(detectedMime.toLowerCase()) && !detectedMime.toLowerCase().startsWith("video/"))) {
+                throw new IllegalArgumentException("Video bằng chứng chỉ hỗ trợ MP4, WEBM hoặc MOV.");
+            }
+        }
+
+        // 4. Phân giải đường dẫn lưu trữ và chống Path Traversal
+        Path rootUploadPath = Paths.get(uploadPathConfig != null ? uploadPathConfig : "uploads").toAbsolutePath().normalize();
+        Path targetFolder = rootUploadPath.resolve("returns").resolve(String.valueOf(orderId)).normalize();
+        if (!Files.exists(targetFolder)) {
+            Files.createDirectories(targetFolder);
+        }
+
+        if (!targetFolder.startsWith(rootUploadPath)) {
+            throw new SecurityException("Đường dẫn tải lên tệp không hợp lệ.");
+        }
+
+        String secureFileName = UUID.randomUUID().toString() + "." + ext;
+        Path targetFilePath = targetFolder.resolve(secureFileName).normalize().toAbsolutePath();
+        if (!targetFilePath.startsWith(targetFolder)) {
+            throw new SecurityException("Đường dẫn tải lên tệp không hợp lệ.");
+        }
+
+        // 5. Lưu file vào đĩa
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, targetFilePath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            log.error("[UPLOAD_FAILURE] Failed to save return evidence video for order #{}: {}", orderId, e.getMessage());
+            throw new RuntimeException("Không thể lưu video bằng chứng. Vui lòng thử lại sau.", e);
+        }
+
+        String relativePath = "/uploads/returns/" + orderId + "/" + secureFileName;
+        return List.of(relativePath);
+    }
+
+    /**
+     * Dọn dẹp / xóa file bằng chứng đổi trả khi xảy ra lỗi
+     */
+    public void deleteReturnFiles(List<String> relativePaths) {
+        if (relativePaths == null || relativePaths.isEmpty()) {
+            return;
+        }
+        Path rootUploadPath = Paths.get(uploadPathConfig != null ? uploadPathConfig : "uploads").toAbsolutePath().normalize();
+        for (String relPath : relativePaths) {
+            try {
+                if (relPath != null && relPath.startsWith("/uploads/")) {
+                    String subPath = relPath.substring("/uploads/".length());
+                    Path filePath = rootUploadPath.resolve(subPath).normalize().toAbsolutePath();
+                    if (filePath.startsWith(rootUploadPath)) {
+                        Files.deleteIfExists(filePath);
+                        log.info("[RETURN_FILE_CLEANUP] Deleted return evidence file: {}", filePath);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("[RETURN_FILE_CLEANUP_ERROR] Failed to delete return file {}: {}", relPath, e.getMessage());
+            }
         }
     }
 }

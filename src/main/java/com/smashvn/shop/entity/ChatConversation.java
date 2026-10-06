@@ -1,33 +1,47 @@
 package com.smashvn.shop.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ChatConversation")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChatConversation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_khach_hang", nullable = false)
-    private KhachHang khachHang;
+    @JoinColumn(name = "id_tai_khoan")
+    private TaiKhoan taiKhoan;
 
-    @Column(name = "tieu_de", length = 255)
+    @Column(name = "session_id")
+    private String sessionId;
+
+    @Column(name = "tieu_de")
     private String tieuDe;
 
-    @Column(name = "ngay_tao")
-    private LocalDateTime ngayTao = LocalDateTime.now();
+    @Column(name = "trang_thai", nullable = false)
+    private String trangThai;
+
+    @Column(name = "ngay_tao", nullable = false, updatable = false)
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_cap_nhat")
-    private LocalDateTime ngayCapNhat = LocalDateTime.now();
+    private LocalDateTime ngayCapNhat;
 
-    @Column(name = "trang_thai", length = 20)
-    private String trangThai = "ACTIVE";
+    @PrePersist
+    protected void onCreate() {
+        if (trangThai == null) {
+            trangThai = "ACTIVE";
+        }
+        if (ngayTao == null) {
+            ngayTao = LocalDateTime.now();
+        }
+        if (ngayCapNhat == null) {
+            ngayCapNhat = LocalDateTime.now();
+        }
+    }
 }

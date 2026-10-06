@@ -232,7 +232,7 @@
 <body class="config">
     <div class="preloader is-active">
         <div class="preloader__wrap">
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt="">
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64">
         </div>
     </div>
 
@@ -250,7 +250,7 @@
                                 <ul class="breadcrumb__list">
                                     <li class="has-separator"><a th:href="@{/}">Trang chủ</a></li>
                                     <li class="has-separator"><a th:href="@{/gio-hang}">Giỏ hàng</a></li>
-                                    <li class="is-marked"><a th:href="@{/checkout}">Thanh toán</a></li>
+                                    <li class="is-marked"><a href="javascript:void(0)">Thanh toán</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -274,6 +274,8 @@
                 <div class="section__content">
                     <div class="container">
                         <form id="checkout-form" class="checkout-f" novalidate>
+                            <input type="hidden" name="checkoutToken" id="checkoutToken" th:value="${checkoutToken}">
+
                             <div class="row">
                                 <!-- Form details -->
                                 <div class="col-lg-6 col-md-12 col-sm-12">
@@ -287,25 +289,25 @@
                                                     <option th:each="dc : ${listDiaChi}" 
                                                             th:value="${dc.id}"
                                                             th:selected="${dc.defaultShipping}"
-                                                            th:text="${dc.hoNguoiNhan + ' ' + dc.tenNguoiNhan + ' - ' + dc.sdtNguoiNhan + ' (' + dc.diaChiCuThe + ', ' + dc.tinhThanh + ')' + (dc.defaultShipping ? ' [Mặc định]' : '')}">
+                                                            th:text="${(dc.hoNguoiNhan != null and !dc.hoNguoiNhan.isEmpty() ? dc.hoNguoiNhan + ' ' : '') + dc.tenNguoiNhan + ' - ' + dc.sdtNguoiNhan + ' (' + dc.diaChiCuThe + (dc.wardName != null and !dc.wardName.isEmpty() ? ', ' + dc.wardName : '') + (dc.districtName != null and !dc.districtName.isEmpty() ? ', ' + dc.districtName : '') + ', ' + dc.provinceName + ')' + (dc.defaultShipping ? ' [Mặc định]' : '')}">
                                                     </option>
                                                     <option value="new_address">-- Nhập địa chỉ mới --</option>
                                                 </select>
-                                                <a th:href="@{/user/address/add(from='checkout')}" class="btn btn--e-secondary" style="padding: 12px 18px; font-size: 13px; white-space: nowrap; border-radius: 6px; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 5px; height: 40px;" title="Thêm địa chỉ mới vào sổ địa chỉ">
+                                                <a th:href="@{/user/address/add(from='checkout', token=${checkoutToken})}" class="btn btn--e-secondary" style="padding: 12px 18px; font-size: 13px; white-space: nowrap; border-radius: 6px; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 5px; height: 40px;" title="Thêm địa chỉ mới vào sổ địa chỉ">
                                                     <i class="fas fa-plus"></i> Thêm mới
                                                 </a>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="u-s-m-b-15" th:if="${listDiaChi == null or listDiaChi.isEmpty()}" style="text-align: right; margin-top: -10px; margin-bottom: 10px;">
-                                        <a th:href="@{/user/address/add(from='checkout')}" style="color: #ff4500; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                                        <a th:href="@{/user/address/add(from='checkout', token=${checkoutToken})}" style="color: #ff4500; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
                                             <i class="fas fa-plus-circle"></i> Thêm địa chỉ mới vào tài khoản
                                         </a>
                                     </div>
                                     <!-- Email field for guest checkout -->
-                                    <div class="u-s-m-b-15" th:if="${session.idNguoiDung == null}">
+                                    <div class="u-s-m-b-15" th:if="${isGuest}">
                                         <label class="gl-label" for="email">EMAIL LIÊN HỆ *</label>
-                                        <input class="input-text input-text--primary-style" type="email" id="email" name="email" required placeholder="Nhập email của bạn..." maxlength="100">
+                                        <input class="input-text input-text--primary-style" type="email" id="email" name="email" required placeholder="Nhập email của bạn..." maxlength="100" th:value="${guestEmail}">
                                         <div class="invalid-feedback" id="email-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
                                     </div>
 
@@ -320,50 +322,59 @@
                                             <input class="input-text input-text--primary-style" type="text" id="sdtNhan" name="sdtNhan" required placeholder="Nhập số điện thoại..." maxlength="12">
                                             <div class="invalid-feedback" id="sdtNhan-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
                                         </div>
-                                        <div class="u-s-m-b-15">
-                                            <label class="gl-label" for="diaChiNhan">ĐỊA CHỈ NHẬN HÀNG *</label>
-                                            <input class="input-text input-text--primary-style" type="text" id="diaChiNhan" name="diaChiNhan" required placeholder="Số nhà, tên đường, xã/phường, quận/huyện, tỉnh/thành..." maxlength="255">
-                                            <div class="invalid-feedback" id="diaChiNhan-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
-                                        </div>
                                         <!-- GHN Address Dropdowns -->
                                         <div class="u-s-m-b-15">
-                                            <label class="gl-label" for="ghnProvinceId">TỈNH/THÀNH PHỐ (GHN)</label>
+                                            <label class="gl-label" for="quickAddressInput">
+                                                NHẬP NHANH ĐỊA CHỈ (TỰ ĐỘNG ĐIỀN TỈNH/HUYỆN/XÃ)
+                                            </label>
+                                            <input class="input-text input-text--primary-style"
+                                                   type="text"
+                                                   id="quickAddressInput"
+                                                   placeholder="Ví dụ: Số 12 ngõ 34 đường Lê Lợi, Dịch Vọng, Cầu Giấy, Hà Nội..."
+                                                   autocomplete="street-address">
+                                            <div id="quickAddressFeedback"
+                                                 style="font-size: 13px; margin-top: 5px; font-weight: 600; color: #64748b;"></div>
+                                        </div>
+                                        <div class="u-s-m-b-15">
+                                            <label class="gl-label" for="ghnProvinceId">TỈNH/THÀNH PHỐ *</label>
                                             <select class="select-box select-box--primary-style" id="ghnProvinceId">
                                                 <option value="">-- Chọn tỉnh/thành (tuỳ chọn) --</option>
                                             </select>
                                         </div>
                                         <div class="u-s-m-b-15">
-                                            <label class="gl-label" for="ghnDistrictId">QUẬN/HUYỆN (GHN)</label>
+                                            <label class="gl-label" for="ghnDistrictId">QUẬN/HUYỆN *</label>
                                             <select class="select-box select-box--primary-style" id="ghnDistrictId" name="ghnToDistrictId" disabled>
                                                 <option value="">-- Chọn quận/huyện --</option>
                                             </select>
                                         </div>
                                         <div class="u-s-m-b-15">
-                                            <label class="gl-label" for="ghnWardCode">PHƯỜNG/XÃ (GHN)</label>
+                                            <label class="gl-label" for="ghnWardCode">PHƯỜNG/XÃ *</label>
                                             <select class="select-box select-box--primary-style" id="ghnWardCode" name="ghnToWardCode" disabled>
                                                 <option value="">-- Chọn phường/xã --</option>
                                             </select>
                                         </div>
-                                        <!-- Active Account Address Saving Checkbox -->
-                                        <div class="u-s-m-b-15" th:if="${session.idNguoiDung != null and !isGuest}">
-                                            <div class="check-box">
-                                                <input type="checkbox" id="saveAddress" name="saveAddress" value="true">
-                                                <div class="check-box__state check-box__state--primary">
-                                                    <label class="check-box__label" for="saveAddress">Lưu địa chỉ này cho lần mua sau</label>
-                                                </div>
+                                        <div class="u-s-m-b-15">
+                                            <label class="gl-label" for="diaChiNhan">ĐỊA CHỈ CỤ THỂ (Số nhà, tên đường) *</label>
+                                            <input class="input-text input-text--primary-style" type="text" id="diaChiNhan" name="diaChiNhan" required placeholder="Ví dụ: Số 12, ngõ 34, đường Lê Lợi..." maxlength="255">
+                                            <div class="invalid-feedback" id="diaChiNhan-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
+                                        </div>
+                                        <!-- Address Saving Checkbox -->
+                                        <div class="u-s-m-b-15">
+                                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                                                <input type="checkbox" id="saveAddress" name="saveAddress" value="true" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: #ff4500;">
+                                                <label for="saveAddress" style="font-weight: 600; font-size: 13px; color: #1e293b; cursor: pointer; margin-bottom: 0; user-select: none;">Lưu địa chỉ này cho lần mua sau</label>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="u-s-m-b-15">
                                         <label class="gl-label" for="idDonViVanChuyen">PHƯƠNG THỨC VẬN CHUYỂN *</label>
-                                        <select class="select-box select-box--primary-style" id="idDonViVanChuyen" name="idDonViVanChuyen" required>
-                                            <option value="" disabled selected>Chọn phương thức vận chuyển...</option>
-                                            <option th:each="dvvc : ${listDvvc}" th:value="${dvvc.id}" th:text="${dvvc.tenDonVi}"></option>
+                                        <select class="select-box select-box--primary-style" id="idDonViVanChuyen" name="idDonViVanChuyen" required disabled style="background-color: #e2e8f0; cursor: not-allowed;">
+                                            <option th:each="dvvc, status : ${listDvvc}" th:value="${dvvc.id}" th:text="${dvvc.tenDonVi}" th:selected="${status.first}"></option>
                                         </select>
                                     </div>
                                     <div class="u-s-m-b-15">
                                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <label class="gl-label" for="ghiChu" style="margin-bottom: 0;">GHI CHÚ ĐƠN HÀNG (TÙY CHỌN)</label>
+                                            <label class="gl-label" for="ghiChu" style="margin-bottom: 0;">GHI CHÚ ĐƠN HÀNG</label>
                                             <span id="ghiChu-counter" style="font-size: 12px; color: #64748b;">0/500</span>
                                         </div>
                                         <textarea class="text-area text-area--primary-style" id="ghiChu" name="ghiChu" placeholder="Lưu ý cho người giao hàng..." maxlength="500"></textarea>
@@ -375,23 +386,33 @@
                                 <div class="col-lg-6 col-md-12 col-sm-12">
                                     <h2 class="checkout-f__h1">TÓM TẮT ĐƠN HÀNG</h2>
                                     <div class="f-cart__pad-box u-s-m-b-30" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px;">
-                                        <div class="table-responsive u-s-m-b-20" style="max-height: 250px; overflow-y: auto;">
-                                            <table class="table" style="font-size: 13px;">
+                                        <div class="table-responsive u-s-m-b-20" style="max-height: 280px; overflow-y: auto;">
+                                            <table class="table" style="font-size: 13px; width: 100%; border-collapse: collapse; margin-bottom: 0;">
                                                 <thead>
                                                     <tr>
-                                                        <th>Sản phẩm</th>
-                                                        <th class="text-right">Tạm tính</th>
+                                                        <th style="text-align: left; padding-left: 0; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; width: 75%;">Sản phẩm</th>
+                                                        <th style="text-align: right; padding-right: 0; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; width: 25%;">Tạm tính</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     <tr th:each="item : ${danhSachCart}">
-                                                        <td>
-                                                            <span th:text="${item.sanPhamChiTiet.sanPham.tenSanPham}">Tên Vợt</span>
-                                                            <strong th:text="' x ' + ${item.soLuong}">x 1</strong>
-                                                            <br>
-                                                            <small class="text-muted" th:text="${item.sanPhamChiTiet.mauSac} + ' | ' + ${item.sanPhamChiTiet.trongLuong}"></small>
+                                                        <td style="text-align: left; padding-left: 0; vertical-align: middle; border-bottom: 1px solid #f1f5f9; padding: 12px 0;">
+                                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                                <div style="width: 50px; height: 50px; flex-shrink: 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #f8fafc;">
+                                                                    <img th:src="@{${item.sanPhamChiTiet.hinhAnhUrl}}" onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh sản phẩm" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                                                </div>
+                                                                <div>
+                                                                    <span th:text="${item.sanPhamChiTiet.sanPham.tenSanPham}" style="font-weight: 600; color: #1e293b; display: block; line-height: 1.4;">Tên Vợt</span>
+                                                                    <div style="margin-top: 2px;">
+                                                                        <small class="text-muted">
+                                                                            <span th:text="${item.sanPhamChiTiet.phanLoaiHienThi}">Mặc định</span>
+                                                                        </small>
+                                                                        <strong th:text="' x ' + ${item.soLuong}" style="color: #64748b; font-size: 12px; margin-left: 4px;">x 1</strong>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </td>
-                                                        <td class="text-right" th:text="${#numbers.formatDecimal(item.sanPhamChiTiet.giaBan * item.soLuong, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                                                        <td style="text-align: right; padding-right: 0; vertical-align: middle; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding: 12px 0;" th:text="${#numbers.formatDecimal(item.sanPhamChiTiet.giaBan * item.soLuong, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -399,7 +420,7 @@
 
                                         <!-- Voucher Code Section -->
                                         <div class="u-s-m-b-20 pt-3 border-top">
-                                            <label class="gl-label" for="voucher-code-input">MÃ GIẢM GIÁ (VOUCHER)</label>
+                                            <label class="gl-label" for="voucher-code-input">MÃ GIẢM GIÁ</label>
                                             <div style="display: flex; gap: 8px;">
                                                 <input class="input-text input-text--primary-style" type="text" id="voucher-code-input" placeholder="Nhập mã giảm giá..." style="text-transform: uppercase; margin-bottom: 0; flex-grow: 1;">
                                                 <button class="btn btn--e-secondary" type="button" id="btn-apply-voucher" style="padding: 12px 20px; font-weight: 700; border-radius: 6px; white-space: nowrap; font-size: 13px;">Áp dụng</button>
@@ -414,7 +435,7 @@
                                                     <td class="text-right" th:text="${#numbers.formatDecimal(tongTien, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
                                                 </tr>
                                                 <tr id="voucher-discount-row" style="display: none;">
-                                                    <td>GIẢM GIÁ (VOUCHER)</td>
+                                                    <td>GIẢM GIÁ</td>
                                                     <td class="text-right text-danger js-voucher-discount">-0 đ</td>
                                                 </tr>
                                                 <tr>
@@ -449,7 +470,7 @@
                                                 <i class="fas fa-qrcode text-brand" style="color: #ff4500; font-size: 26px;"></i>
                                             </div>
                                             <div class="payment-card-info">
-                                                <div class="payment-card-title">Chuyển khoản Ngân hàng (SePay)</div>
+                                                <div class="payment-card-title">Chuyển khoản Ngân hàng</div>
                                                 <div class="payment-card-desc">Quét mã QR tự động xác nhận</div>
                                             </div>
                                             <div class="card-radio"></div>
@@ -458,7 +479,7 @@
                                     <input type="hidden" name="phuongThucThanhToan" id="phuongThucThanhToan" value="COD">
 
                                     <div class="u-s-m-t-30">
-                                        <button class="btn btn--e-brand-b-2 w-100" type="submit" style="padding: 16px; font-size: 15px; font-weight: 700; border-radius: 8px;">ĐẶT HÀNG NGAY</button>
+                                        <button id="btn-checkout-submit" class="btn btn--e-brand-b-2 w-100" type="submit" style="padding: 16px; font-size: 15px; font-weight: 700; border-radius: 8px;">ĐẶT HÀNG NGAY</button>
                                     </div>
                                 </div>
                             </div>
@@ -478,7 +499,7 @@
             <div class="zp-modal-header">
                 <div class="zp-modal-title">
                     <i class="fas fa-university text-brand" style="color: #ff4500; font-size: 20px;"></i>
-                    <span>Chuyển khoản Ngân hàng (SePay)</span>
+                    <span>Chuyển khoản Ngân hàng</span>
                 </div>
                 <button class="zp-modal-close" id="zp-close-btn">&times;</button>
             </div>
@@ -522,32 +543,27 @@
                 <!-- Password login form for ACTIVE accounts -->
                 <div id="guest-password-form-group">
                     <div class="u-s-m-b-15">
-                        <label class="gl-label" for="guest-password-input">MẬT KHẨU *</label>
-                        <input class="input-text input-text--primary-style" type="password" id="guest-password-input" placeholder="Nhập mật khẩu của bạn..." style="margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label class="gl-label" for="guest-password-input" style="margin-bottom: 0;">MẬT KHẨU *</label>
+                            <a href="javascript:void(0)" id="btn-guest-forgot-password" style="font-size: 12px; color: #ff4500; font-weight: 600; text-decoration: underline;">Quên mật khẩu?</a>
+                        </div>
+                        <div style="position: relative; display: block; width: 100%;">
+                            <input class="input-text input-text--primary-style" type="password" id="guest-password-input" placeholder="Nhập mật khẩu của bạn..." style="width: 100% !important; padding-right: 40px; margin-bottom: 0;">
+                            <span class="toggle-password" data-target="guest-password-input" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #64748b; font-size: 16px;">
+                                <i class="far fa-eye"></i>
+                            </span>
+                        </div>
                         <div id="guest-password-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
+                        <div id="guest-password-success" style="color: #10b981; font-size: 12px; margin-top: 5px; display: none;"></div>
                     </div>
                     <button class="btn btn--e-brand-b-2 w-100" id="btn-guest-verify-password" style="padding: 12px; font-weight: 600; border-radius: 6px; font-size: 13px;">XÁC NHẬN ĐĂNG NHẬP</button>
                 </div>
 
-                <!-- Mandatory password set form for GUEST_EXPIRED accounts -->
-                <div id="guest-setup-password-form-group" style="display: none;">
-                    <div class="u-s-m-b-15">
-                        <label class="gl-label" for="guest-new-password">MẬT KHẨU MỚI *</label>
-                        <input class="input-text input-text--primary-style" type="password" id="guest-new-password" placeholder="Tối thiểu 8 ký tự (chữ và số)..." style="margin-bottom: 0;">
-                        <div id="guest-new-password-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
-                    </div>
-                    <div class="u-s-m-b-15">
-                        <label class="gl-label" for="guest-confirm-password">XÁC NHẬN MẬT KHẨU *</label>
-                        <input class="input-text input-text--primary-style" type="password" id="guest-confirm-password" placeholder="Nhập lại mật khẩu mới..." style="margin-bottom: 0;">
-                        <div id="guest-confirm-password-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
-                    </div>
-                    <button class="btn btn--e-brand-b-2 w-100" id="btn-guest-setup-password" style="padding: 12px; font-weight: 600; border-radius: 6px; font-size: 13px;">KÍCH HOẠT &amp; TIẾP TỤC</button>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Guest Success Modal (For optional password set after successful checkout) -->
+    <!-- Guest Success Modal -->
     <div class="zp-modal-overlay" id="guest-success-overlay">
         <div class="zp-modal" style="max-width: 480px;">
             <div class="zp-modal-header" style="border-bottom: none; padding-bottom: 0;">
@@ -557,28 +573,13 @@
                 </div>
             </div>
             <div class="zp-modal-body" style="text-align: left; padding: 20px 24px 24px;">
-                <p style="font-size: 14px; color: #1e293b; font-weight: 600; margin-bottom: 10px;">
-                    Tài khoản của bạn đã được tạo tự động để hỗ trợ theo dõi đơn hàng.
+                <p style="font-size: 14px; color: #1e293b; font-weight: 600; margin-bottom: 12px;">
+                    Tài khoản Guest của bạn đã được khởi tạo. Vui lòng kiểm tra email để nhận mật khẩu tạm thời.
                 </p>
-                <p id="guest-success-warning-text" style="font-size: 13px; color: #ff4500; font-weight: 600; margin-bottom: 20px; display: none;">
-                    Bạn đã mua hàng nhiều lần. Lần mua tiếp theo sẽ yêu cầu thiết lập mật khẩu để tăng cường bảo mật.
+                <p style="font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 20px;">
+                    Email bao gồm mật khẩu tạm để đăng nhập và activation link để bạn có thể thiết lập mật khẩu chính thức ngay.
                 </p>
-                
-                <div class="u-s-m-b-15">
-                    <label class="gl-label" for="success-password">MẬT KHẨU MỚI (TÙY CHỌN)</label>
-                    <input class="input-text input-text--primary-style" type="password" id="success-password" placeholder="Nhập mật khẩu để kích hoạt tài khoản..." style="margin-bottom: 0;">
-                    <div id="success-password-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
-                </div>
-                <div class="u-s-m-b-20">
-                    <label class="gl-label" for="success-confirm-password">XÁC NHẬN MẬT KHẨU</label>
-                    <input class="input-text input-text--primary-style" type="password" id="success-confirm-password" placeholder="Nhập lại mật khẩu..." style="margin-bottom: 0;">
-                    <div id="success-confirm-password-error" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;"></div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn btn--e-secondary" id="btn-success-skip" style="flex: 1; padding: 12px; font-weight: 600; border-radius: 6px; font-size: 13px;">Bỏ qua</button>
-                    <button class="btn btn--e-brand-b-2" id="btn-success-save-password" style="flex: 2; padding: 12px; font-weight: 600; border-radius: 6px; font-size: 13px; color: white;">Tạo mật khẩu ngay</button>
-                </div>
+                <button class="btn btn--e-brand-b-2 w-100" id="btn-success-close" style="padding: 12px; font-weight: 600; border-radius: 6px; font-size: 13px; color: white;">XEM CHI TIẾT ĐƠN HÀNG</button>
             </div>
         </div>
     </div>
@@ -592,13 +593,57 @@
         const baseTongTien = /*[[${tongTien}]]*/ 0;
         const addressMapJsonStr = /*[[${addressMapJson}]]*/ '{}';
         const addressMap = JSON.parse(addressMapJsonStr);
-        console.log("Address Map Object:", addressMap);
         /*]]>*/
 
         // Global variables and helper functions for matching GHN address dropdowns
         let targetProvinceToMatch = null;
         let targetAddressToMatch = null;
         let isGhnLoadingMasterData = false;
+        let quickAddressParseSeq = 0;
+        let diaChiNhanTouchedByUser = false;
+        let isShippingLoading = false;
+        let selectedSavedGhnMapping = null;
+
+        function getEffectiveGhnMapping() {
+            const savedAddressId = $('#selectDiaChiLuu').val();
+            if (savedAddressId
+                    && savedAddressId !== 'new_address'
+                    && selectedSavedGhnMapping
+                    && selectedSavedGhnMapping.addressId === String(savedAddressId)) {
+                return selectedSavedGhnMapping;
+            }
+            return {
+                provinceId: $('#ghnProvinceId').val() || '',
+                districtId: $('#ghnDistrictId').val() || '',
+                wardCode: $('#ghnWardCode').val() || ''
+            };
+        }
+
+        function setShippingFeeLoadingState(isLoading) {
+            isShippingLoading = isLoading;
+            const $btn = $('#btn-checkout-submit');
+            
+            if (isLoading) {
+                $('.js-ship-fee').html('<span style="color: #ff4500; font-size: 13px; font-weight: 600;"><i class="fas fa-spinner fa-spin me-1"></i> Đang tính phí...</span>');
+                if ($btn.length) {
+                    $btn.prop('disabled', true);
+                    if (!$btn.attr('data-original-text')) {
+                        $btn.attr('data-original-text', $btn.html());
+                    }
+                    $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> ĐANG TÍNH PHÍ VẬN CHUYỂN...');
+                }
+            } else {
+                if ($btn.length) {
+                    $btn.prop('disabled', false);
+                    const origText = $btn.attr('data-original-text');
+                    if (origText) {
+                        $btn.html(origText);
+                    } else {
+                        $btn.html('ĐẶT HÀNG NGAY');
+                    }
+                }
+            }
+        }
 
         function cleanString(str) {
             if (!str) return '';
@@ -613,13 +658,206 @@
                 .trim();
         }
 
+        function stripAccents(str) {
+            return (str || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[đĐ]/g, 'd');
+        }
+
+        function normalizeQuickAddressText(str) {
+            return stripAccents(str)
+                .toLowerCase()
+                .replace(/\btp\.?\s*hcm\b/g, 'ho chi minh')
+                .replace(/\btphcm\b/g, 'ho chi minh')
+                .replace(/\bhcm\b/g, 'ho chi minh')
+                .replace(/\bsai\s+gon\b/g, 'ho chi minh')
+                .replace(/\bsg\b/g, 'ho chi minh')
+                .replace(/\bhn\b/g, 'ha noi')
+                .replace(/\bq\.?\s*(\d+)\b/g, 'quan $1')
+                .replace(/\bp\.?\s*(\d+)\b/g, 'phuong $1')
+                .replace(/\bp\.?\s+([a-z])/g, 'phuong $1')
+                .replace(/[,\s]+/g, ' ')
+                .replace(/[\/\-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function normalizeNameForCompare(name, type, keepPrefix) {
+            let normalized = normalizeQuickAddressText(name);
+            if (keepPrefix) return normalized;
+            if (type === 'province') {
+                return normalized.replace(/^(tinh|thanh pho|tp)\s+/, '').trim();
+            }
+            if (type === 'district') {
+                return normalized.replace(/^(quan|huyen|thi xa|thanh pho|tp)\s+/, '').trim();
+            }
+            if (type === 'ward') {
+                return normalized.replace(/^(phuong|xa|thi tran)\s+/, '').trim();
+            }
+            return normalized;
+        }
+
+        function splitQuickAddressSegments(rawAddress) {
+            return (rawAddress || '')
+                .split(',')
+                .map(function(part) { return part.trim(); })
+                .filter(Boolean);
+        }
+
+        function isExactOrPhraseMatch(candidate, optionName, optionShortName) {
+            if (!candidate || !optionName) return false;
+            if (candidate === optionName) return true;
+            if (optionShortName && candidate === optionShortName) return true;
+
+            const optionIsNumeric = /^\d+$/.test(optionShortName || optionName);
+            if (optionIsNumeric) {
+                return candidate === optionName;
+            }
+
+            return candidate.includes(optionName)
+                || (optionShortName && optionShortName.length >= 3 && candidate.includes(optionShortName));
+        }
+
+        function findMatchingOption($select, segments, fullAddress, type) {
+            const candidates = [];
+            for (let i = segments.length - 1; i >= 0; i--) {
+                candidates.push({ text: normalizeQuickAddressText(segments[i]), index: i });
+            }
+            candidates.push({ text: normalizeQuickAddressText(fullAddress), index: null });
+
+            const options = [];
+            $select.find('option').each(function() {
+                const val = $(this).val();
+                if (!val) return;
+                const text = $(this).text();
+                options.push({
+                    val: val,
+                    label: text,
+                    name: normalizeNameForCompare(text, type, true),
+                    shortName: normalizeNameForCompare(text, type, false)
+                });
+            });
+
+            options.sort(function(a, b) {
+                return b.shortName.length - a.shortName.length;
+            });
+
+            for (const candidate of candidates) {
+                for (const option of options) {
+                    if (isExactOrPhraseMatch(candidate.text, option.name, option.shortName)) {
+                        return {
+                            value: option.val,
+                            label: option.label,
+                            segmentIndex: candidate.index
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+
+        function cleanSpecificAddress(value) {
+            return (value || '')
+                .replace(/[,\-\/\s]+$/g, '')
+                .replace(/^[,\-\/\s]+/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function setQuickAddressFeedback(message, color) {
+            $('#quickAddressFeedback').text(message || '').css('color', color || '#64748b');
+        }
+
+        async function parseQuickAddress(rawAddress) {
+            const seq = ++quickAddressParseSeq;
+            const address = (rawAddress || '').trim();
+
+            if (!address) {
+                setQuickAddressFeedback('', '#64748b');
+                isGhnLoadingMasterData = false;
+                if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
+                return;
+            }
+
+            const segments = splitQuickAddressSegments(address);
+            if (segments.length === 0) {
+                setQuickAddressFeedback('Không nhận diện được địa chỉ, vui lòng chọn thủ công', '#64748b');
+                isGhnLoadingMasterData = false;
+                if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
+                return;
+            }
+
+            try {
+                if (typeof window.apiLoadProvinces === 'function') {
+                    await window.apiLoadProvinces();
+                    if (seq !== quickAddressParseSeq) return;
+                }
+
+                const provinceMatch = findMatchingOption($('#ghnProvinceId'), segments, address, 'province');
+                if (!provinceMatch) {
+                    setQuickAddressFeedback('Không nhận diện được địa chỉ, vui lòng chọn thủ công', '#64748b');
+                    isGhnLoadingMasterData = false;
+                    if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
+                    return;
+                }
+
+                isGhnLoadingMasterData = true;
+                $('#ghnProvinceId').val(provinceMatch.value);
+                await window.apiLoadDistricts(provinceMatch.value);
+                if (seq !== quickAddressParseSeq) return;
+
+                const districtMatch = findMatchingOption($('#ghnDistrictId'), segments, address, 'district');
+                if (!districtMatch) {
+                    isGhnLoadingMasterData = false;
+                    setQuickAddressFeedback('Đã nhận diện tỉnh/thành, vui lòng chọn thêm quận/huyện hoặc phường/xã', '#d97706');
+                    if (typeof window.calculateShippingFee === 'function') window.calculateShippingFee();
+                    return;
+                }
+
+                $('#ghnDistrictId').val(districtMatch.value);
+                await window.apiLoadWards(districtMatch.value);
+                if (seq !== quickAddressParseSeq) return;
+
+                const wardMatch = findMatchingOption($('#ghnWardCode'), segments, address, 'ward');
+                if (wardMatch) {
+                    $('#ghnWardCode').val(wardMatch.value).trigger('change');
+                } else {
+                    $('#ghnWardCode').val('').trigger('change');
+                }
+
+                const recognizedIndexes = [provinceMatch.segmentIndex, districtMatch.segmentIndex, wardMatch ? wardMatch.segmentIndex : null]
+                    .filter(function(index) { return index !== null && index !== undefined; });
+                const firstRecognizedIndex = recognizedIndexes.length ? Math.min.apply(Math, recognizedIndexes) : -1;
+
+                if (firstRecognizedIndex > 0 && (!diaChiNhanTouchedByUser || !$('#diaChiNhan').val().trim())) {
+                    const specificAddress = cleanSpecificAddress(segments.slice(0, firstRecognizedIndex).join(', '));
+                    if (specificAddress) {
+                        $('#diaChiNhan').val(specificAddress).trigger('change');
+                    }
+                }
+
+                isGhnLoadingMasterData = false;
+                if (wardMatch) {
+                    setQuickAddressFeedback('Đã tự nhận diện: ' + provinceMatch.label + ' / ' + districtMatch.label + ' / ' + wardMatch.label, '#16a34a');
+                } else {
+                    setQuickAddressFeedback('Đã nhận diện tỉnh/thành và quận/huyện, vui lòng chọn thêm phường/xã', '#d97706');
+                    if (typeof window.calculateShippingFee === 'function') window.calculateShippingFee();
+                }
+            } catch (err) {
+                console.error("[parseQuickAddress] Error:", err);
+                setQuickAddressFeedback('Lỗi tự nhận diện địa chỉ, vui lòng chọn thủ công', '#64748b');
+                isGhnLoadingMasterData = false;
+                if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
+            }
+        }
+
         function matchAndSelectProvince(tinhThanhStr, fullAddressStr) {
             if (!tinhThanhStr && !fullAddressStr) {
                 isGhnLoadingMasterData = false;
                 return;
             }
             if ($('#ghnProvinceId option').length <= 1) {
-                console.log("[GHN] Provinces dropdown is not loaded yet, matching deferred.");
                 return;
             }
             
@@ -667,6 +905,7 @@
                 targetProvinceToMatch = null;
                 targetAddressToMatch = null;
                 isGhnLoadingMasterData = false;
+                if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
             }
         }
 
@@ -705,6 +944,7 @@
                 targetProvinceToMatch = null;
                 targetAddressToMatch = null;
                 isGhnLoadingMasterData = false;
+                if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
             }
         }
 
@@ -743,6 +983,7 @@
                 targetProvinceToMatch = null;
                 targetAddressToMatch = null;
                 isGhnLoadingMasterData = false;
+                if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(false);
             }
             
             // Clear match target after fully matching ward
@@ -752,6 +993,33 @@
         }
 
         $(document).ready(function() {
+            // Initialize checkout state before the saved-address change handler
+            // can synchronously call calculateShippingFee().
+            let appliedVoucherCode = null;
+            let voucherDiscount = 0;
+            let currentShippingFee = 0;
+            let pendingShippingRequest = null;
+            let debounceTimeout = null;
+
+            // Helper sanitize user-facing messages
+            function getSafeCheckoutMessage(msg, fallback) {
+                if (!msg || typeof msg !== 'string') return fallback;
+                const lower = msg.toLowerCase();
+                const technicalPatterns = [
+                    'failed to fetch', 'networkerror', 'load failed', 'internal server error',
+                    'nullpointerexception', 'sql', 'hibernate', 'constraintviolation',
+                    'unexpected error', 'something went wrong', 'typeerror', 'syntaxerror',
+                    'invalid coupon', 'voucher invalid', 'promotion not found', 'failed to create',
+                    'maximum upload size exceeded'
+                ];
+                for (let i = 0; i < technicalPatterns.length; i++) {
+                    if (lower.includes(technicalPatterns[i])) {
+                        return fallback;
+                    }
+                }
+                return msg;
+            }
+
             // CSRF Setup
             const token = $("meta[name='_csrf']").attr("content");
             const header = $("meta[name='_csrf_header']").attr("content");
@@ -760,6 +1028,20 @@
                     if (header && token) {
                         xhr.setRequestHeader(header, token);
                     }
+                }
+            });
+
+            // Toggle password visibility
+            $(document).on('click', '.toggle-password', function() {
+                const targetId = $(this).attr('data-target');
+                const $input = $('#' + targetId);
+                const $icon = $(this).find('i');
+                if ($input.attr('type') === 'password') {
+                    $input.attr('type', 'text');
+                    $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    $input.attr('type', 'password');
+                    $icon.removeClass('fa-eye-slash').addClass('fa-eye');
                 }
             });
 
@@ -787,14 +1069,6 @@
                             $('#guest-modal-title-text').text('Xác thực tài khoản thành viên');
                             $('#guest-modal-desc').html('Địa chỉ email <strong>' + email + '</strong> đã đăng ký tài khoản thành viên. Vui lòng nhập mật khẩu để tiếp tục đặt hàng và đồng bộ lịch sử mua hàng.');
                             $('#guest-password-form-group').show();
-                            $('#guest-setup-password-form-group').hide();
-                            $('#guest-auth-overlay').addClass('active');
-                        } else if (resp.status === 'GUEST_EXPIRED') {
-                            // Guest has checked out >= 3 times -> Force password setup
-                            $('#guest-modal-title-text').text('Thiết lập mật khẩu bảo mật');
-                            $('#guest-modal-desc').html('Email <strong>' + email + '</strong> đã mua hàng vãng lai 3 lần. Vui lòng thiết lập mật khẩu để kích hoạt tài khoản chính thức trước khi tiếp tục đặt hàng.');
-                            $('#guest-password-form-group').hide();
-                            $('#guest-setup-password-form-group').show();
                             $('#guest-auth-overlay').addClass('active');
                         }
                     }
@@ -806,11 +1080,46 @@
                 $('#guest-auth-overlay').removeClass('active');
                 $('#email').val('').css('border-color', '');
                 $('#guest-password-input').val('');
-                $('#guest-new-password').val('');
-                $('#guest-confirm-password').val('');
                 $('#guest-password-error').hide();
-                $('#guest-new-password-error').hide();
-                $('#guest-confirm-password-error').hide();
+                $('#guest-password-success').hide();
+            });
+
+            // Handle Forgot Password link inside Member Verification modal
+            $('#btn-guest-forgot-password').on('click', function(e) {
+                e.preventDefault();
+                const email = $('#email').val().trim();
+                if (!email) {
+                    $('#guest-password-error').text('Vui lòng nhập địa chỉ email liên hệ.').show();
+                    return;
+                }
+
+                const $link = $(this);
+                $link.text('Đang gửi email...').css('pointer-events', 'none');
+                $('#guest-password-error').hide();
+                $('#guest-password-success').hide();
+
+                $.ajax({
+                    url: '/user/checkout/api/forgot-password',
+                    type: 'POST',
+                    data: { email: email },
+                    success: function(resp) {
+                        $link.text('Quên mật khẩu?').css('pointer-events', 'auto');
+                        if (resp.success) {
+                            const msg = getSafeCheckoutMessage(resp.message, 'Đã gửi liên kết khôi phục mật khẩu tới email của bạn.');
+                            $('#guest-password-success').text(msg).show();
+                            if (typeof showToast === 'function') {
+                                showToast(msg, 'success');
+                            }
+                        } else {
+                            const msg = getSafeCheckoutMessage(resp.message, 'Không thể gửi yêu cầu khôi phục mật khẩu. Vui lòng thử lại sau.');
+                            $('#guest-password-error').text(msg).show();
+                        }
+                    },
+                    error: function() {
+                        $link.text('Quên mật khẩu?').css('pointer-events', 'auto');
+                        $('#guest-password-error').text('Đã xảy ra lỗi kết nối hệ thống. Vui lòng thử lại sau.').show();
+                    }
+                });
             });
 
             // Verify active member password
@@ -818,6 +1127,7 @@
                 e.preventDefault();
                 const email = $('#email').val().trim();
                 const password = $('#guest-password-input').val();
+                const checkoutToken = $('input[name="checkoutToken"]').val() || '';
                 
                 if (!password) {
                     $('#guest-password-error').text('Vui lòng nhập mật khẩu.').show();
@@ -829,68 +1139,36 @@
                 $.ajax({
                     url: '/checkout/api/verify-password',
                     type: 'POST',
-                    data: { email: email, password: password },
+                    data: { email: email, password: password, checkoutToken: checkoutToken },
                     success: function(resp) {
                         $('#btn-guest-verify-password').prop('disabled', false).text('XÁC NHẬN ĐĂNG NHẬP');
                         if (resp.success) {
                             showToast('Xác thực thành công!', 'success');
                             $('#guest-auth-overlay').removeClass('active');
-                            window.location.reload();
+                            if (resp.redirectUrl) {
+                                window.location.href = resp.redirectUrl;
+                            } else if (checkoutToken) {
+                                window.location.href = '/checkout?token=' + encodeURIComponent(checkoutToken);
+                            } else {
+                                window.location.reload();
+                            }
                         } else {
-                            $('#guest-password-error').text(resp.message || 'Mật khẩu không đúng. Vui lòng kiểm tra lại.').show();
+                            const msg = getSafeCheckoutMessage(resp.message, 'Mật khẩu không đúng. Vui lòng kiểm tra lại.');
+                            $('#guest-password-error').text(msg).show();
                         }
                     },
                     error: function() {
                         $('#btn-guest-verify-password').prop('disabled', false).text('XÁC NHẬN ĐĂNG NHẬP');
-                        $('#guest-password-error').text('Đã xảy ra lỗi kết nối hệ thống.').show();
+                        $('#guest-password-error').text('Đã xảy ra lỗi kết nối hệ thống. Vui lòng thử lại sau.').show();
                     }
                 });
             });
 
-            // Set password for guest account at checkout
-            $('#btn-guest-setup-password').on('click', function(e) {
-                e.preventDefault();
-                const email = $('#email').val().trim();
-                const password = $('#guest-new-password').val();
-                const confirmPassword = $('#guest-confirm-password').val();
-
-                if (!password || password.length < 8) {
-                    $('#guest-new-password-error').text('Mật khẩu tối thiểu phải 8 ký tự.').show();
-                    return;
-                }
-                $('#guest-new-password-error').hide();
-
-                if (password !== confirmPassword) {
-                    $('#guest-confirm-password-error').text('Mật khẩu xác nhận không khớp.').show();
-                    return;
-                }
-                $('#guest-confirm-password-error').hide();
-
-                $('#btn-guest-setup-password').prop('disabled', true).text('ĐANG KÍCH HOẠT...');
-                $.ajax({
-                    url: '/checkout/api/set-password',
-                    type: 'POST',
-                    data: { email: email, password: password },
-                    success: function(resp) {
-                        $('#btn-guest-setup-password').prop('disabled', false).text('KÍCH HOẠT & TIẾP TỤC');
-                        if (resp.success) {
-                            showToast('Kích hoạt tài khoản thành công!', 'success');
-                            $('#guest-auth-overlay').removeClass('active');
-                            window.location.reload();
-                        } else {
-                            $('#guest-new-password-error').text(resp.message || 'Lỗi thiết lập mật khẩu.').show();
-                        }
-                    },
-                    error: function() {
-                        $('#btn-guest-setup-password').prop('disabled', false).text('KÍCH HOẠT & TIẾP TỤC');
-                        $('#guest-new-password-error').text('Lỗi kết nối hệ thống khi thiết lập mật khẩu.').show();
-                    }
-                });
-            });
 
             // Autofill registered address or toggle new address
             $('#selectDiaChiLuu').on('change', function() {
                 // Clear target and reset GHN dropdowns first
+                selectedSavedGhnMapping = null;
                 targetProvinceToMatch = null;
                 targetAddressToMatch = null;
                 isGhnLoadingMasterData = false;
@@ -912,14 +1190,12 @@
                     $('#manual-address-fields').slideUp(200);
                     clearValidationErrors();
 
+                    if (typeof setShippingFeeLoadingState === 'function') setShippingFeeLoadingState(true);
                     isGhnLoadingMasterData = true;
                     const details = addressMap[addressId];
                     $('#hoTenNhan').val(details.hoTen);
                     $('#sdtNhan').val(details.sdt);
-                    $('#diaChiNhan').val(details.diaChi).trigger('change');
-                    
-                    targetProvinceToMatch = details.tinhThanh;
-                    targetAddressToMatch = details.diaChi;
+                    $('#diaChiNhan').val(details.diaChiCuThe || details.diaChi).trigger('change');
                     
                     // Validate autofilled fields
                     setTimeout(function() {
@@ -928,9 +1204,29 @@
                         validateDiaChi();
                     }, 150);
                     
-                    // Always use text matching on Vietnamese address directly
-                    console.log("Matching GHN dropdowns with text address:", targetProvinceToMatch, targetAddressToMatch);
-                    matchAndSelectProvince(targetProvinceToMatch, targetAddressToMatch);
+                    if (details.ghnReady
+                            && details.ghnProvinceId
+                            && details.ghnDistrictId
+                            && details.ghnWardCode) {
+                        // A normalized address book entry already contains the exact
+                        // GHN mapping. Reuse it directly instead of guessing from the
+                        // Vietnamese display text again.
+                        selectedSavedGhnMapping = {
+                            addressId: String(addressId),
+                            provinceId: String(details.ghnProvinceId),
+                            districtId: String(details.ghnDistrictId),
+                            wardCode: String(details.ghnWardCode)
+                        };
+                        isGhnLoadingMasterData = false;
+                        calculateShippingFee();
+                    } else {
+                        // Compatibility path for legacy rows created before GHN IDs
+                        // were stored. A successful match is submitted once so the
+                        // server can auto-heal that saved address.
+                        targetProvinceToMatch = details.tinhThanh;
+                        targetAddressToMatch = details.diaChi;
+                        matchAndSelectProvince(targetProvinceToMatch, targetAddressToMatch);
+                    }
                 } else {
                     $('#manual-address-fields').slideUp(200);
                     $('#hoTenNhan').val('');
@@ -948,21 +1244,24 @@
             $('#ghnProvinceId, #ghnDistrictId, #ghnWardCode').on('mousedown keydown', function() {
                 targetProvinceToMatch = null;
                 targetAddressToMatch = null;
+                quickAddressParseSeq++;
             });
 
-            // Initial visibility & trigger on load
-            if ($('#selectDiaChiLuu').length > 0) {
-                const initialVal = $('#selectDiaChiLuu').val();
-                if (initialVal) {
-                    $('#selectDiaChiLuu').trigger('change');
-                } else {
-                    $('#manual-address-fields').hide();
+            let quickAddressDebounceTimeout = null;
+            $('#quickAddressInput').on('input', function() {
+                clearTimeout(quickAddressDebounceTimeout);
+                diaChiNhanTouchedByUser = false;
+                const value = $(this).val();
+                if (!value.trim()) {
+                    quickAddressParseSeq++;
+                    setQuickAddressFeedback('', '#64748b');
+                    return;
                 }
-            } else {
-                $('#manual-address-fields').show();
-            }
+                quickAddressDebounceTimeout = setTimeout(function() {
+                    parseQuickAddress(value);
+                }, 500);
+            });
 
-            // Payment Card Selection
             $('.payment-card').on('click', function() {
                 $('.payment-card').removeClass('active');
                 $(this).addClass('active');
@@ -970,10 +1269,28 @@
                 $('#phuongThucThanhToan').val(pMethod);
             });
 
+            // Initial visibility & trigger on load
+            if ($('#selectDiaChiLuu').length > 0) {
+                let initialVal = $('#selectDiaChiLuu').val();
+                if (!initialVal && $('#selectDiaChiLuu option').length > 1) {
+                    const firstVal = $('#selectDiaChiLuu option').eq(1).val();
+                    if (firstVal && firstVal !== 'new_address') {
+                        $('#selectDiaChiLuu').val(firstVal);
+                        initialVal = firstVal;
+                    }
+                }
+                if (initialVal && initialVal !== 'new_address') {
+                    $('#selectDiaChiLuu').trigger('change');
+                } else {
+                    $('#manual-address-fields').show();
+                }
+            } else {
+                $('#manual-address-fields').show();
+            }
+
+
+
             // Voucher logic
-            let appliedVoucherCode = null;
-            let voucherDiscount = 0;
-            let currentShippingFee = 0;
 
             function updateUITotal() {
                 const totalAmount = Math.max(0, baseTongTien - voucherDiscount) + currentShippingFee;
@@ -1010,7 +1327,11 @@
                 $.ajax({
                     url: '/api/voucher/apply',
                     type: 'POST',
-                    data: { voucherCode: code },
+                    data: { 
+                        voucherCode: code,
+                        checkoutToken: $('#checkoutToken').val() || ''
+                    },
+
                     success: function(response) {
                         $btn.prop('disabled', false);
                         if (response.trangThai === 'ok') {
@@ -1022,25 +1343,25 @@
                             $('.js-voucher-discount').text('-' + response.giamGiaFormatted);
                             $('#voucher-discount-row').show();
 
-                            $msg.css('color', '#10b981').text(response.message).show();
+                            const successMsg = getSafeCheckoutMessage(response.message, 'Áp dụng mã giảm giá thành công!');
+                            $msg.css('color', '#10b981').text(successMsg).show();
                             updateUITotal();
-                            showToast('Áp dụng mã giảm giá thành công!', 'success');
+                            showToast(successMsg, 'success');
                         } else {
-                            $msg.css('color', '#ef4444').text(response.message).show();
-                            showToast(response.message, 'error');
+                            const errorMsg = getSafeCheckoutMessage(response.message, 'Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+                            $msg.css('color', '#ef4444').text(errorMsg).show();
+                            showToast(errorMsg, 'error');
                         }
                     },
                     error: function(xhr, status, error) {
                         $btn.prop('disabled', false);
                         $msg.css('color', '#ef4444').text('Không thể kiểm tra mã lúc này.').show();
-                        showToast('Lỗi hệ thống khi áp dụng mã giảm giá.', 'error');
+                        showToast('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối Internet và thử lại.', 'error');
                     }
                 });
             });
 
             // Recalculate Shipping Fee dynamically
-            let pendingShippingRequest = null;
-            let debounceTimeout = null;
 
             function calculateShippingFee() {
                 const carrierId = $('#idDonViVanChuyen').val();
@@ -1050,22 +1371,31 @@
                     $('.js-ship-fee').text('0 đ');
                     currentShippingFee = 0;
                     updateUITotal();
+                    setShippingFeeLoadingState(false);
                     return;
                 }
 
                 const carrierText = $('#idDonViVanChuyen option:selected').text().toUpperCase();
                 const isGhn = carrierText.includes('GIAO HÀNG NHANH') || carrierText.includes('GHN');
                 
-                const provinceVal = $('#ghnProvinceId').val();
-                const districtVal = $('#ghnDistrictId').val();
-                const wardVal = $('#ghnWardCode').val();
+                const effectiveGhnMapping = getEffectiveGhnMapping();
+                const provinceVal = effectiveGhnMapping.provinceId;
+                const districtVal = effectiveGhnMapping.districtId;
+                const wardVal = effectiveGhnMapping.wardCode;
 
                 if (isGhn) {
                     if (!provinceVal || !districtVal || !wardVal) {
-                        return; // do not calculate if required GHN fields are still empty
+                        // Keep loading active if still cascading/loading
+                        if (isGhnLoadingMasterData) {
+                            setShippingFeeLoadingState(true);
+                        } else {
+                            setShippingFeeLoadingState(false);
+                        }
+                        return; 
                     }
                     if (isGhnLoadingMasterData) {
-                        return; // do not calculate if AJAX loading is in progress
+                        setShippingFeeLoadingState(true);
+                        return; 
                     }
                 }
 
@@ -1095,12 +1425,15 @@
                     pendingShippingRequest.abort();
                 }
 
+                setShippingFeeLoadingState(true);
+
                 pendingShippingRequest = $.ajax({
                     url: '/api/shipping/fee',
                     type: 'GET',
                     data: {
                         carrierId: carrierId,
                         districtId: districtVal || '',
+                        wardCode: wardVal || '',
                         address: address
                     },
                     success: function(response) {
@@ -1109,14 +1442,23 @@
                         const formattedFee = new Intl.NumberFormat('vi-VN').format(fee) + ' đ';
                         $('.js-ship-fee').text(formattedFee);
                         updateUITotal();
+                        setShippingFeeLoadingState(false);
                     },
                     error: function(xhr, status, error) {
                         if (status !== 'abort') {
                             console.error("Lỗi tính phí vận chuyển:", error);
+                            showToast('Không thể tính phí vận chuyển. Vui lòng kiểm tra địa chỉ và thử lại.', 'error');
+                            setShippingFeeLoadingState(false);
+                        }
+                    },
+                    complete: function(xhr, status) {
+                        if (status !== 'abort') {
+                            setShippingFeeLoadingState(false);
                         }
                     }
                 });
             }
+            window.calculateShippingFee = calculateShippingFee;
 
             $('#idDonViVanChuyen').on('change', function() {
                 calculateShippingFee();
@@ -1124,19 +1466,23 @@
                 const carrierText = $('#idDonViVanChuyen option:selected').text().toUpperCase();
                 const isGhn = carrierText.includes('GIAO HÀNG NHANH') || carrierText.includes('GHN');
                 if (isGhn) {
-                    $('label[for="ghnProvinceId"]').html('TỈNH/THÀNH PHỐ (GHN) <span style="color:red">*</span>');
-                    $('label[for="ghnDistrictId"]').html('QUẬN/HUYỆN (GHN) <span style="color:red">*</span>');
-                    $('label[for="ghnWardCode"]').html('PHƯỜNG/XÃ (GHN) <span style="color:red">*</span>');
+                    $('label[for="ghnProvinceId"]').html('TỈNH/THÀNH PHỐ <span style="color:red">*</span>');
+                    $('label[for="ghnDistrictId"]').html('QUẬN/HUYỆN <span style="color:red">*</span>');
+                    $('label[for="ghnWardCode"]').html('PHƯỜNG/XÃ <span style="color:red">*</span>');
                 } else {
-                    $('label[for="ghnProvinceId"]').text('TỈNH/THÀNH PHỐ (GHN)');
-                    $('label[for="ghnDistrictId"]').text('QUẬN/HUYỆN (GHN)');
-                    $('label[for="ghnWardCode"]').text('PHƯỜNG/XÃ (GHN)');
+                    $('label[for="ghnProvinceId"]').text('TỈNH/THÀNH PHỐ');
+                    $('label[for="ghnDistrictId"]').text('QUẬN/HUYỆN');
+                    $('label[for="ghnWardCode"]').text('PHƯỜNG/XÃ');
                 }
             });
 
             $('#diaChiNhan').on('input change', function() {
                 clearTimeout(debounceTimeout);
                 debounceTimeout = setTimeout(calculateShippingFee, 300);
+            });
+
+            $('#diaChiNhan').on('input', function() {
+                diaChiNhanTouchedByUser = true;
             });
 
             $('#ghnProvinceId, #ghnDistrictId, #ghnWardCode').on('change', function() {
@@ -1186,12 +1532,12 @@
                 const val = $('#diaChiNhan').val().trim();
                 const $error = $('#diaChiNhan-error');
                 if (!val) {
-                    $error.text('Địa chỉ nhận hàng không được để trống.').show();
+                    $error.text('Địa chỉ cụ thể không được để trống.').show();
                     $('#diaChiNhan').css('border-color', '#ef4444');
                     return false;
                 }
                 if (val.length < 5 || val.length > 255) {
-                    $error.text('Địa chỉ nhận hàng phải từ 5 đến 255 ký tự.').show();
+                    $error.text('Địa chỉ cụ thể phải từ 5 đến 255 ký tự.').show();
                     $('#diaChiNhan').css('border-color', '#ef4444');
                     return false;
                 }
@@ -1240,6 +1586,11 @@
 
             $('#checkout-form').on('submit', function(e) {
                 e.preventDefault();
+
+                if (typeof isShippingLoading !== 'undefined' && isShippingLoading) {
+                    showToast('Hệ thống đang tính toán phí vận chuyển, vui lòng đợi trong giây lát...', 'warning');
+                    return;
+                }
 
                 let addressType = 'new';
                 if ($('#selectDiaChiLuu').length > 0) {
@@ -1298,9 +1649,10 @@
                         showToast('Hệ thống đang chuẩn hóa địa chỉ GHN, vui lòng đợi trong giây lát.', 'warning');
                         return;
                     }
-                    const provinceVal = $('#ghnProvinceId').val();
-                    const districtVal = $('#ghnDistrictId').val();
-                    const wardVal = $('#ghnWardCode').val();
+                    const effectiveGhnMapping = getEffectiveGhnMapping();
+                    const provinceVal = effectiveGhnMapping.provinceId;
+                    const districtVal = effectiveGhnMapping.districtId;
+                    const wardVal = effectiveGhnMapping.wardCode;
                     if (!provinceVal || !districtVal || !wardVal) {
                         if (addressType === 'saved') {
                             showToast('Địa chỉ đã lưu của bạn chưa được chuẩn hóa địa chỉ GHN. Vui lòng cập nhật sổ địa chỉ hoặc chọn "Nhập địa chỉ mới" để chọn thủ công.', 'error');
@@ -1346,16 +1698,19 @@
                 }
 
                 // Call submitCheckout
+                const effectiveGhnMapping = getEffectiveGhnMapping();
                 const submitData = {
+                    checkoutToken: $('#checkoutToken').val() || '',
                     hoTenNhan: hoTen,
+
                     sdtNhan: sdt,
                     diaChiNhan: diaChi,
                     idDonViVanChuyen: parseInt(dvvcId),
                     phuongThucThanhToan: paymentMethod,
                     ghiChu: ghiChu,
-                    ghnToDistrictId: $('#ghnDistrictId').val() || '',
-                    ghnToWardCode: $('#ghnWardCode').val() || '',
-                    ghnProvinceId: $('#ghnProvinceId').val() || '',
+                    ghnToDistrictId: effectiveGhnMapping.districtId,
+                    ghnToWardCode: effectiveGhnMapping.wardCode,
+                    ghnProvinceId: effectiveGhnMapping.provinceId,
                     voucherCode: appliedVoucherCode || '',
                     tinhThanhText: $('#ghnProvinceId option:selected').val() ? $('#ghnProvinceId option:selected').text().trim() : '',
                     thanhPhoText: $('#ghnDistrictId option:selected').val() ? $('#ghnDistrictId option:selected').text().trim() : '',
@@ -1372,21 +1727,49 @@
                     submitData.idDiaChiLuu = parseInt($('#selectDiaChiLuu').val());
                 }
 
-                // Loader
-                $('.preloader').addClass('is-active');
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                }
 
-                console.log('[Diagnostics] checkout submit start', submitData);
-                $.ajax({
-                    url: '/checkout/submit',
-                    type: 'POST',
-                    data: submitData,
-                    success: function(response) {
-                        console.log('[Diagnostics] API response received:', response);
+                const totalText = $('.js-checkout-total').text().trim();
+                const paymentName = paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản Ngân hàng';
+
+                Swal.fire({
+                    title: 'Xác nhận tiến hành thanh toán',
+                    html: `
+                        <div style="text-align: left; font-size: 14px; line-height: 1.6; padding: 5px;">
+                            <p style="margin-bottom: 6px;"><strong>Người nhận:</strong> ${escapeHtml(hoTen)} - ${escapeHtml(sdt)}</p>
+                            <p style="margin-bottom: 6px;"><strong>Địa chỉ giao:</strong> ${escapeHtml(diaChi)}</p>
+                            <p style="margin-bottom: 6px;"><strong>Phương thức:</strong> ${escapeHtml(paymentName)}</p>
+                            <div style="font-size: 16px; color: #ff4500; font-weight: 700; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                                Tổng thanh toán: <span>${escapeHtml(totalText)}</span>
+                            </div>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ff4500',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Đồng Ý Đặt Hàng',
+                    cancelButtonText: 'Hủy bỏ',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Loader
+                        $('.preloader').addClass('is-active');
+
+                        $.ajax({
+                            url: '/checkout/submit',
+                            type: 'POST',
+                            data: submitData,
+                            success: function(response) {
                         $('.preloader').removeClass('is-active');
 
                         if (response.status === 'error' || response.errorCode === 'PAYMENT_INIT_FAILED') {
                             console.error('[Diagnostics] Payment initialization failed:', response);
-                            showToast('Đặt hàng thất bại: ' + response.message, 'error');
+                            const errMsg = getSafeCheckoutMessage(response.message, 'Không thể khởi tạo thanh toán. Vui lòng thử lại sau.');
+                            showToast('Đặt hàng thất bại: ' + errMsg, 'error');
                             return;
                         }
 
@@ -1396,102 +1779,54 @@
                                 ? (response.isGuest ? '/user/manage-order/' + orderId : '/user/my-order')
                                 : '/payment/sepay/simulate?maDonHang=' + encodeURIComponent(response.maDonHang);
 
-                            console.log('[Diagnostics] Redirect target URL:', redirectUrl);
-                            console.log('[Diagnostics] Payment initialization result: SUCCESS');
-
-                            if (response.isGuest === true && paymentMethod === 'COD') {
-                                // Show guest success modal for optional password creation
-                                if (response.soLanMuaThanhCong >= 2) {
-                                    $('#guest-success-warning-text').show();
-                                } else {
-                                    $('#guest-success-warning-text').hide();
-                                }
-
-                                // Setup actions
-                                $('#btn-success-skip').off('click').on('click', function() {
-                                    window.location.href = redirectUrl;
-                                });
-
-                                $('#btn-success-save-password').off('click').on('click', function(e) {
-                                    e.preventDefault();
-                                    const password = $('#success-password').val();
-                                    const confirmPassword = $('#success-confirm-password').val();
-
-                                    if (!password || password.length < 8) {
-                                        $('#success-password-error').text('Mật khẩu tối thiểu phải 8 ký tự.').show();
-                                        return;
-                                    }
-                                    $('#success-password-error').hide();
-
-                                    if (password !== confirmPassword) {
-                                        $('#success-confirm-password-error').text('Mật khẩu xác nhận không khớp.').show();
-                                        return;
-                                    }
-                                    $('#success-confirm-password-error').hide();
-
-                                    $('#btn-success-save-password').prop('disabled', true).text('ĐANG LƯU...');
-                                    $.ajax({
-                                        url: '/checkout/api/set-password',
-                                        type: 'POST',
-                                        data: { password: password },
-                                        success: function(resp) {
-                                            $('#btn-success-save-password').prop('disabled', false).text('Tạo mật khẩu ngay');
-                                            if (resp.success) {
-                                                showToast('Thiết lập mật khẩu thành công!', 'success');
-                                                setTimeout(function() {
-                                                    window.location.href = redirectUrl;
-                                                }, 1500);
-                                            } else {
-                                                $('#success-password-error').text(resp.message || 'Lỗi thiết lập mật khẩu.').show();
-                                            }
-                                        },
-                                        error: function() {
-                                            $('#btn-success-save-password').prop('disabled', false).text('Tạo mật khẩu ngay');
-                                            $('#success-password-error').text('Lỗi hệ thống khi thiết lập mật khẩu.').show();
-                                        }
+                            if (paymentMethod === 'COD') {
+                                if (response.isGuest === true && response.isNewAccount === true) {
+                                    $('#btn-success-close').off('click').on('click', function() {
+                                        window.location.href = redirectUrl;
                                     });
-                                });
-
-                                $('#guest-success-overlay').addClass('active');
-                            } else {
-                                if (paymentMethod === 'COD') {
+                                    $('#guest-success-overlay').addClass('active');
+                                } else {
                                     showToast('Đặt hàng thành công! Đơn hàng của bạn đang được xử lý.', 'success');
                                     setTimeout(function() {
-                                        window.location.href = '/user/my-order';
-                                    }, 1500);
-                                } else {
-                                    window.location.href = redirectUrl;
+                                        window.location.href = redirectUrl;
+                                    }, 1200);
                                 }
+                            } else {
+                                window.location.href = redirectUrl;
                             }
-                        } else if (response.trangThai === 'yeucaudoimatkhau') {
-                            showToast('Yêu cầu thiết lập mật khẩu.', 'warning');
-                            const email = $('#email').val().trim();
-                            $('#guest-modal-title-text').text('Thiết lập mật khẩu bảo mật');
-                            $('#guest-modal-desc').html('Email <strong>' + email + '</strong> đã mua hàng vãng lai 3 lần. Vui lòng thiết lập mật khẩu để kích hoạt tài khoản chính thức trước khi tiếp tục đặt hàng.');
-                            $('#guest-password-form-group').hide();
-                            $('#guest-setup-password-form-group').show();
-                            $('#guest-auth-overlay').addClass('active');
                         } else if (response.trangThai === 'yeucaudangnhap') {
                             showToast('Tài khoản đã tồn tại. Vui lòng đăng nhập.', 'warning');
-                            const email = $('#email').val().trim();
+                            const email = response.email || $('#email').val().trim();
+                            if (email) $('#email').val(email);
                             $('#guest-modal-title-text').text('Xác thực tài khoản thành viên');
                             $('#guest-modal-desc').html('Địa chỉ email <strong>' + email + '</strong> đã đăng ký tài khoản thành viên. Vui lòng nhập mật khẩu để tiếp tục đặt hàng.');
                             $('#guest-password-form-group').show();
-                            $('#guest-setup-password-form-group').hide();
                             $('#guest-auth-overlay').addClass('active');
                         } else {
-                            showToast('Đặt hàng thất bại: ' + response.message, 'error');
+                            const errMsg = getSafeCheckoutMessage(response.message, 'Không thể tạo đơn hàng. Vui lòng thử lại sau.');
+                            showToast('Đặt hàng thất bại: ' + errMsg, 'error');
                         }
                     },
                     error: function(xhr, status, error) {
                         $('.preloader').removeClass('is-active');
-                        showToast('Đã xảy ra lỗi kết nối: ' + error, 'error');
+                        const rawMsg = (xhr && xhr.responseJSON && xhr.responseJSON.message) || error || '';
+                        const errMsg = getSafeCheckoutMessage(rawMsg, 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối Internet và thử lại.');
+                        showToast(errMsg, 'error');
+                    },
+                    complete: function() {
+                        $('.preloader').removeClass('is-active');
                     }
                 });
-            });
+            }
+        });
+    });
 
             function createSePayOrder(orderId, maDonHang, amount) {
                 attempts = 0;
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
 
                 // Build VietQR image URL
                 const sepayAcc = /*[[${sepayBankAccount}]]*/ '';
@@ -1527,70 +1862,161 @@
 
             function queryPaymentStatus(maDonHang) {
                 attempts++;
-                if (attempts > 150) { // 150 attempts * 2 seconds = 300 seconds (5 minutes)
-                    clearInterval(pollingInterval);
+                if (attempts > 90) { // 90 attempts * 2 seconds = 180 seconds (3 minutes)
+                    if (pollingInterval) clearInterval(pollingInterval);
                     $('#zp-spinner-loading').hide();
                     $('#zp-status-msg').removeClass('zp-status-pending zp-status-success').addClass('zp-status-error')
-                        .html('<i class="fas fa-exclamation-triangle"></i> Chúng tôi vẫn đang chờ xác nhận thanh toán. Bạn có thể kiểm tra lại trong trang đơn hàng.');
+                        .html('<i class="fas fa-exclamation-triangle"></i> Đã hết thời gian chờ thanh toán. Phiên thanh toán đã bị hủy. Đang quay lại giỏ hàng...');
+                    setTimeout(function() {
+                        window.location.href = '/gio-hang';
+                    }, 2000);
                     return;
                 }
 
                 $.ajax({
-                    url: '/api/payment/sepay/query/' + maDonHang,
+                    url: '/api/payment/sepay/query/' + encodeURIComponent(maDonHang),
                     type: 'GET',
                     success: function(resp) {
-                        if (resp.paymentStatus === 'paid') {
-                            clearInterval(pollingInterval);
+                        window.queryConsecutiveErrors = 0;
+                        if (resp && (resp.paymentStatus === 'paid' || resp.paymentStatus === 'DA_THANH_TOAN')) {
+                            if (pollingInterval) clearInterval(pollingInterval);
                             $('#zp-spinner-loading').hide();
-                            $('#zp-status-msg').removeClass('zp-status-pending zp-status-error').addClass('zp-status-success')
-                                .html('<i class="fas fa-check-circle"></i> Thanh toán thành công! Đang chuyển hướng...');
+                            $('#zp-modal-overlay').removeClass('active');
                             
-                            // Redirect after 1 second
+                            if (resp.isGuest) {
+                                const targetOrderId = resp.orderId || orderId;
+                                $('#btn-success-close').off('click').on('click', function() {
+                                    window.location.href = '/user/manage-order/' + targetOrderId;
+                                });
+                                $('#guest-success-overlay').addClass('active');
+                            } else {
+                                $('#zp-status-msg').removeClass('zp-status-pending zp-status-error').addClass('zp-status-success')
+                                    .html('<i class="fas fa-check-circle"></i> Thanh toán thành công! Đang chuyển hướng...');
+                                setTimeout(function() {
+                                    window.location.href = '/user/my-order?payment=success';
+                                }, 1000);
+                            }
+                        } else if (resp && resp.paymentStatus === 'expired') {
+                            if (pollingInterval) clearInterval(pollingInterval);
+                            $('#zp-spinner-loading').hide();
+                            $('#zp-status-msg').removeClass('zp-status-pending zp-status-success').addClass('zp-status-error')
+                                .html('<i class="fas fa-exclamation-triangle"></i> Đã hết thời gian chờ thanh toán. Phiên thanh toán đã bị hủy. Đang quay lại giỏ hàng...');
                             setTimeout(function() {
-                                window.location.href = '/user/my-order?payment=success';
-                            }, 1000);
+                                window.location.href = '/gio-hang';
+                            }, 2000);
                         }
                     },
                     error: function() {
-                        console.warn('Query transaction error, retrying...');
+                        window.queryConsecutiveErrors = (window.queryConsecutiveErrors || 0) + 1;
+                        console.warn('Query transaction error count:', window.queryConsecutiveErrors);
+                        if (window.queryConsecutiveErrors >= 5) {
+                            if (pollingInterval) clearInterval(pollingInterval);
+                            console.error('Stopped payment polling due to 5 consecutive network errors.');
+                            showToast('Mất kết nối khi kiểm tra thanh toán. Vui lòng tải lại trang hoặc kiểm tra đơn hàng sau.', 'error');
+                        }
                     }
                 });
             }
 
             // Close Modal handler
             $('#zp-close-btn').on('click', function() {
-                if (confirm('Bạn có chắc chắn muốn thoát khỏi màn hình thanh toán này? Đơn hàng sẽ ở trạng thái chờ thanh toán.')) {
-                    if (pollingInterval) clearInterval(pollingInterval);
-                    $('#zp-modal-overlay').removeClass('active');
-                    window.location.href = '/user/my-order';
-                }
+                if (pollingInterval) clearInterval(pollingInterval);
+                $('#zp-modal-overlay').removeClass('active');
+                window.location.href = '/gio-hang';
             });
         });
     </script>
 
     <!-- GHN Address Dropdowns Script -->
     <script th:inline="none">
+        let ghnProvinceLoadPromise = null;
+
+        window.apiLoadProvinces = function() {
+            const $sel = $('#ghnProvinceId');
+            if ($sel.find('option').length > 1) {
+                return $.Deferred().resolve().promise();
+            }
+            if (ghnProvinceLoadPromise) {
+                return ghnProvinceLoadPromise;
+            }
+            const request = $.ajax({
+                url: '/api/ghn/provinces',
+                type: 'GET'
+            });
+            ghnProvinceLoadPromise = request.then(function(resp) {
+                if (resp.status === 'ok' && resp.data) {
+                    resp.data.sort(function(a, b) {
+                        return (a.ProvinceName || '').localeCompare(b.ProvinceName || '', 'vi');
+                    }).forEach(function(p) {
+                        $sel.append($('<option>').val(p.ProvinceID).text(p.ProvinceName));
+                    });
+                }
+            }, function() {
+                console.warn('[GHN] Không thể tải danh sách tỉnh/thành');
+                showToast('Không thể tải danh sách tỉnh/thành từ đơn vị vận chuyển. Vui lòng thử lại.', 'warning');
+            });
+            request.always(function() {
+                ghnProvinceLoadPromise = null;
+            });
+            return ghnProvinceLoadPromise;
+        };
+
+        window.apiLoadDistricts = function(provinceId) {
+            const $distSel = $('#ghnDistrictId');
+            const $wardSel = $('#ghnWardCode');
+
+            $distSel.html('<option value="">-- Chọn quận/huyện --</option>').prop('disabled', true);
+            $wardSel.html('<option value="">-- Chọn phường/xã --</option>').prop('disabled', true);
+
+            if (!provinceId) {
+                return $.Deferred().resolve().promise();
+            }
+
+            return $.ajax({
+                url: '/api/ghn/districts?provinceId=' + provinceId,
+                type: 'GET'
+            }).then(function(resp) {
+                if (resp.status === 'ok' && resp.data) {
+                    resp.data.forEach(function(d) {
+                        $distSel.append($('<option>').val(d.DistrictID).text(d.DistrictName));
+                    });
+                    $distSel.prop('disabled', false);
+                }
+            }, function() {
+                console.warn('[GHN] Không thể tải danh sách quận/huyện');
+                showToast('Không thể tải danh sách quận/huyện. Vui lòng chọn lại tỉnh/thành hoặc thử lại.', 'warning');
+            });
+        };
+
+        window.apiLoadWards = function(districtId) {
+            const $wardSel = $('#ghnWardCode');
+            $wardSel.html('<option value="">-- Chọn phường/xã --</option>').prop('disabled', true);
+
+            if (!districtId) {
+                return $.Deferred().resolve().promise();
+            }
+
+            return $.ajax({
+                url: '/api/ghn/wards?districtId=' + districtId,
+                type: 'GET'
+            }).then(function(resp) {
+                if (resp.status === 'ok' && resp.data) {
+                    resp.data.forEach(function(w) {
+                        $wardSel.append($('<option>').val(w.WardCode).text(w.WardName));
+                    });
+                    $wardSel.prop('disabled', false);
+                }
+            }, function() {
+                console.warn('[GHN] Không thể tải danh sách phường/xã');
+                showToast('Không thể tải danh sách phường/xã. Vui lòng chọn lại quận/huyện hoặc thử lại.', 'warning');
+            });
+        };
+
         $(document).ready(function() {
             // ── Load danh sách tỉnh/thành từ GHN ────────────────────────────────────
-            $.ajax({
-                url: '/api/ghn/provinces',
-                type: 'GET',
-                success: function(resp) {
-                    if (resp.status === 'ok' && resp.data) {
-                        const $sel = $('#ghnProvinceId');
-                        resp.data.sort(function(a, b) {
-                            return (a.ProvinceName || '').localeCompare(b.ProvinceName || '', 'vi');
-                        }).forEach(function(p) {
-                            $sel.append($('<option>').val(p.ProvinceID).text(p.ProvinceName));
-                        });
-
-                        if (targetAddressToMatch) {
-                            matchAndSelectProvince(targetProvinceToMatch, targetAddressToMatch);
-                        }
-                    }
-                },
-                error: function() {
-                    console.warn('[GHN] Không thể tải danh sách tỉnh/thành');
+            window.apiLoadProvinces().then(function() {
+                if (targetAddressToMatch) {
+                    matchAndSelectProvince(targetProvinceToMatch, targetAddressToMatch);
                 }
             });
 
@@ -1622,6 +2048,7 @@
                     },
                     error: function() {
                         console.warn('[GHN] Không thể tải danh sách quận/huyện');
+                        showToast('Không thể tải danh sách quận/huyện. Vui lòng thử lại.', 'warning');
                     }
                 });
             });
@@ -1651,6 +2078,7 @@
                     },
                     error: function() {
                         console.warn('[GHN] Không thể tải danh sách phường/xã');
+                        showToast('Không thể tải danh sách phường/xã. Vui lòng thử lại.', 'warning');
                     }
                 });
             });
@@ -1676,6 +2104,27 @@
                     }
                 });
             });
+
+            // Auto-select shipping carrier (GHN) to reduce user steps
+            const $carrierSelect = $('#idDonViVanChuyen');
+            if ($carrierSelect.length > 0) {
+                const options = $carrierSelect.find('option');
+                if (options.length > 0) {
+                    let selectedVal = null;
+                    const ghnOption = options.filter(function() {
+                        const txt = $(this).text().toUpperCase();
+                        return txt.includes('GIAO HÀNG NHANH') || txt.includes('GHN');
+                    });
+                    if (ghnOption.length > 0) {
+                        selectedVal = ghnOption.first().val();
+                    } else {
+                        selectedVal = options.first().val();
+                    }
+                    if (selectedVal) {
+                        $carrierSelect.val(selectedVal).trigger('change');
+                    }
+                }
+            }
         });
     </script>
 </body>

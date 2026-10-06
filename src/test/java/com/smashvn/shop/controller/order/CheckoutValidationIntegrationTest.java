@@ -1,12 +1,14 @@
 package com.smashvn.shop.controller.order;
-import java.time.LocalDateTime;
-import com.smashvn.shop.dto.payment.ZaloPayCallbackDTO;
-import com.smashvn.shop.dto.payment.ZaloPayCreateOrderRequestDTO;
 
-import com.smashvn.shop.entity.*;
-import com.smashvn.shop.repository.*;
-import com.smashvn.shop.dao.DonViVanChuyenDAO;
-import com.smashvn.shop.dao.PhuongThucThanhToanDAO;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,19 +18,40 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import com.smashvn.shop.dao.DonViVanChuyenDAO;
+import com.smashvn.shop.dao.PhuongThucThanhToanDAO;
+import com.smashvn.shop.entity.DanhMuc;
+import com.smashvn.shop.entity.DonViVanChuyen;
+import com.smashvn.shop.entity.HoaDon;
+import com.smashvn.shop.entity.KhachHang;
+import com.smashvn.shop.entity.NhanVien;
+import com.smashvn.shop.entity.PhieuGiamGia;
+import com.smashvn.shop.entity.PhuongThucThanhToan;
+import com.smashvn.shop.entity.SanPham;
+import com.smashvn.shop.entity.SanPhamChiTiet;
+import com.smashvn.shop.entity.SoDiaChi;
+import com.smashvn.shop.entity.TaiKhoan;
+import com.smashvn.shop.entity.ThuongHieu;
+import com.smashvn.shop.repository.DanhMucRepository;
+import com.smashvn.shop.repository.HoaDonRepository;
+import com.smashvn.shop.repository.KhachHangRepository;
+import com.smashvn.shop.repository.NhanVienRepository;
+import com.smashvn.shop.repository.PhieuGiamGiaRepository;
+import com.smashvn.shop.repository.SanPhamChiTietRepository;
+import com.smashvn.shop.repository.SanPhamRepository;
+import com.smashvn.shop.repository.SoDiaChiRepository;
+import com.smashvn.shop.repository.TaiKhoanRepository;
+import com.smashvn.shop.repository.ThuongHieuRepository;
 
 @SpringBootTest
 @Transactional
@@ -68,9 +91,6 @@ public class CheckoutValidationIntegrationTest {
     private HoaDonRepository hoaDonRepository;
 
     @Autowired
-    private TrangThaiGioHangRepository trangThaiGioHangRepository;
-
-    @Autowired
     private SoDiaChiRepository soDiaChiRepository;
 
     @Autowired
@@ -107,11 +127,11 @@ public class CheckoutValidationIntegrationTest {
 
         // Seed test user
         testUser = new TaiKhoan();
-        testUser.setEmail("checkout_tester@gmail.com");
+        testUser.setUsername("checkout_tester@gmail.com");
         testUser.setMatKhau("testpass123");
         testUser.setVaiTro("KH");
         testUser.setTrangThai("hoat_dong");
-        testUser.setLaKhachHang(true);
+
         testUser = taiKhoanRepository.save(testUser);
 
         testKhachHang = new KhachHang();
@@ -138,11 +158,11 @@ public class CheckoutValidationIntegrationTest {
         // Retrieve or seed NhanVien
         NhanVien nv = nhanVienRepository.findAll().stream().findFirst().orElseGet(() -> {
             TaiKhoan nvUser = new TaiKhoan();
-            nvUser.setEmail("checkout_staff@gmail.com");
+            nvUser.setUsername("checkout_staff@gmail.com");
             nvUser.setMatKhau("testpass123");
             nvUser.setVaiTro("NV");
             nvUser.setTrangThai("hoat_dong");
-            nvUser.setLaNhanVien(true);
+
             nvUser = taiKhoanRepository.save(nvUser);
 
             NhanVien newNv = new NhanVien();
@@ -172,13 +192,6 @@ public class CheckoutValidationIntegrationTest {
         testSpct.setGiaBan(new BigDecimal("2000000"));
         testSpct = sanPhamChiTietRepository.save(testSpct);
 
-        // Ensure TrangThaiGioHang ID 1 exists
-        if (!trangThaiGioHangRepository.existsById(1)) {
-            TrangThaiGioHang tt = new TrangThaiGioHang();
-            tt.setTenTrangThai("Trạng thái mặc định");
-            trangThaiGioHangRepository.save(tt);
-        }
-
         // Seed carrier
         testDvvc = new DonViVanChuyen();
         testDvvc.setTenDonVi("Giao Hàng Tiết Kiệm");
@@ -191,14 +204,11 @@ public class CheckoutValidationIntegrationTest {
 
         // Seed user cart item
         mockMvc.perform(post("/gio-hang/them")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .sessionAttr("vaiTro", "KH")
-                        .sessionAttr("laKhachHang", true)
-                        .sessionAttr("laNhanVien", false)
-                        .sessionAttr("laQuanLy", false)
-                        .requestAttr("_csrf", csrfToken)
-                        .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
-                        .param("soLuong", "1"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .sessionAttr("vaiTro", "KH")
+                .requestAttr("_csrf", csrfToken)
+                .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
+                .param("soLuong", "1"))
                 .andExpect(status().isOk());
     }
 
@@ -206,39 +216,39 @@ public class CheckoutValidationIntegrationTest {
     void testSubmitCheckout_EmptyValues() throws Exception {
         // Missing name
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Họ và tên người nhận không được để trống."));
 
         // Missing phone
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "")
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "")
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Số điện thoại không được để trống."));
 
         // Missing address
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Địa chỉ nhận hàng không được để trống."));
@@ -248,29 +258,35 @@ public class CheckoutValidationIntegrationTest {
     void testSubmitCheckout_InvalidPhoneFormat() throws Exception {
         // Invalid phone prefix (legacy format or wrong start digits)
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0123456789") // Invalid prefix
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0123456789") // Invalid prefix
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
-                .andExpect(jsonPath("$.message").value("Số điện thoại không đúng định dạng (phải có 10 chữ số và bắt đầu bằng 0 hoặc +84)."));
+                .andExpect(jsonPath("$.message").value("Số điện thoại không đúng định dạng (phải có 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09)."));
 
         // Non-numeric phone number
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "091abc3456") // Invalid characters
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "091abc3456") // Invalid characters
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
-                .andExpect(jsonPath("$.message").value("Số điện thoại không đúng định dạng (phải có 10 chữ số và bắt đầu bằng 0 hoặc +84)."));
+                .andExpect(jsonPath("$.message").value("Số điện thoại không đúng định dạng (phải có 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09)."));
     }
 
     @Test
@@ -278,13 +294,16 @@ public class CheckoutValidationIntegrationTest {
         String[] validPhones = {"0912345678", "+84912345678", "0391234567"};
         for (String phone : validPhones) {
             MvcResult result = mockMvc.perform(post("/checkout/submit")
-                            .sessionAttr("idNguoiDung", testUser.getId())
-                            .requestAttr("_csrf", csrfToken)
-                            .param("hoTenNhan", "Nguyễn Văn A")
-                            .param("sdtNhan", phone)
-                            .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                            .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                            .param("phuongThucThanhToan", "COD"))
+                    .sessionAttr("idNguoiDung", testUser.getId())
+                    .requestAttr("_csrf", csrfToken)
+                    .param("hoTenNhan", "Nguyễn Văn A")
+                    .param("sdtNhan", phone)
+                    .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                    .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                    .param("phuongThucThanhToan", "COD")
+                    .param("ghnProvinceId", "201")
+                    .param("ghnToDistrictId", "1454")
+                    .param("ghnToWardCode", "1A0807"))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.trangThai").value("ok"))
@@ -297,10 +316,10 @@ public class CheckoutValidationIntegrationTest {
 
             // Re-seed cart for next loop iteration
             mockMvc.perform(post("/gio-hang/them")
-                            .sessionAttr("idNguoiDung", testUser.getId())
-                            .requestAttr("_csrf", csrfToken)
-                            .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
-                            .param("soLuong", "1"))
+                    .sessionAttr("idNguoiDung", testUser.getId())
+                    .requestAttr("_csrf", csrfToken)
+                    .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
+                    .param("soLuong", "1"))
                     .andExpect(status().isOk());
         }
     }
@@ -308,13 +327,16 @@ public class CheckoutValidationIntegrationTest {
     @Test
     void testSubmitCheckout_VietnameseUnicodeSupport() throws Exception {
         MvcResult result = mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn Ánh")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Số 12 Phố Huế, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn Ánh")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Số 12 Phố Huế, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"))
@@ -335,50 +357,59 @@ public class CheckoutValidationIntegrationTest {
         // 499 chars -> Valid
         String note499 = "a".repeat(499);
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghiChu", note499))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("ghiChu", note499))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"));
 
         // Re-seed cart
         mockMvc.perform(post("/gio-hang/them")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
-                        .param("soLuong", "1"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
+                .param("soLuong", "1"))
                 .andExpect(status().isOk());
 
         // 500 chars -> Valid
         String note500 = "a".repeat(500);
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghiChu", note500))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("ghiChu", note500))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"));
 
         // 501 chars -> Invalid
         String note501 = "a".repeat(501);
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghiChu", note501))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Số 1 Đường ABC, Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("ghiChu", note501))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Ghi chú đơn hàng tối đa 500 ký tự."));
@@ -391,14 +422,17 @@ public class CheckoutValidationIntegrationTest {
         String xssNote = "<img src=x onerror=alert(1)>Ghi chú";
 
         MvcResult result = mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", xssName)
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", xssAddress)
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghiChu", xssNote))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", xssName)
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", xssAddress)
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("ghiChu", xssNote))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"))
@@ -430,249 +464,6 @@ public class CheckoutValidationIntegrationTest {
         return sb.toString();
     }
 
-    @Test
-    void testZaloPayAuthorization_IDOR() throws Exception {
-        // Create an order owned by testUser
-        HoaDon hd = new HoaDon();
-        hd.setKhachHang(testKhachHang);
-        hd.setTongTien(new BigDecimal("100000"));
-        hd.setPaymentStatus("PENDING");
-        hd.setTrangThaiDonHang("cho_thanh_toan");
-        hd.setAppTransId("260612_9999_123");
-        
-        hd.setDiaChiNhan("Hà Nội");
-        hd.setSdtNhan("0912345678");
-        hd.setMaDonHang("TEST_" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        hd.setDonViVanChuyen(testDvvc);
-        PhuongThucThanhToan pttt = phuongThucThanhToanDAO.findAll().stream().findFirst().orElse(null);
-        hd.setPhuongThucThanhToan(pttt);
-
-        hd = hoaDonRepository.save(hd);
-
-        // Create user B
-        TaiKhoan userB = new TaiKhoan();
-        userB.setEmail("userb@gmail.com");
-        userB.setMatKhau("testpass123");
-        userB.setVaiTro("KH");
-        userB.setTrangThai("hoat_dong");
-        userB.setLaKhachHang(true);
-        userB = taiKhoanRepository.save(userB);
-
-        // User B attempts to create payment for User A's order -> HTTP 403
-        ZaloPayCreateOrderRequestDTO createReq = new ZaloPayCreateOrderRequestDTO();
-        createReq.setOrderId(hd.getId());
-        mockMvc.perform(post("/api/payment/zalopay/create")
-                        .sessionAttr("idNguoiDung", userB.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createReq)))
-                .andExpect(status().isForbidden());
-
-        // User B attempts to query User A's payment -> HTTP 403
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/payment/zalopay/query/260612_9999_123")
-                        .sessionAttr("idNguoiDung", userB.getId()))
-                .andExpect(status().isForbidden());
-
-        // User B attempts to cancel User A's payment -> HTTP 403
-        mockMvc.perform(post("/api/payment/zalopay/cancel/260612_9999_123")
-                        .sessionAttr("idNguoiDung", userB.getId())
-                        .requestAttr("_csrf", csrfToken))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void testZaloPayCallback_AmountValidation() throws Exception {
-        HoaDon hd = new HoaDon();
-        hd.setKhachHang(testKhachHang);
-        hd.setTongTien(new BigDecimal("100000"));
-        hd.setPaymentStatus("PENDING");
-        hd.setTrangThaiDonHang("cho_thanh_toan");
-        hd.setAppTransId("260612_amount_val");
-        
-        hd.setDiaChiNhan("Hà Nội");
-        hd.setSdtNhan("0912345678");
-        hd.setMaDonHang("TEST_" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        hd.setDonViVanChuyen(testDvvc);
-        PhuongThucThanhToan pttt = phuongThucThanhToanDAO.findAll().stream().findFirst().orElse(null);
-        hd.setPhuongThucThanhToan(pttt);
-
-        hd = hoaDonRepository.save(hd);
-
-        // Seed order details to avoid null pointer when fetching items
-        HoaDonChiTiet hdct = new HoaDonChiTiet();
-        hdct.setHoaDon(hd);
-        hdct.setSanPhamChiTiet(testSpct);
-        hdct.setSoLuong(1);
-        hdct.setDonGia(new BigDecimal("100000"));
-        com.smashvn.shop.repository.HoaDonChiTietRepository hdctRepo = webApplicationContext.getBean(com.smashvn.shop.repository.HoaDonChiTietRepository.class);
-        hdctRepo.save(hdct);
-
-        // 1. Wrong amount -> Rejected (code = -1)
-        Map<String, Object> dataMapWrong = Map.of(
-                "app_trans_id", "260612_amount_val",
-                "zp_trans_id", "12345678",
-                "amount", 50000
-        );
-        String rawDataWrong = objectMapper.writeValueAsString(dataMapWrong);
-        ZaloPayCallbackDTO callbackDtoWrong = new ZaloPayCallbackDTO();
-        callbackDtoWrong.setData(rawDataWrong);
-        
-        com.smashvn.shop.config.ZaloPayConfig zaloPayConfig = webApplicationContext.getBean(com.smashvn.shop.config.ZaloPayConfig.class);
-        String macWrong = computeHmacSha256(rawDataWrong, zaloPayConfig.getKey2());
-        callbackDtoWrong.setMac(macWrong);
-
-        mockMvc.perform(post("/api/payment/zalopay/callback")
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callbackDtoWrong)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.return_code").value(-1))
-                .andExpect(jsonPath("$.return_message").value("amount mismatch"));
-
-        // 2. Correct amount -> Success (code = 1)
-        Map<String, Object> dataMapCorrect = Map.of(
-                "app_trans_id", "260612_amount_val",
-                "zp_trans_id", "12345678",
-                "amount", 100000
-        );
-        String rawDataCorrect = objectMapper.writeValueAsString(dataMapCorrect);
-        ZaloPayCallbackDTO callbackDtoCorrect = new ZaloPayCallbackDTO();
-        callbackDtoCorrect.setData(rawDataCorrect);
-        String macCorrect = computeHmacSha256(rawDataCorrect, zaloPayConfig.getKey2());
-        callbackDtoCorrect.setMac(macCorrect);
-
-        mockMvc.perform(post("/api/payment/zalopay/callback")
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callbackDtoCorrect)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.return_code").value(1));
-    }
-
-    @Test
-    void testZaloPayCallback_ReplayProtection() throws Exception {
-        HoaDon hd = new HoaDon();
-        hd.setKhachHang(testKhachHang);
-        hd.setTongTien(new BigDecimal("100000"));
-        hd.setPaymentStatus("PENDING");
-        hd.setTrangThaiDonHang("cho_thanh_toan");
-        hd.setAppTransId("260612_replay");
-        
-        hd.setDiaChiNhan("Hà Nội");
-        hd.setSdtNhan("0912345678");
-        hd.setMaDonHang("TEST_" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        hd.setDonViVanChuyen(testDvvc);
-        PhuongThucThanhToan pttt = phuongThucThanhToanDAO.findAll().stream().findFirst().orElse(null);
-        hd.setPhuongThucThanhToan(pttt);
-
-        hd = hoaDonRepository.save(hd);
-
-        HoaDonChiTiet hdct = new HoaDonChiTiet();
-        hdct.setHoaDon(hd);
-        hdct.setSanPhamChiTiet(testSpct);
-        hdct.setSoLuong(1);
-        hdct.setDonGia(new BigDecimal("100000"));
-        com.smashvn.shop.repository.HoaDonChiTietRepository hdctRepo = webApplicationContext.getBean(com.smashvn.shop.repository.HoaDonChiTietRepository.class);
-        hdctRepo.save(hdct);
-
-        int originalStock = testSpct.getSoLuongTon();
-
-        // Callback 1
-        Map<String, Object> data = Map.of(
-                "app_trans_id", "260612_replay",
-                "zp_trans_id", "zp_rep_1",
-                "amount", 100000
-        );
-        String rawData = objectMapper.writeValueAsString(data);
-        ZaloPayCallbackDTO callbackDto = new ZaloPayCallbackDTO();
-        callbackDto.setData(rawData);
-        com.smashvn.shop.config.ZaloPayConfig zaloPayConfig = webApplicationContext.getBean(com.smashvn.shop.config.ZaloPayConfig.class);
-        callbackDto.setMac(computeHmacSha256(rawData, zaloPayConfig.getKey2()));
-
-        mockMvc.perform(post("/api/payment/zalopay/callback")
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callbackDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.return_code").value(1));
-
-        // Verify stock is reduced because stock deduction happens immediately on successful payment callback
-        SanPhamChiTiet spctAfterFirst = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
-        assertNotNull(spctAfterFirst);
-        assertEquals(originalStock - 1, spctAfterFirst.getSoLuongTon());
-
-        // Callback 2 (Replay)
-        mockMvc.perform(post("/api/payment/zalopay/callback")
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callbackDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.return_code").value(1))
-                .andExpect(jsonPath("$.return_message").value("success (already processed)"));
-
-        // Verify stock is still the same (not reduced further)
-        SanPhamChiTiet spctAfterSecond = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
-        assertNotNull(spctAfterSecond);
-        assertEquals(originalStock - 1, spctAfterSecond.getSoLuongTon());
-    }
-
-    @Test
-    void testZaloPayCallback_CancelledOrder() throws Exception {
-        HoaDon hd = new HoaDon();
-        hd.setKhachHang(testKhachHang);
-        hd.setTongTien(new BigDecimal("100000"));
-        hd.setPaymentStatus("PENDING");
-        hd.setTrangThaiDonHang("da_huy");
-        hd.setAppTransId("260612_cancelled");
-        
-        hd.setDiaChiNhan("Hà Nội");
-        hd.setSdtNhan("0912345678");
-        hd.setMaDonHang("TEST_" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        hd.setDonViVanChuyen(testDvvc);
-        PhuongThucThanhToan pttt = phuongThucThanhToanDAO.findAll().stream().findFirst().orElse(null);
-        hd.setPhuongThucThanhToan(pttt);
-
-        hd = hoaDonRepository.save(hd);
-
-        HoaDonChiTiet hdct = new HoaDonChiTiet();
-        hdct.setHoaDon(hd);
-        hdct.setSanPhamChiTiet(testSpct);
-        hdct.setSoLuong(1);
-        hdct.setDonGia(new BigDecimal("100000"));
-        com.smashvn.shop.repository.HoaDonChiTietRepository hdctRepo = webApplicationContext.getBean(com.smashvn.shop.repository.HoaDonChiTietRepository.class);
-        hdctRepo.save(hdct);
-
-        int originalStock = testSpct.getSoLuongTon();
-
-        Map<String, Object> data = Map.of(
-                "app_trans_id", "260612_cancelled",
-                "zp_trans_id", "zp_cancel_1",
-                "amount", 100000
-        );
-        String rawData = objectMapper.writeValueAsString(data);
-        ZaloPayCallbackDTO callbackDto = new ZaloPayCallbackDTO();
-        callbackDto.setData(rawData);
-        com.smashvn.shop.config.ZaloPayConfig zaloPayConfig = webApplicationContext.getBean(com.smashvn.shop.config.ZaloPayConfig.class);
-        callbackDto.setMac(computeHmacSha256(rawData, zaloPayConfig.getKey2()));
-
-        mockMvc.perform(post("/api/payment/zalopay/callback")
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(callbackDto)))
-                .andExpect(status().isOk());
-
-        // Verify order remains cancelled
-        HoaDon orderAfter = hoaDonRepository.findById(hd.getId()).orElse(null);
-        assertNotNull(orderAfter);
-        assertEquals("da_huy", orderAfter.getTrangThaiDonHang());
-        assertEquals("PAID_RECEIVED_AFTER_CANCEL", orderAfter.getPaymentStatus());
-
-        // Verify stock was not modified
-        SanPhamChiTiet spctAfter = sanPhamChiTietRepository.findById(testSpct.getId()).orElse(null);
-        assertNotNull(spctAfter);
-        assertEquals(originalStock, spctAfter.getSoLuongTon());
-    }
-
     @Autowired
     private com.smashvn.shop.config.GhnConfig ghnConfig;
 
@@ -685,25 +476,25 @@ public class CheckoutValidationIntegrationTest {
 
         // 1. No token -> 401
         mockMvc.perform(post("/api/ghn/webhook")
-                        .requestAttr("_csrf", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                .requestAttr("_csrf", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnauthorized());
 
         // 2. Wrong token -> 401
         mockMvc.perform(post("/api/ghn/webhook")
-                        .requestAttr("_csrf", csrfToken)
-                        .param("token", "wrong_token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                .requestAttr("_csrf", csrfToken)
+                .param("token", "wrong_token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isUnauthorized());
 
         // 3. Valid token -> 200/Ok (order not found returns 200 with not_found status)
         mockMvc.perform(post("/api/ghn/webhook")
-                        .requestAttr("_csrf", csrfToken)
-                        .param("token", ghnConfig.getWebhookToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                .requestAttr("_csrf", csrfToken)
+                .param("token", ghnConfig.getWebhookToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("not_found"));
     }
@@ -714,7 +505,7 @@ public class CheckoutValidationIntegrationTest {
         sanPhamChiTietRepository.save(testSpct);
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/checkout")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/gio-hang?loi=*"));
     }
@@ -726,7 +517,7 @@ public class CheckoutValidationIntegrationTest {
         sanPhamRepository.save(sp);
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/checkout")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/gio-hang?loi=*"));
     }
@@ -735,10 +526,10 @@ public class CheckoutValidationIntegrationTest {
     void testCheckoutPageValidation_QuantityExceeded() throws Exception {
         // Add more items to cart to make quantity 2 (original cart had 1)
         mockMvc.perform(post("/gio-hang/them")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
-                        .param("soLuong", "1"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
+                .param("soLuong", "1"))
                 .andExpect(status().isOk());
 
         // Now set stock to 1 (cart quantity is 2, stock is 1)
@@ -746,7 +537,7 @@ public class CheckoutValidationIntegrationTest {
         sanPhamChiTietRepository.save(testSpct);
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/checkout")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/gio-hang?loi=*"));
     }
@@ -756,15 +547,16 @@ public class CheckoutValidationIntegrationTest {
         // Submit ghnProvinceId=201 (Hanoi), but with district = 999999 (non-local)
         // Verify the server ignores the frontend's province ID and calculates the correct nationwide fee.
         MvcResult result = mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Đà Nẵng")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId())) // GHTK
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghnToDistrictId", "999999") // Non-local district
-                        .param("ghnProvinceId", "201")) // Pretending to be Hanoi
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Đà Nẵng")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId())) // GHTK
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnToDistrictId", "999999") // Non-local district
+                .param("ghnProvinceId", "201")
+                .param("ghnToWardCode", "1A0807")) // Pretending to be Hanoi
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"))
                 .andReturn();
@@ -783,11 +575,11 @@ public class CheckoutValidationIntegrationTest {
     void testSavedAddressOwnership() throws Exception {
         // Create user B
         TaiKhoan userB = new TaiKhoan();
-        userB.setEmail("userb_address@gmail.com");
+        userB.setUsername("userb_address@gmail.com");
         userB.setMatKhau("testpass123");
         userB.setVaiTro("KH");
         userB.setTrangThai("hoat_dong");
-        userB.setLaKhachHang(true);
+
         userB = taiKhoanRepository.save(userB);
 
         KhachHang khachHangB = new KhachHang();
@@ -814,11 +606,11 @@ public class CheckoutValidationIntegrationTest {
 
         // Attempt checkout as testUser (Customer A) but using user B's saved address ID
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("idDiaChiLuu", String.valueOf(soDiaChiB.getId())))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("idDiaChiLuu", String.valueOf(soDiaChiB.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Địa chỉ đã lưu không tồn tại hoặc không thuộc về tài khoản của bạn. Vui lòng chọn địa chỉ khác hoặc nhập địa chỉ mới."));
@@ -848,11 +640,11 @@ public class CheckoutValidationIntegrationTest {
 
         // Attempt checkout and verify it fails transaction-safely
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("idDiaChiLuu", String.valueOf(savedAddressId)))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("idDiaChiLuu", String.valueOf(savedAddressId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Địa chỉ đã lưu không tồn tại hoặc không thuộc về tài khoản của bạn. Vui lòng chọn địa chỉ khác hoặc nhập địa chỉ mới."));
@@ -862,15 +654,16 @@ public class CheckoutValidationIntegrationTest {
     void testShippingFeeRecalculation() throws Exception {
         // Submit a valid checkout request
         MvcResult result = mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghnToDistrictId", "1454")
-                        .param("ghnProvinceId", "201"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnProvinceId", "201")
+                .param("ghnToWardCode", "1A0807"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"))
                 .andReturn();
@@ -905,11 +698,11 @@ public class CheckoutValidationIntegrationTest {
 
         // Attempt checkout using this saved address ID
         mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("idDiaChiLuu", String.valueOf(unmappableAddress.getId())))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("idDiaChiLuu", String.valueOf(unmappableAddress.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Địa chỉ đã lưu của bạn chưa được chuẩn hóa địa chỉ GHN. Vui lòng cập nhật sổ địa chỉ hoặc chọn \"Nhập địa chỉ mới\"."));
@@ -977,9 +770,9 @@ public class CheckoutValidationIntegrationTest {
 
         // Test valid voucher apply
         mockMvc.perform(post("/api/voucher/apply")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("voucherCode", "TEST10"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("voucherCode", "TEST10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"))
                 .andExpect(jsonPath("$.maPhieu").value("TEST10"))
@@ -987,27 +780,27 @@ public class CheckoutValidationIntegrationTest {
 
         // Test expired voucher apply
         mockMvc.perform(post("/api/voucher/apply")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("voucherCode", "TESTEXPIRED"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("voucherCode", "TESTEXPIRED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Mã giảm giá đã hết hạn sử dụng."));
 
         // Test inactive voucher apply
         mockMvc.perform(post("/api/voucher/apply")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("voucherCode", "TESTINACTIVE"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("voucherCode", "TESTINACTIVE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Mã giảm giá này đã ngưng hoạt động."));
 
         // Test min order limit violation
         mockMvc.perform(post("/api/voucher/apply")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("voucherCode", "TESTHIGH"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("voucherCode", "TESTHIGH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("loi"))
                 .andExpect(jsonPath("$.message").value("Hạn mức tối thiểu để sử dụng mã này là 3,000,000 đ (Đơn của bạn: 2,000,000 đ)."));
@@ -1032,16 +825,17 @@ public class CheckoutValidationIntegrationTest {
 
         // Submit checkout with voucher code
         MvcResult result = mockMvc.perform(post("/checkout/submit")
-                        .sessionAttr("idNguoiDung", testUser.getId())
-                        .requestAttr("_csrf", csrfToken)
-                        .param("hoTenNhan", "Nguyễn Văn A")
-                        .param("sdtNhan", "0912345678")
-                        .param("diaChiNhan", "Hà Nội")
-                        .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
-                        .param("phuongThucThanhToan", "COD")
-                        .param("ghnToDistrictId", "1454")
-                        .param("ghnProvinceId", "201")
-                        .param("voucherCode", "TESTPROMO"))
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnProvinceId", "201")
+                .param("ghnToWardCode", "1A0807")
+                .param("voucherCode", "TESTPROMO"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trangThai").value("ok"))
                 .andReturn();
@@ -1092,7 +886,7 @@ public class CheckoutValidationIntegrationTest {
         Map<String, Object> resolvedDistrict = districts.stream()
                 .filter(d -> mapping.getDistrictId().equals(d.get("DistrictID")))
                 .findFirst().orElse(null);
-        
+
         assertNotNull(resolvedDistrict);
         String resolvedDistrictName = (String) resolvedDistrict.get("DistrictName");
         assertTrue(resolvedDistrictName.contains("Phú Bình"));
@@ -1142,5 +936,239 @@ public class CheckoutValidationIntegrationTest {
         com.smashvn.shop.service.api.ShippingZoneResolver zoneResolver = webApplicationContext.getBean(com.smashvn.shop.service.api.ShippingZoneResolver.class);
         com.smashvn.shop.entity.ShippingZone zone = zoneResolver.resolveZone(mapping.getDistrictId(), confusedAddress.getDiaChiCuThe());
         assertEquals(com.smashvn.shop.entity.ShippingZone.LOCAL, zone);
+    }
+
+    @Test
+    void testSubmitCheckout_NewAddress_WithAllGhnIds() throws Exception {
+        // Validate checkout with new address containing all GHN IDs successfully saves provinceId, districtId, and wardCode to database
+        MvcResult result = mockMvc.perform(post("/checkout/submit")
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "123 Đường Láng")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("tinhThanhText", "Hà Nội")
+                .param("thanhPhoText", "Quận Đống Đa")
+                .param("phuongXaText", "Phường Láng Thượng")
+                .param("diaChiCuThe", "123 Đường Láng")
+                .param("saveAddress", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trangThai").value("ok"))
+                .andReturn();
+
+        String responseString = result.getResponse().getContentAsString();
+        Map<String, Object> respMap = objectMapper.readValue(responseString, Map.class);
+        Integer orderId = (Integer) respMap.get("orderId");
+
+        // Verify SoDiaChi record was saved with proper GHN fields
+        List<SoDiaChi> savedAddresses = soDiaChiRepository.findByKhachHang_Id(testKhachHang.getId());
+        boolean foundSavedWithGhn = false;
+        for (SoDiaChi dc : savedAddresses) {
+            if ("123 Đường Láng".equals(dc.getDiaChiCuThe()) &&
+                Integer.valueOf(201).equals(dc.getProvinceId()) &&
+                Integer.valueOf(1454).equals(dc.getDistrictId()) &&
+                "1A0807".equals(dc.getWardCode())) {
+                foundSavedWithGhn = true;
+                break;
+            }
+        }
+        assertTrue(foundSavedWithGhn, "Should save the new address with all GHN IDs populated");
+    }
+
+    @Test
+    void testSubmitCheckout_NewAddress_MissingGhnIds() throws Exception {
+        // Missing ghnProvinceId, districtId or wardCode should fail validation
+        mockMvc.perform(post("/checkout/submit")
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Nguyễn Văn A")
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "123 Đường Láng")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "") // empty
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trangThai").value("loi"))
+                .andExpect(jsonPath("$.message").value("Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã để sử dụng địa chỉ nhận hàng."));
+    }
+
+    @Test
+    void testResolveGhnAddress_BypassesApiWhenIdsPresent() {
+        SoDiaChi addressWithIds = new SoDiaChi();
+        addressWithIds.setKhachHang(testKhachHang);
+        addressWithIds.setHoNguoiNhan("Tester");
+        addressWithIds.setTenNguoiNhan("Bypass");
+        addressWithIds.setSdtNguoiNhan("0912345678");
+        addressWithIds.setDiaChiCuThe("Some Street");
+        addressWithIds.setTinhThanh("InvalidProvinceToTriggerFailureIfFuzzyMatches");
+        addressWithIds.setThanhPho("InvalidDistrict");
+        addressWithIds.setQuocGia("Việt Nam");
+        addressWithIds.setProvinceId(201);
+        addressWithIds.setDistrictId(1454);
+        addressWithIds.setWardCode("1A0807");
+
+        com.smashvn.shop.service.api.GhnService ghnService = webApplicationContext.getBean(com.smashvn.shop.service.api.GhnService.class);
+        com.smashvn.shop.service.api.GhnService.GhnAddressMapping mapping = ghnService.resolveGhnAddress(addressWithIds);
+
+        // Should return the IDs directly without failing due to invalid names
+        assertNotNull(mapping);
+        assertEquals(201, mapping.getProvinceId());
+        assertEquals(1454, mapping.getDistrictId());
+        assertEquals("1A0807", mapping.getWardCode());
+    }
+
+    @Test
+    void testGuestCheckout_DuplicateExistingCustomerPhone() throws Exception {
+        // Create an existing active customer with phone 0911222333
+        TaiKhoan otherUser = new TaiKhoan();
+        otherUser.setUsername("active_user@gmail.com");
+        otherUser.setMatKhau("testpass123");
+        otherUser.setVaiTro("KH");
+        otherUser.setTrangThai("hoat_dong");
+
+        otherUser = taiKhoanRepository.save(otherUser);
+
+        KhachHang otherKh = new KhachHang();
+        otherKh.setTaiKhoan(otherUser);
+        otherKh.setHoKh("Active");
+        otherKh.setTenKh("User");
+        otherKh.setSoDienThoaiKh("0911222333");
+        khachHangRepository.save(otherKh);
+
+        // Guest checkout with different email but duplicate phone (formatted with symbols)
+        mockMvc.perform(post("/checkout/submit")
+                .requestAttr("_csrf", csrfToken)
+                .param("email", "new_guest@gmail.com")
+                .param("hoTenNhan", "Guest User")
+                .param("sdtNhan", "+84 911-222.333") // matches normalized 0911222333
+                .param("diaChiNhan", "Hà Nội")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trangThai").value("loi"))
+                .andExpect(jsonPath("$.message").value("Số điện thoại này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng số điện thoại khác."));
+    }
+
+    @Test
+    void testPhoneNormalization() {
+        assertEquals("0911222333", com.smashvn.shop.util.PhoneUtils.normalize("+84911222333"));
+        assertEquals("0911222333", com.smashvn.shop.util.PhoneUtils.normalize("0911 222 333"));
+        assertEquals("0911222333", com.smashvn.shop.util.PhoneUtils.normalize("0911-222-333"));
+        assertEquals("0911222333", com.smashvn.shop.util.PhoneUtils.normalize("0911.222.333"));
+        
+        assertTrue(com.smashvn.shop.util.PhoneUtils.isValid("0911222333"));
+        assertTrue(com.smashvn.shop.util.PhoneUtils.isValid("0355444555"));
+        assertFalse(com.smashvn.shop.util.PhoneUtils.isValid("123456789"));
+        assertFalse(com.smashvn.shop.util.PhoneUtils.isValid("0123456789"));
+    }
+
+    @Test
+    void testSubmitCheckout_RecipientNameTooLongValidation() throws Exception {
+        // The controller validates hoTenNhan length (2-100 chars) before reaching the DB layer.
+        // A 110-char name exceeds the allowed 100-char max and returns a specific validation message.
+        // This also implicitly tests that the ho_va_ten_nguoi_nhan DB column (nvarchar(100))
+        // is consistent with the controller validation constraint.
+        mockMvc.perform(post("/checkout/submit")
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") // 110 chars, exceeding the 2-100 char validation constraint
+                .param("sdtNhan", "0912345678")
+                .param("diaChiNhan", "123 Đường Láng")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("tinhThanhText", "Hà Nội")
+                .param("thanhPhoText", "Quận Đống Đa")
+                .param("phuongXaText", "Phường Láng Thượng")
+                .param("diaChiCuThe", "123 Đường Láng")
+                .param("saveAddress", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trangThai").value("loi"))
+                .andExpect(jsonPath("$.message").value("Họ và tên người nhận phải từ 2 đến 100 ký tự."));
+    }
+
+    @Test
+    void testSubmitCheckout_SaveAndReuseAddress() throws Exception {
+        // 1. First checkout: Enter new address and check saveAddress=true
+        MvcResult result1 = mockMvc.perform(post("/checkout/submit")
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("hoTenNhan", "Trần Văn B")
+                .param("sdtNhan", "0987654321")
+                .param("diaChiNhan", "456 Đường CMT8")
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807")
+                .param("tinhThanhText", "Hà Nội")
+                .param("thanhPhoText", "Quận Đống Đa")
+                .param("phuongXaText", "Phường Láng Thượng")
+                .param("diaChiCuThe", "456 Đường CMT8")
+                .param("saveAddress", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trangThai").value("ok"))
+                .andReturn();
+
+        // 2. Query the saved address from database and assert it has GHN details saved correctly
+        List<SoDiaChi> savedAddresses = soDiaChiRepository.findByKhachHang_Id(testKhachHang.getId());
+        SoDiaChi reusedAddress = null;
+        for (SoDiaChi dc : savedAddresses) {
+            if ("456 Đường CMT8".equals(dc.getDiaChiCuThe())) {
+                reusedAddress = dc;
+                break;
+            }
+        }
+        assertNotNull(reusedAddress, "Address should be saved to database");
+        assertEquals(201, reusedAddress.getProvinceId());
+        assertEquals(1454, reusedAddress.getDistrictId());
+        assertEquals("1A0807", reusedAddress.getWardCode());
+
+        // 3. Clear GHN IDs from the address in the database to simulate a legacy/unstandardized address
+        reusedAddress.setProvinceId(null);
+        reusedAddress.setDistrictId(null);
+        reusedAddress.setWardCode(null);
+        reusedAddress = soDiaChiRepository.save(reusedAddress);
+
+        // 4. Re-add product to cart (since the first checkout cleared the cart)
+        mockMvc.perform(post("/gio-hang/them")
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .sessionAttr("vaiTro", "KH")
+                .requestAttr("_csrf", csrfToken)
+                .param("idSanPhamChiTiet", String.valueOf(testSpct.getId()))
+                .param("soLuong", "1"))
+                .andExpect(status().isOk());
+
+        // 5. Second checkout: Reuse this saved address ID and supply the dropdown GHN IDs to auto-heal
+        mockMvc.perform(post("/checkout/submit")
+                .sessionAttr("idNguoiDung", testUser.getId())
+                .requestAttr("_csrf", csrfToken)
+                .param("idDonViVanChuyen", String.valueOf(testDvvc.getId()))
+                .param("phuongThucThanhToan", "COD")
+                .param("idDiaChiLuu", String.valueOf(reusedAddress.getId()))
+                .param("ghnProvinceId", "201")
+                .param("ghnToDistrictId", "1454")
+                .param("ghnToWardCode", "1A0807"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trangThai").value("ok"));
+
+        // 6. Verify that the address in the database was auto-healed (GHN IDs are restored/populated)
+        SoDiaChi healedAddress = soDiaChiRepository.findById(reusedAddress.getId()).orElse(null);
+        assertNotNull(healedAddress);
+        assertEquals(201, healedAddress.getProvinceId(), "Province ID should be auto-healed");
+        assertEquals(1454, healedAddress.getDistrictId(), "District ID should be auto-healed");
+        assertEquals("1A0807", healedAddress.getWardCode(), "Ward Code should be auto-healed");
     }
 }

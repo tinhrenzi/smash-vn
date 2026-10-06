@@ -57,4 +57,10 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
      * @return {@code true} nếu mã đã được dùng bởi một voucher KHÁC.
      */
     boolean existsByMaPhieuIgnoreCaseAndIdNot(String maPhieu, Integer id);
+
+    /**
+     * Lấy danh sách phiếu giảm giá đang có hiệu lực và còn số lượng sử dụng.
+     */
+    @Query("SELECT p FROM PhieuGiamGia p WHERE p.soLuongConLai > 0 AND p.ngayBatDau <= :now AND p.ngayKetThuc >= :now ORDER BY p.giaTri DESC")
+    java.util.List<PhieuGiamGia> findActiveVouchers(@Param("now") java.time.LocalDateTime now);
 }

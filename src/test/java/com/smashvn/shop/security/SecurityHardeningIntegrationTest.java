@@ -27,8 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.smashvn.shop.dao.DonViVanChuyenDAO;
-import com.smashvn.shop.entity.ChatConversation;
-import com.smashvn.shop.entity.ChatMessage;
 import com.smashvn.shop.entity.DanhMuc;
 import com.smashvn.shop.entity.DonViVanChuyen;
 import com.smashvn.shop.entity.HoaDon;
@@ -39,8 +37,6 @@ import com.smashvn.shop.entity.PhuongThucThanhToan;
 import com.smashvn.shop.entity.SanPham;
 import com.smashvn.shop.entity.TaiKhoan;
 import com.smashvn.shop.entity.ThuongHieu;
-import com.smashvn.shop.repository.ChatConversationRepository;
-import com.smashvn.shop.repository.ChatMessageRepository;
 import com.smashvn.shop.repository.DanhMucRepository;
 import com.smashvn.shop.repository.HoaDonRepository;
 import com.smashvn.shop.repository.KhachHangRepository;
@@ -52,7 +48,6 @@ import com.smashvn.shop.repository.ThuongHieuRepository;
 import com.smashvn.shop.service.admin.AdminKhuyenMaiService;
 import com.smashvn.shop.service.admin.AdminPosService;
 import com.smashvn.shop.service.admin.AdminSanPhamService;
-import com.smashvn.shop.service.admin.AdminShippingService;
 import com.smashvn.shop.service.order.OrderViewService;
 
 @SpringBootTest
@@ -73,10 +68,7 @@ public class SecurityHardeningIntegrationTest {
     private ThuongHieuRepository thuongHieuRepository;
     @Autowired
     private PhieuGiamGiaRepository phieuGiamGiaRepository;
-    @Autowired
-    private ChatConversationRepository chatConversationRepository;
-    @Autowired
-    private ChatMessageRepository chatMessageRepository;
+
     @Autowired
     private HoaDonRepository hoaDonRepository;
     @Autowired
@@ -93,9 +85,6 @@ public class SecurityHardeningIntegrationTest {
     private AdminPosService adminPosService;
     @Autowired
     private OrderViewService orderViewService;
-    @Autowired
-    private AdminShippingService adminShippingService;
-
     private MockMvc mockMvc;
     private TaiKhoan managerTk;
     private TaiKhoan staffTk;
@@ -118,11 +107,10 @@ public class SecurityHardeningIntegrationTest {
         String customerEmail = "customer-test-" + System.nanoTime() + "@smashvn.com";
 
         managerTk = new TaiKhoan();
-        managerTk.setEmail(managerEmail);
+        managerTk.setUsername(managerEmail);
         managerTk.setMatKhau("password123");
         managerTk.setVaiTro("QL");
-        managerTk.setLaQuanLy(true);
-        managerTk.setLaNhanVien(true);
+
         managerTk.setTrangThai("hoat_dong");
         managerTk = taiKhoanRepository.save(managerTk);
 
@@ -134,11 +122,10 @@ public class SecurityHardeningIntegrationTest {
         managerNv = nhanVienRepository.save(managerNv);
 
         staffTk = new TaiKhoan();
-        staffTk.setEmail(staffEmail);
+        staffTk.setUsername(staffEmail);
         staffTk.setMatKhau("password123");
         staffTk.setVaiTro("NV");
-        staffTk.setLaNhanVien(true);
-        staffTk.setLaQuanLy(false);
+
         staffTk.setTrangThai("hoat_dong");
         staffTk = taiKhoanRepository.save(staffTk);
 
@@ -150,10 +137,10 @@ public class SecurityHardeningIntegrationTest {
         staffNv = nhanVienRepository.save(staffNv);
 
         customerTk = new TaiKhoan();
-        customerTk.setEmail(customerEmail);
+        customerTk.setUsername(customerEmail);
         customerTk.setMatKhau("password123");
         customerTk.setVaiTro("KH");
-        customerTk.setLaKhachHang(true);
+
         customerTk.setTrangThai("hoat_dong");
         customerTk = taiKhoanRepository.save(customerTk);
 
@@ -186,8 +173,8 @@ public class SecurityHardeningIntegrationTest {
         if (vcs.isEmpty()) {
             DonViVanChuyen vc = new DonViVanChuyen();
             vc.setTenDonVi("Mua tại quầy");
-            vc.setWebsite("https://smashvn.com");
             vc.setHotline("0000");
+            vc.setWebsite("https://smashvn.com");
             testDvvc = donViVanChuyenDAO.save(vc);
         } else {
             testDvvc = vcs.get(0);
@@ -380,58 +367,7 @@ public class SecurityHardeningIntegrationTest {
         assertTrue(e.getMessage().contains("vượt quá 500"), "Expected cancel reason length error but got: " + e.getMessage());
     }
 
-    @Test
-    void testChatMessageBoundary_2000Chars() throws Exception {
-        String msg2000 = repeat('a', 2000);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute("idNguoiDung", customerTk.getId());
 
-        mockMvc.perform(post("/api/chat/send")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"" + msg2000 + "\"}")
-                .session(session))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void testChatMessageBoundary_2001Chars() throws Exception {
-        String msg2001 = repeat('a', 2001);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute("idNguoiDung", customerTk.getId());
-
-        mockMvc.perform(post("/api/chat/send")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"" + msg2001 + "\"}")
-                .session(session))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("không được vượt quá 2000 ký tự")));
-    }
-
-    @Test
-    void testChat_NoKhachHangProfile_AutoCreation() throws Exception {
-        // managerTk has no KhachHang profile initially
-        org.junit.jupiter.api.Assertions.assertNull(khachHangRepository.findByTaiKhoan_Id(managerTk.getId()));
-
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute("idNguoiDung", managerTk.getId());
-
-        // Perform request to /api/chat/history, which should auto-create the KhachHang profile
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/chat/history")
-                .session(session))
-                .andExpect(status().isOk());
-
-        // Verify that the KhachHang profile was indeed automatically created
-        KhachHang profile = khachHangRepository.findByTaiKhoan_Id(managerTk.getId());
-        org.junit.jupiter.api.Assertions.assertNotNull(profile);
-        org.junit.jupiter.api.Assertions.assertTrue(profile.isLaTaiKhoanNoiBo());
-
-        // Now perform a message send, it should also work perfectly
-        mockMvc.perform(post("/api/chat/send")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"Xin chào\"}")
-                .session(session))
-                .andExpect(status().isOk());
-    }
 
     // ================================================================
     // AUTHORIZATION TESTS
@@ -477,6 +413,7 @@ public class SecurityHardeningIntegrationTest {
     void testApproveRefund_Authorization() throws Exception {
         HoaDon hd = createTestHoaDon("cho_xac_nhan");
         hd.setGatewayResponse("REFUND_TOKEN:test-token;");
+        hd.setTrangThaiThanhToan("CHO_HOAN_TIEN");
         hd = hoaDonRepository.save(hd);
 
         // Manager allowed
@@ -488,6 +425,9 @@ public class SecurityHardeningIntegrationTest {
                 .andExpect(redirectedUrl("/admin/don-hang"));
 
         // Staff denied
+        hd.setTrangThaiThanhToan("CHO_HOAN_TIEN");
+        hd.setGatewayResponse("REFUND_TOKEN:test-token;");
+        hd = hoaDonRepository.save(hd);
         MockHttpSession staffSession = new MockHttpSession();
         staffSession.setAttribute("idNguoiDung", staffTk.getId());
         mockMvc.perform(post("/admin/don-hang/approve-refund-ui")
@@ -496,127 +436,15 @@ public class SecurityHardeningIntegrationTest {
                 .andExpect(flash().attribute("errorMsg", org.hamcrest.Matchers.containsString("Chỉ Quản lý mới có thể phê duyệt")));
 
         // Customer denied
+        hd.setTrangThaiThanhToan("CHO_HOAN_TIEN");
+        hd.setGatewayResponse("REFUND_TOKEN:test-token;");
+        hd = hoaDonRepository.save(hd);
         MockHttpSession customerSession = new MockHttpSession();
         customerSession.setAttribute("idNguoiDung", customerTk.getId());
         mockMvc.perform(post("/admin/don-hang/approve-refund-ui")
                 .param("idHoaDon", hd.getId().toString())
                 .session(customerSession))
                 .andExpect(flash().attribute("errorMsg", org.hamcrest.Matchers.containsString("Chỉ Quản lý mới có thể phê duyệt")));
-    }
-
-    @Test
-    void testUpdateShippingConfig_Authorization() throws Exception {
-        DonViVanChuyen dv = new DonViVanChuyen();
-        dv.setTenDonVi("GHN Test");
-        dv.setWebsite("https://ghn.vn");
-        dv.setHotline("1900");
-        dv = donViVanChuyenDAO.save(dv);
-
-        // Manager allowed
-        MockHttpSession managerSession = new MockHttpSession();
-        managerSession.setAttribute("idNguoiDung", managerTk.getId());
-        mockMvc.perform(post("/admin/shipping-config/save")
-                .param("id", dv.getId().toString())
-                .param("token", "new-token")
-                .param("clientId", "new-client-id")
-                .param("diaChiKho", "Hà Nội, Việt Nam")
-                .session(managerSession))
-                .andExpect(redirectedUrl("/admin/shipping-config"))
-                .andExpect(flash().attribute("successMsg", "Cập nhật kết nối GHN thành công!"));
-
-        // Staff denied
-        MockHttpSession staffSession = new MockHttpSession();
-        staffSession.setAttribute("idNguoiDung", staffTk.getId());
-        mockMvc.perform(post("/admin/shipping-config/save")
-                .param("id", dv.getId().toString())
-                .param("token", "new-token-staff")
-                .param("clientId", "new-client-id-staff")
-                .param("diaChiKho", "Hà Nội, Việt Nam")
-                .session(staffSession))
-                .andExpect(redirectedUrl("/admin/shipping-config"))
-                .andExpect(flash().attribute("errorMsg", org.hamcrest.Matchers.containsString("Chỉ Quản lý mới được chỉnh sửa cấu hình kết nối")));
-
-        // Customer denied
-        MockHttpSession customerSession = new MockHttpSession();
-        customerSession.setAttribute("idNguoiDung", customerTk.getId());
-        mockMvc.perform(post("/admin/shipping-config/save")
-                .param("id", dv.getId().toString())
-                .param("token", "new-token-cust")
-                .param("clientId", "new-client-id-cust")
-                .param("diaChiKho", "Hà Nội, Việt Nam")
-                .session(customerSession))
-                .andExpect(redirectedUrl("/admin/shipping-config"))
-                .andExpect(flash().attribute("errorMsg", org.hamcrest.Matchers.containsString("Chỉ Quản lý mới được chỉnh sửa cấu hình kết nối")));
-    }
-
-    // ================================================================
-    // BOLA TESTS
-    // ================================================================
-    @Test
-    void testChatFeedbackBOLA_SuccessOnOwnMessage() throws Exception {
-        ChatConversation conv = new ChatConversation();
-        conv.setKhachHang(customerKh);
-        conv.setTieuDe("Conversation Test");
-        conv.setTrangThai("ACTIVE");
-        conv = chatConversationRepository.save(conv);
-
-        ChatMessage msg = new ChatMessage();
-        msg.setConversation(conv);
-        msg.setSenderType("BOT");
-        msg.setNoiDung("Hello user!");
-        msg.setThoiGian(LocalDateTime.now());
-        msg = chatMessageRepository.save(msg);
-
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute("idNguoiDung", customerTk.getId());
-
-        mockMvc.perform(post("/api/chat/feedback")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"messageId\":" + msg.getId() + ",\"positive\":true,\"note\":\"Very helpful!\"}")
-                .session(session))
-                .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Cập nhật đánh giá thành công")));
-    }
-
-    @Test
-    void testChatFeedbackBOLA_ForbiddenOnOtherUserMessage() throws Exception {
-        TaiKhoan otherTk = new TaiKhoan();
-        otherTk.setEmail("other-customer-" + System.nanoTime() + "@smashvn.com");
-        otherTk.setMatKhau("password123");
-        otherTk.setVaiTro("KH");
-        otherTk.setLaKhachHang(true);
-        otherTk = taiKhoanRepository.save(otherTk);
-
-        KhachHang otherKh = new KhachHang();
-        otherKh.setTaiKhoan(otherTk);
-        otherKh.setHoKh("Other");
-        otherKh.setTenKh("User");
-        otherKh.setSoDienThoaiKh("0987654324");
-        otherKh.setLaTaiKhoanNoiBo(false);
-        otherKh = khachHangRepository.save(otherKh);
-
-        ChatConversation otherConv = new ChatConversation();
-        otherConv.setKhachHang(otherKh);
-        otherConv.setTieuDe("Other Conversation");
-        otherConv.setTrangThai("ACTIVE");
-        otherConv = chatConversationRepository.save(otherConv);
-
-        ChatMessage otherMsg = new ChatMessage();
-        otherMsg.setConversation(otherConv);
-        otherMsg.setSenderType("BOT");
-        otherMsg.setNoiDung("Hello other user!");
-        otherMsg.setThoiGian(LocalDateTime.now());
-        otherMsg = chatMessageRepository.save(otherMsg);
-
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute("idNguoiDung", customerTk.getId());
-
-        mockMvc.perform(post("/api/chat/feedback")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"messageId\":" + otherMsg.getId() + ",\"positive\":true,\"note\":\"Hacking feedback\"}")
-                .session(session))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Bạn không có quyền đánh giá tin nhắn này!")));
     }
 
     // ================================================================

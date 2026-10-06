@@ -1,30 +1,45 @@
 package com.smashvn.shop.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ChatFeedback")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChatFeedback {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tin_nhan", nullable = false)
     private ChatMessage message;
 
-    @Column(name = "diem_danh_gia", nullable = false)
-    private boolean danhGia; // true for Like, false for Dislike
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tai_khoan")
+    private TaiKhoan taiKhoan;
 
-    @Column(name = "noi_dung", length = 500, columnDefinition = "NVARCHAR(500)")
+    @Column(name = "session_id")
+    private String sessionId;
+
+    @Column(name = "danh_gia", nullable = false)
+    private Short danhGia; // 1 (Like), -1 (Dislike)
+
+    @Column(name = "ghi_chu")
     private String ghiChu;
 
-    @Column(name = "ngay_tao")
-    private LocalDateTime thoiGian = LocalDateTime.now();
+    @Column(name = "ngay_tao", nullable = false, updatable = false)
+    private LocalDateTime ngayTao;
+
+    @Column(name = "ngay_cap_nhat")
+    private LocalDateTime ngayCapNhat;
+
+    @PrePersist
+    protected void onCreate() {
+        if (ngayTao == null) {
+            ngayTao = LocalDateTime.now();
+        }
+    }
 }

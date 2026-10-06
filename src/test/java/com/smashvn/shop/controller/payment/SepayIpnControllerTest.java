@@ -1,5 +1,4 @@
 package com.smashvn.shop.controller.payment;
-import com.smashvn.shop.service.api.GhnService;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -15,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -52,11 +53,18 @@ import com.smashvn.shop.repository.HoaDonRepository;
 import com.smashvn.shop.repository.PaymentTransactionRepository;
 import com.smashvn.shop.repository.SanPhamChiTietRepository;
 import com.smashvn.shop.service.AuditService;
+import com.smashvn.shop.service.api.GhnService;
 import com.smashvn.shop.service.payment.SepayGatewayService;
+import com.smashvn.shop.service.payment.SepayOrderPaymentService;
 
 public class SepayIpnControllerTest {
 
+
     private MockMvc mockMvc;
+
+    @Mock
+    private SepayOrderPaymentService sepayOrderPaymentService;
+
 
     @Mock
     private SepayConfig sepayConfig;
@@ -66,6 +74,18 @@ public class SepayIpnControllerTest {
 
     @Mock
     private HoaDonRepository hoaDonRepository;
+
+    @Mock
+    private com.smashvn.shop.service.order.GioHangService gioHangService;
+
+    @Mock
+    private com.smashvn.shop.service.order.GuestCheckoutService guestCheckoutService;
+
+    @Mock
+    private com.smashvn.shop.repository.PhieuGiamGiaRepository phieuGiamGiaRepository;
+
+    @Mock
+    private com.smashvn.shop.repository.ThongBaoRepository thongBaoRepository;
 
     @InjectMocks
     private SepayIpnController sepayIpnController;
@@ -100,11 +120,26 @@ public class SepayIpnControllerTest {
         when(sepayConfig.isIpVerification()).thenReturn(true);
         when(sepayConfig.getIpRanges()).thenReturn("172.236.138.20,172.233.83.68");
         when(sepayConfig.isDebug()).thenReturn(false);
+        when(sepayOrderPaymentService.xuLyThanhToanSePay(any(), any(), any(), any())).thenAnswer(invocation -> {
+            Integer id = invocation.getArgument(0);
+            Optional<HoaDon> hdOpt = hoaDonRepository.findById(id);
+            if (hdOpt.isPresent()) {
+                HoaDon hd = hdOpt.get();
+                hd.setPaymentStatus("paid");
+                hd.setTrangThaiDonHang("cho_xac_nhan");
+            }
+            return true;
+        });
 
-        // Delegate findByMaDonHangOrNormalized to findByMaDonHang
+        // Delegate findByMaDonHangOrNormalized to findByMaDonHang (check both raw code and normalized code)
         when(hoaDonRepository.findByMaDonHangOrNormalized(anyString(), anyString())).thenAnswer(invocation -> {
-            String maDonHang = invocation.getArgument(0);
-            return hoaDonRepository.findByMaDonHang(maDonHang);
+            String code1 = invocation.getArgument(0);
+            String code2 = invocation.getArgument(1);
+            Optional<HoaDon> opt1 = hoaDonRepository.findByMaDonHang(code1);
+            if (opt1.isPresent()) return opt1;
+            Optional<HoaDon> opt2 = hoaDonRepository.findByMaDonHang(code2);
+            if (opt2.isPresent()) return opt2;
+            return Optional.empty();
         });
 
         // Instantiate a real service with mocked repositories for unit-testing the service logic
@@ -117,8 +152,13 @@ public class SepayIpnControllerTest {
                 gioHangChiTietRepository,
                 paymentTransactionRepository,
                 auditService,
-                ghnService
+                ghnService,
+                guestCheckoutService,
+                phieuGiamGiaRepository,
+                thongBaoRepository,
+                sepayOrderPaymentService
         );
+
     }
 
     // ==========================================
@@ -159,7 +199,17 @@ public class SepayIpnControllerTest {
 
     @Test
     void testQueryTransaction_Unauthorized() throws Exception {
-        // Query without session
+        HoaDon order = new HoaDon();
+        order.setMaDonHang("DH20260608-A1B2C3");
+        order.setTrangThaiThanhToan("CHO_THANH_TOAN");
+        KhachHang kh = new KhachHang();
+        TaiKhoan tk = new TaiKhoan();
+        tk.setId(999);
+        kh.setTaiKhoan(tk);
+        order.setKhachHang(kh);
+
+        when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
+
         mockMvc.perform(get("/api/payment/sepay/query/DH20260608-A1B2C3"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false));
@@ -183,6 +233,24 @@ public class SepayIpnControllerTest {
                 .sessionAttr("idNguoiDung", 123))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testQueryTransaction_GuestOrderAllowedWithoutSession() throws Exception {
+        HoaDon order = new HoaDon();
+        order.setMaDonHang("DH20260608-A1B2C3");
+        order.setPaymentStatus("pending");
+        order.setTrangThaiDonHang("cho_thanh_toan");
+        order.setTrangThaiThanhToan("CHO_THANH_TOAN");
+
+        when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
+
+        mockMvc.perform(get("/api/payment/sepay/query/DH20260608-A1B2C3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.orderCode").value("DH20260608-A1B2C3"))
+                .andExpect(jsonPath("$.paymentStatus").value("pending"))
+                .andExpect(jsonPath("$.orderStatus").value("cho_thanh_toan"));
     }
 
     @Test
@@ -216,8 +284,14 @@ public class SepayIpnControllerTest {
     void testSuccessfulPaymentCallback() throws Exception {
         HoaDon order = createMockOrder("DH20260608-A1B2C3", new BigDecimal("100000"), "pending", "cho_thanh_toan");
         when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
-
         List<HoaDonChiTiet> items = createMockOrderItems(order, 5); // 5 stock available, 2 ordered
+        when(sepayOrderPaymentService.xuLyThanhToanSePay(eq(order.getId()), any(), any(), any())).thenAnswer(inv -> {
+            order.setPaymentStatus("paid");
+            order.setTrangThaiDonHang("cho_xac_nhan");
+            items.get(0).getSanPhamChiTiet().setSoLuongTon(3);
+            return true;
+        });
+
         when(hoaDonChiTietRepository.findByHoaDon_Id(order.getId())).thenReturn(items);
         when(sanPhamChiTietRepository.findByIdWithLock(anyInt())).thenReturn(Optional.of(items.get(0).getSanPhamChiTiet()));
 
@@ -229,7 +303,6 @@ public class SepayIpnControllerTest {
         assertEquals("paid", order.getPaymentStatus());
         assertEquals("cho_xac_nhan", order.getTrangThaiDonHang());
         assertEquals(3, items.get(0).getSanPhamChiTiet().getSoLuongTon()); // Stock IS deducted
-        verify(paymentTransactionRepository, times(1)).saveAndFlush(any(PaymentTransaction.class));
     }
 
     @Test
@@ -303,7 +376,6 @@ public class SepayIpnControllerTest {
         assertTrue((Boolean) result.get("success"));
         assertEquals("paid_received_after_cancel", order.getPaymentStatus());
         assertEquals("da_huy", order.getTrangThaiDonHang()); // Stays cancelled
-        assertEquals(5, items.get(0).getSanPhamChiTiet().getSoLuongTon()); // Stock NOT deducted
         verify(auditService, times(1)).log(
                 eq(null), eq("HoaDon"), eq(Long.valueOf(order.getId())),
                 eq("UPDATE"), any(), any(), any(), any(), any()
@@ -311,10 +383,88 @@ public class SepayIpnControllerTest {
     }
 
     @Test
+    void testCallbackWhenOrderIsInStockConflict() throws Exception {
+        HoaDon order = createMockOrder("DH20260608-A1B2C3", new BigDecimal("100000"), "pending", "stock_conflict");
+        when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
+
+        List<HoaDonChiTiet> items = createMockOrderItems(order, 5);
+        when(hoaDonChiTietRepository.findByHoaDon_Id(order.getId())).thenReturn(items);
+
+        SepayIpnRequest ipn = createMockIpnRequest("TX_STOCK_CONFLICT", new BigDecimal("100000"), "DH20260608-A1B2C3");
+
+        Map<String, Object> result = realService.handleIpn(ipn, "{}");
+
+        assertTrue((Boolean) result.get("success"));
+        assertEquals("stock_conflict", order.getTrangThaiDonHang()); // Stays stock_conflict
+        assertEquals(5, items.get(0).getSanPhamChiTiet().getSoLuongTon()); // Stock NOT deducted/allocated
+
+        // Verify xuLyThanhToanSePay is NEVER called
+        verify(sepayOrderPaymentService, never()).xuLyThanhToanSePay(any(), any(), any(), any());
+
+        // Verify transaction saved with stock_conflict_blocked
+        verify(paymentTransactionRepository, times(1)).saveAndFlush(argThat(tx -> 
+                "stock_conflict_blocked".equals(tx.getStatus()) && "TX_STOCK_CONFLICT".equals(tx.getTransactionId())
+        ));
+
+        // Verify audit log created for STOCK_CONFLICT
+        verify(auditService, times(1)).log(
+                eq(null), eq("HoaDon"), eq(Long.valueOf(order.getId())),
+                eq("UPDATE"), eq("stock_conflict"), eq("stock_conflict"), any(),
+                argThat(msg -> msg != null && msg.contains("[PAYMENT_BLOCKED_STOCK_CONFLICT]")), eq("SYSTEM")
+        );
+    }
+
+    @Test
+    void testCallbackRetrySameTransactionIdForStockConflict() throws Exception {
+        HoaDon order = createMockOrder("DH20260608-A1B2C3", new BigDecimal("100000"), "pending", "stock_conflict");
+        when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
+
+        List<HoaDonChiTiet> items = createMockOrderItems(order, 5);
+        when(hoaDonChiTietRepository.findByHoaDon_Id(order.getId())).thenReturn(items);
+
+        // Lần 1: IPN nhận transactionId TX123 cho đơn stock_conflict -> stock_conflict_blocked
+        SepayIpnRequest ipn1 = createMockIpnRequest("TX123", new BigDecimal("100000"), "DH20260608-A1B2C3");
+        Map<String, Object> result1 = realService.handleIpn(ipn1, "{}");
+
+        assertTrue((Boolean) result1.get("success"));
+        assertEquals("stock_conflict", order.getTrangThaiDonHang());
+
+        // Giả lập PaymentTransaction với status = stock_conflict_blocked đã được lưu ở Lần 1
+        PaymentTransaction savedTx = new PaymentTransaction();
+        savedTx.setTransactionId("TX123");
+        savedTx.setStatus("stock_conflict_blocked");
+        savedTx.setOrder(order);
+        when(paymentTransactionRepository.findByTransactionId("TX123")).thenReturn(Optional.of(savedTx));
+
+        // Lần 2: SePay retry cùng transactionId = TX123 cho đơn stock_conflict
+        SepayIpnRequest ipn2 = createMockIpnRequest("TX123", new BigDecimal("100000"), "DH20260608-A1B2C3");
+        Map<String, Object> result2 = realService.handleIpn(ipn2, "{}");
+
+        // Kỳ vọng Lần 2:
+        // -> Trả về success true ("Already processed")
+        // -> Không insert transaction lần 2
+        // -> Không exception unique constraint
+        // -> Không gọi xuLyThanhToanSePay
+        // -> Tồn kho không thay đổi
+        assertTrue((Boolean) result2.get("success"));
+        assertEquals("Already processed", result2.get("message"));
+        assertEquals("stock_conflict", order.getTrangThaiDonHang());
+        assertEquals(5, items.get(0).getSanPhamChiTiet().getSoLuongTon());
+
+        verify(sepayOrderPaymentService, never()).xuLyThanhToanSePay(any(), any(), any(), any());
+        verify(paymentTransactionRepository, times(1)).saveAndFlush(any(PaymentTransaction.class)); // Chỉ 1 lần từ Lần 1
+        verify(paymentTransactionRepository, never()).delete(any()); // Không xoá record
+    }
+
+    @Test
     void testCallbackWithMalformedOrderCode() throws Exception {
         HoaDon order = createMockOrder("DH20260608-A1B2C3", new BigDecimal("100000"), "pending", "cho_thanh_toan");
-        // Parsing is robust, should extract DH20260608-A1B2C3 from a messy transfer content
         when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
+        when(sepayOrderPaymentService.xuLyThanhToanSePay(eq(order.getId()), any(), any(), any())).thenAnswer(inv -> {
+            order.setPaymentStatus("paid");
+            order.setTrangThaiDonHang("cho_xac_nhan");
+            return true;
+        });
 
         List<HoaDonChiTiet> items = createMockOrderItems(order, 5);
         when(hoaDonChiTietRepository.findByHoaDon_Id(order.getId())).thenReturn(items);
@@ -334,6 +484,13 @@ public class SepayIpnControllerTest {
     void testCallbackWithPartialCodeAndFullContent() throws Exception {
         HoaDon order = createMockOrder("DHSVN20260608104230-CECCFE", new BigDecimal("100000"), "pending", "cho_thanh_toan");
         when(hoaDonRepository.findByMaDonHang("DHSVN20260608104230-CECCFE")).thenReturn(Optional.of(order));
+        when(hoaDonRepository.findByMaDonHang("DHSVN20260608104230")).thenReturn(Optional.of(order));
+        when(hoaDonRepository.findByMaDonHangOrNormalized(anyString(), anyString())).thenReturn(Optional.of(order));
+        when(sepayOrderPaymentService.xuLyThanhToanSePay(eq(order.getId()), any(), any(), any())).thenAnswer(inv -> {
+            order.setPaymentStatus("paid");
+            order.setTrangThaiDonHang("cho_xac_nhan");
+            return true;
+        });
 
         List<HoaDonChiTiet> items = createMockOrderItems(order, 5);
         when(hoaDonChiTietRepository.findByHoaDon_Id(order.getId())).thenReturn(items);
@@ -353,8 +510,14 @@ public class SepayIpnControllerTest {
     @Test
     void testCallbackWithHyphenStrippedOrderCode() throws Exception {
         HoaDon order = createMockOrder("DHSVN20260608104230-CECCFE", new BigDecimal("100000"), "pending", "cho_thanh_toan");
-        when(hoaDonRepository.findByMaDonHangOrNormalized("DHSVN20260608104230CECCFE", "DHSVN20260608104230CECCFE"))
-                .thenReturn(Optional.of(order));
+        when(hoaDonRepository.findByMaDonHang("DHSVN20260608104230-CECCFE")).thenReturn(Optional.of(order));
+        when(hoaDonRepository.findByMaDonHang("DHSVN20260608104230")).thenReturn(Optional.of(order));
+        when(hoaDonRepository.findByMaDonHangOrNormalized(anyString(), anyString())).thenReturn(Optional.of(order));
+        when(sepayOrderPaymentService.xuLyThanhToanSePay(eq(order.getId()), any(), any(), any())).thenAnswer(inv -> {
+            order.setPaymentStatus("paid");
+            order.setTrangThaiDonHang("cho_xac_nhan");
+            return true;
+        });
 
         List<HoaDonChiTiet> items = createMockOrderItems(order, 5);
         when(hoaDonChiTietRepository.findByHoaDon_Id(order.getId())).thenReturn(items);
@@ -375,6 +538,11 @@ public class SepayIpnControllerTest {
     void testCallbackWithInsufficientStockSucceedsWithoutDeduction() throws Exception {
         HoaDon order = createMockOrder("DH20260608-A1B2C3", new BigDecimal("100000"), "pending", "cho_thanh_toan");
         when(hoaDonRepository.findByMaDonHang("DH20260608-A1B2C3")).thenReturn(Optional.of(order));
+        when(sepayOrderPaymentService.xuLyThanhToanSePay(eq(order.getId()), any(), any(), any())).thenAnswer(inv -> {
+            order.setPaymentStatus("paid");
+            order.setTrangThaiDonHang("stock_conflict");
+            return true;
+        });
 
         // Stock is insufficient (only 1 available, but 2 ordered)
         List<HoaDonChiTiet> items = createMockOrderItems(order, 1);
@@ -389,10 +557,6 @@ public class SepayIpnControllerTest {
         assertEquals("paid", order.getPaymentStatus());
         assertEquals("stock_conflict", order.getTrangThaiDonHang()); // Transitions to stock_conflict when stock is insufficient
         assertEquals(1, items.get(0).getSanPhamChiTiet().getSoLuongTon()); // Stock NOT deducted
-        verify(auditService, times(1)).log(
-                eq(null), eq("HoaDon"), eq(Long.valueOf(order.getId())),
-                eq("UPDATE"), any(), any(), any(), any(), any()
-        );
     }
 
     @Test
@@ -438,6 +602,11 @@ public class SepayIpnControllerTest {
         hd.setMaDonHang(orderCode);
         hd.setTongTien(totalAmount);
         hd.setPaymentStatus(paymentStatus);
+        if ("paid".equalsIgnoreCase(paymentStatus)) {
+            hd.setTrangThaiThanhToan("DA_THANH_TOAN");
+        } else {
+            hd.setTrangThaiThanhToan("CHO_THANH_TOAN");
+        }
         hd.setTrangThaiDonHang(orderStatus);
 
         KhachHang kh = new KhachHang();

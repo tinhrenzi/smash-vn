@@ -17,13 +17,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Lấy đường dẫn tuyệt đối của thư mục "uploads" nằm ngang hàng với source code
-        Path uploadDir = Paths.get("uploads");
-        String uploadPath = uploadDir.toFile().getAbsolutePath();
+        // Lấy đường dẫn URI hợp lệ của thư mục "uploads" (tự động xử lý dấu \ và khoảng trắng trên Windows)
+        Path uploadDir = Paths.get("uploads").toAbsolutePath().normalize();
+        String uploadUri = uploadDir.toUri().toString();
+        if (!uploadUri.endsWith("/")) {
+            uploadUri += "/";
+        }
 
         // Map đường dẫn URL bắt đầu bằng /uploads/ tới thư mục vật lý
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:/" + uploadPath + "/");
+                .addResourceLocations(uploadUri);
     }
 
     @Override

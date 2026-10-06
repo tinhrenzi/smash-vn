@@ -26,7 +26,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== app js ======-->
@@ -101,7 +101,7 @@
 								    <div class="w-r__container">
 								        <div class="w-r__wrap-1">
 								            <div class="table-p__img-wrap">
-								                <img class="u-img-fluid" th:src="@{'/uploads/product/' + ${item.hinhAnh}}" alt="">
+								                <img class="u-img-fluid" th:src="@{${item.hinhAnh != null && (item.hinhAnh.startsWith('/') || item.hinhAnh.startsWith('http')) ? item.hinhAnh : (item.hinhAnh != null && item.hinhAnh.startsWith('uploads/') ? '/' + item.hinhAnh : '/uploads/product/' + item.hinhAnh)}}" onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="">
 								            </div>
 								            <div class="w-r__info">
 								                <span class="w-r__name">
@@ -132,7 +132,8 @@
                                             <span>TIẾP TỤC MUA SẮM</span></a></div>
                                     <div class="route-box__g">
 
-                                        <a class="route-box__link" th:href="@{/wishlist/xoa-tat-ca}" onclick="return confirm('Bạn muốn xóa tất cả?');">
+                                        <a class="route-box__link" th:href="@{/wishlist/xoa-tat-ca}"
+                                           onclick="event.preventDefault(); const targetUrl = this.href; SmashNotify.confirm({title: 'Xóa toàn bộ danh sách?', message: 'Bạn có chắc chắn muốn xóa tất cả sản phẩm yêu thích?', confirmText: 'Xóa tất cả', danger: true}).then(function(confirmed) { if (confirmed) window.location.href = targetUrl; }); return false;">
 											    
 											    <i class="fas fa-trash"></i><span> XÓA TẤT CẢ</span></a></div>
                                 </div>
@@ -152,52 +153,6 @@
         <!--====== End - Main Footer ======-->
 
         <!--====== Modal Section ======-->
-
-
-        <!--====== Add to Cart Modal ======-->
-        <div class="modal fade" id="add-to-cart">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-radius modal-shadow">
-
-                    <button class="btn dismiss-button fas fa-times" type="button" data-dismiss="modal"></button>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-lg-6 col-md-12">
-                                <div class="success u-s-m-b-30">
-                                    <div class="success__text-wrap"><i class="fas fa-check"></i>
-
-                                        <span>Đã thêm sản phẩm vào giỏ hàng thành công!</span></div>
-                                    <div class="success__img-wrap">
-
-                                        <img class="u-img-fluid" th:src="@{/images/product/electronic/product1.jpg}" alt=""></div>
-                                    <div class="success__info-wrap">
-
-                                        <span class="success__name">Beats Bomb Wireless Headphone</span>
-
-                                        <span class="success__quantity">Số lượng: 1</span>
-
-                                        <span class="success__price">170.000 đ</span></div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6 col-md-12">
-                                <div class="s-option">
-
-                                    <span class="s-option__text">Có 1 sản phẩm trong giỏ hàng của bạn</span>
-                                    <div class="s-option__link-box">
-
-                                        <a class="s-option__link btn--e-white-brand-shadow" data-dismiss="modal">TIẾP TỤC MUA SẮM</a>
-
-                                        <a class="s-option__link btn--e-white-brand-shadow" th:href="@{/gio-hang}">XEM GIỎ HÀNG</a>
-
-                                        <a class="s-option__link btn--e-brand-shadow" th:href="@{/checkout}">TIẾP TỤC THANH TOÁN</a></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!--====== End - Add to Cart Modal ======-->
         <!--====== End - Modal Section ======-->
     </div>
     <!--====== End - Main App ======-->

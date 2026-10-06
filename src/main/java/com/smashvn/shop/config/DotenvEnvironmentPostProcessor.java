@@ -1,6 +1,5 @@
 package com.smashvn.shop.config;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -16,7 +15,8 @@ import java.util.Map;
 public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
     @Override
-    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+    @Deprecated(since = "4.0.0", forRemoval = true)
+    public void postProcessEnvironment(ConfigurableEnvironment environment, org.springframework.boot.SpringApplication application) {
         Path envPath = Paths.get(".env");
         if (!Files.exists(envPath)) {
             // Check parent directory as fallback (useful for tests running in nested working directories)

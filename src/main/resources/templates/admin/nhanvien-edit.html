@@ -5,154 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cập Nhật Nhân Viên - Admin SmashVN</title>
     
+    <!-- Bootstrap 5.3.0 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link th:href="@{/css/admin-custom.css}" rel="stylesheet">
+    <!-- Admin Custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/admin-custom.css(v='2.4')}">
+    <script th:src="@{/js/admin-layout-state.js(v='1.0')}"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
+<body class="admin-body">
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar layout dùng chung -->
-        <div th:replace="~{admin/layout/sidebar :: sidebar('nhanvien')}"></div>
+    <!-- Sidebar Layout Fragment -->
+    <div th:replace="~{admin/layout/sidebar :: sidebar('nhanvien')}"></div>
+
+    <div class="admin-page">
+        <!-- Topbar Layout Fragment -->
+        <div th:replace="~{admin/layout/header :: header}"></div>
 
         <!-- Main Content -->
-        <main class="col-md-10 main-content">
-            <!-- Header layout dùng chung -->
-            <div th:replace="~{admin/layout/header :: header}"></div>
+        <main class="admin-content">
+            <div class="container-fluid admin-container">
 
-            <!-- Page Title Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="page-title">
-                    <a th:href="@{/admin/nhan-vien}" class="text-decoration-none text-brand me-1"><i class="fas fa-arrow-left"></i></a>
-                    Cập Nhật Nhân Viên
-                </h2>
-            </div>
+                <!-- Page Header -->
+                <div class="admin-page-header">
+                    <div>
+                        <h1 class="admin-page-title"><i class="fas fa-user-edit text-brand me-2"></i>Cập Nhật Nhân Viên</h1>
+                    </div>
+                    <div class="admin-toolbar">
+                        <a th:href="@{/admin/nhan-vien}" class="admin-btn admin-btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Quay lại Danh Sách
+                        </a>
+                    </div>
+                </div>
 
-            <!-- Alert Lỗi nếu có -->
-            <div th:if="${loi != null}" class="alert alert-danger alert-dismissible fade show border-start border-danger border-4 rounded-3 shadow-sm mb-4" role="alert">
-                <i class="fas fa-times-circle me-2"></i><span th:text="${loi}">Lỗi hệ thống</span>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+                <!-- Alert Messages -->
+                <div th:if="${error != null or loi != null}" class="alert alert-danger alert-dismissible fade show border-start border-danger border-4 rounded-3 shadow-sm mb-4" role="alert">
+                    <i class="fas fa-times-circle me-2"></i><span th:text="${error != null ? error : loi}">Lỗi hệ thống</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${success != null}" class="alert alert-success alert-dismissible fade show border-start border-success border-4 rounded-3 shadow-sm mb-4" role="alert">
+                    <i class="fas fa-check-circle me-2"></i><span th:text="${success}">Thao tác thành công</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
 
-            <div class="row">
-                <div class="col-lg-8 mx-auto">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-dark text-white py-3">
-                            <h5 class="fw-bold mb-0 text-white"><i class="fas fa-user-edit me-2 text-brand"></i>Sửa Thông Tin Tài Khoản: <span th:text="${nv.taiKhoan.email}" class="text-warning"></span></h5>
-                        </div>
-                        <div class="card-body">
-                            <form th:action="@{/admin/nhan-vien/sua/{id}(id=${nv.id})}" method="POST" class="row g-4">
-                                
-                                <!-- Email đăng nhập (Read Only) -->
-                                <div class="col-md-6">
-                                    <label class="form-label">Email Đăng Nhập</label>
-                                    <input type="email" th:value="${nv.taiKhoan.email}" class="form-control bg-light" disabled>
-                                    <div class="form-text text-muted">Email đăng nhập là duy nhất và không thể thay đổi.</div>
-                                </div>
-
-                                <!-- Mật khẩu mới (Tùy chọn) -->
-                                <div class="col-md-6">
-                                    <label for="newPassword" class="form-label">Mật Khẩu Mới (Không bắt buộc)</label>
-                                    <div class="input-group">
-                                        <input type="password" id="newPassword" name="newPassword" class="form-control" placeholder="Để trống nếu giữ nguyên mật khẩu cũ" minlength="6">
-                                        <button class="btn btn-outline-secondary border" type="button" id="togglePassword"
-                                                title="Giữ chuột để xem mật khẩu" style="cursor:pointer;">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
+                <!-- Form Card -->
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h5 class="admin-card-title">
+                                    <i class="fas fa-user-edit text-primary me-2"></i>Sửa Thông Tin Tài Khoản: <span th:text="${nv.taiKhoan.username}" class="text-primary"></span>
+                                </h5>
+                            </div>
+                            <div class="admin-card-body">
+                                <form th:action="@{/admin/nhan-vien/sua/{id}(id=${nv.id})}" method="POST" class="row g-4" onsubmit="return confirmSubmitForm(this, 'Bạn có chắc chắn muốn cập nhật thông tin nhân viên này không?');">
+                                    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                    
+                                    <!-- Readonly Email -->
+                                    <div class="col-md-6">
+                                        <label class="admin-form-label">Email Đăng Nhập</label>
+                                        <input type="email" th:value="${nv.taiKhoan.username}" class="admin-form-control form-control bg-light" disabled>
+                                        <div class="form-text text-muted">Email đăng nhập là duy nhất và không thể thay đổi.</div>
                                     </div>
-                                    <div class="form-text text-muted">Chỉ nhập nếu bạn muốn thay đổi mật khẩu của nhân viên này.</div>
-                                </div>
 
-                                <!-- Họ và tên -->
-                                <div class="col-md-6">
-                                    <label for="hoTenNv" class="form-label">Họ và Tên Nhân Viên <span class="text-danger">*</span></label>
-                                    <input type="text" id="hoTenNv" name="hoTenNv" th:value="${nv.hoTenNv}" class="form-control" required>
-                                </div>
-
-                                <!-- Số điện thoại -->
-                                <div class="col-md-6">
-                                    <label for="soDienThoaiNv" class="form-label">Số Điện Thoại <span class="text-danger">*</span></label>
-                                    <input type="tel" id="soDienThoaiNv" name="soDienThoaiNv" th:value="${nv.soDienThoaiNv}" class="form-control" required pattern="[0-9]{9,11}">
-                                </div>
-
-                                <!-- Chức vụ -->
-                                <div class="col-md-6">
-                                    <label for="chucVu" class="form-label">Chức Vụ Cụ Thể <span class="text-danger">*</span></label>
-                                    <input type="text" id="chucVu" name="chucVu" th:value="${nv.chucVu}" class="form-control" required>
-                                </div>
-
-                                <!-- Phân vai trò bằng Checkboxes -->
-                                <div class="col-md-6">
-                                    <label class="form-label d-block">Vai Trò Hệ Thống <span class="text-danger">*</span></label>
-                                    <div class="d-flex gap-3 mt-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="laKhachHang" name="laKhachHang" th:checked="${nv.taiKhoan.laKhachHang}">
-                                            <label class="form-check-label fw-bold text-dark" for="laKhachHang">
-                                                KH (Khách hàng)
-                                            </label>
+                                    <!-- Optional New Password -->
+                                    <div class="col-md-6">
+                                        <label for="newPassword" class="admin-form-label">Mật Khẩu Mới</label>
+                                        <div class="input-group">
+                                            <input type="password" id="newPassword" name="newPassword" class="admin-form-control form-control" placeholder="Để trống nếu giữ nguyên mật khẩu cũ" minlength="8" maxlength="50">
+                                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" title="Giữ chuột để xem mật khẩu">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
                                         </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="laNhanVien" name="laNhanVien" th:checked="${nv.taiKhoan.laNhanVien}">
-                                            <label class="form-check-label fw-bold text-dark" for="laNhanVien">
-                                                NV (Nhân viên)
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="laQuanLy" name="laQuanLy" th:checked="${nv.taiKhoan.laQuanLy}">
-                                            <label class="form-check-label fw-bold text-dark" for="laQuanLy">
-                                                QL (Quản trị viên)
-                                            </label>
-                                        </div>
+                                        <div class="form-text text-muted">Chỉ nhập nếu bạn muốn thay đổi mật khẩu của nhân viên này.</div>
                                     </div>
-                                    <div class="form-text text-muted">Tài khoản phải có ít nhất một vai trò được chọn.</div>
-                                </div>
 
-                                <!-- Trạng thái tài khoản -->
-                                <div class="col-md-6">
-                                    <label class="form-label">Trạng Thái Tài Khoản</label>
-                                    <input type="text" class="form-control bg-light" th:value="${nv.taiKhoan.trangThai == 'hoat_dong' ? 'Hoạt động (Cho phép đăng nhập)' : (nv.taiKhoan.trangThai == 'bi_khoa' ? 'Khóa tài khoản (Cấm truy cập)' : 'Chờ khóa')}" readonly>
-                                    <input type="hidden" name="trangThai" th:value="${nv.taiKhoan.trangThai}">
-                                    <div class="form-text text-muted">Trạng thái tài khoản chỉ hiển thị để xem, không thể thay đổi tại đây.</div>
-                                </div>
+                                    <!-- Name -->
+                                    <div class="col-md-6">
+                                        <label for="hoTenNv" class="admin-form-label">Họ và Tên Nhân Viên <span class="text-danger">*</span></label>
+                                        <input type="text" id="hoTenNv" name="hoTenNv" th:value="${nv.hoTenNv}" class="admin-form-control form-control" required>
+                                    </div>
 
-                                <div class="col-12 mt-5 border-top pt-4 d-flex justify-content-end gap-2">
-                                    <a th:href="@{/admin/nhan-vien}" class="btn btn-secondary"><i class="fas fa-times me-1"></i> Hủy bỏ</a>
-                                    <button type="submit" class="btn btn-brand"><i class="fas fa-save me-1"></i> Lưu Cập Nhật</button>
-                                </div>
-                            </form>
+                                    <!-- Phone -->
+                                    <div class="col-md-6">
+                                        <label for="soDienThoaiNv" class="admin-form-label">Số Điện Thoại <span class="text-danger">*</span></label>
+                                        <input type="tel" id="soDienThoaiNv" name="soDienThoaiNv" th:value="${nv.soDienThoaiNv}" class="admin-form-control form-control" required pattern="(03|05|07|08|09)[0-9]{8}" maxlength="10" title="Số điện thoại phải bắt đầu bằng 03, 05, 07, 08, 09 và đủ 10 số.">
+                                    </div>
+
+                                    <!-- Title -->
+                                    <div class="col-md-6">
+                                        <label for="chucVu" class="admin-form-label">Chức Vụ Cụ Thể <span class="text-danger">*</span></label>
+                                        <input type="text" id="chucVu" name="chucVu" th:value="${nv.chucVu}" class="admin-form-control form-control" required>
+                                    </div>
+
+                                    <!-- Status (Readonly) -->
+                                    <div class="col-md-6">
+                                        <label class="admin-form-label">Trạng Thái Tài Khoản</label>
+                                        <input type="text" class="admin-form-control form-control bg-light" th:value="${nv.taiKhoan.trangThai == 'hoat_dong' ? 'Hoạt động' : (nv.taiKhoan.trangThai == 'bi_khoa' ? 'Ngừng hoạt động' : 'Chờ khóa')}" readonly>
+                                        <input type="hidden" name="trangThai" th:value="${nv.taiKhoan.trangThai}">
+                                        <div class="form-text text-muted">Trạng thái tài khoản chỉ hiển thị để xem, không thể thay đổi tại đây.</div>
+                                    </div>
+
+                                    <div class="col-12 mt-4 pt-3 border-top d-flex justify-content-end gap-2">
+                                        <a th:href="@{/admin/nhan-vien}" class="admin-btn admin-btn-secondary"><i class="fas fa-times me-1"></i> Hủy bỏ</a>
+                                        <button type="submit" class="admin-btn admin-btn-primary"><i class="fas fa-save me-1"></i> Lưu Cập Nhật</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Show Password — hold to show, release to hide
-    (function() {
-        const btn = document.getElementById('togglePassword');
-        const inp = document.getElementById('newPassword');
-        const icon = btn.querySelector('i');
+    <script>
+        (function() {
+            const btn = document.getElementById('togglePassword');
+            const inp = document.getElementById('newPassword');
+            if (!btn || !inp) return;
+            const icon = btn.querySelector('i');
 
-        function showPass(e) {
-            if (e.type === 'mousedown') e.preventDefault();
-            inp.type = 'text';
-            icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
-        }
-        function hidePass() {
-            inp.type = 'password';
-            icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
-        }
+            function showPass(e) {
+                if (e.type === 'mousedown') e.preventDefault();
+                inp.type = 'text';
+                icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
+            }
+            function hidePass() {
+                inp.type = 'password';
+                icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
+            }
 
-        btn.addEventListener('mousedown', showPass);
-        btn.addEventListener('mouseup', hidePass);
-        btn.addEventListener('mouseleave', hidePass);
-        btn.addEventListener('touchstart', showPass);
-        btn.addEventListener('touchend', hidePass);
-    })();
-</script>
+            btn.addEventListener('mousedown', showPass);
+            btn.addEventListener('mouseup', hidePass);
+            btn.addEventListener('mouseleave', hidePass);
+            btn.addEventListener('touchstart', showPass);
+            btn.addEventListener('touchend', hidePass);
+        })();
+    </script>
+
+    <!-- Bootstrap 5.3.0 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Admin Layout JS -->
+    <script th:src="@{/js/admin-layout.js(v='2.4')}"></script>
 </body>
 </html>

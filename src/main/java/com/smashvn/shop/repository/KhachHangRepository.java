@@ -13,30 +13,19 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     // Tìm khách hàng dựa vào ID của bảng TaiKhoan
     KhachHang findByTaiKhoan_Id(Integer idTaiKhoan);
 
-    // Tìm khách hàng theo họ
-    List<KhachHang> findByHoKhContainingIgnoreCase(String hoKh);
-
-    // Tìm khách hàng theo tên
-    List<KhachHang> findByTenKhContainingIgnoreCase(String tenKh);
+    // Tìm khách hàng theo họ tên
+    List<KhachHang> findByHoTenKhContainingIgnoreCase(String hoTenKh);
 
     // Tìm khách hàng theo số điện thoại
     KhachHang findBySoDienThoaiKh(String soDienThoaiKh);
 
     // Tìm khách hàng kết hợp cả họ và tên (LIKE trên cả hai trường)
-    @Query("SELECT kh FROM KhachHang kh WHERE "
-            + "CONCAT(kh.hoKh, ' ', kh.tenKh) LIKE CONCAT('%', :fullName, '%') "
-            + "OR kh.hoKh LIKE CONCAT('%', :fullName, '%') "
-            + "OR kh.tenKh LIKE CONCAT('%', :fullName, '%')")
+    @Query("SELECT kh FROM KhachHang kh WHERE kh.hoTenKh LIKE CONCAT('%', :fullName, '%')")
     List<KhachHang> findByFullName(@Param("fullName") String fullName);
-
-    // Tìm khách hàng đã đăng ký nhận bản tin
-    List<KhachHang> findByNhanBanTinIsTrue();
 
     // Tìm khách hàng có vai trò cụ thể trong tài khoản
     List<KhachHang> findByTaiKhoan_VaiTro(String vaiTro);
 
-    java.util.Optional<KhachHang> findByTaiKhoan_Email(String email);
+    java.util.Optional<KhachHang> findByTaiKhoan_Username(String username);
 
-    @Query("SELECT kh FROM KhachHang kh WHERE kh.taiKhoan.vaiTro = 'KH'")
-    List<KhachHang> findByLaKhachHangTrue();
 }

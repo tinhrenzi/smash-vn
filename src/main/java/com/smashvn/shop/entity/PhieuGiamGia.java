@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import lombok.*;
 
+
 /**
  * Entity đại diện cho một PHIẾU GIẢM GIÁ (Voucher) trong hệ thống.
  *
@@ -87,50 +88,32 @@ public class PhieuGiamGia {
     @Column(name = "loai_giam_gia", nullable = false, length = 100)
     private String loaiGiamGia;
 
-    /**
-     * Nhân viên đã tạo / cập nhật phiếu này. Dùng để tra cứu lịch sử.
-     */
     @ManyToOne
     @JoinColumn(name = "id_nhan_vien", nullable = false)
     private NhanVien nhanVien;
 
-    /**
-     * Cờ bật/tắt thủ công (soft-delete).
-     * {@code false} → phiếu bị vô hiệu hóa, khách không thể dùng dù còn hạn và còn số lượng.
-     */
-    @Column(name = "kich_hoat")
-    private Boolean active = true;
-
-    /**
-     * Giá trị tổng đơn hàng tối thiểu để phiếu có hiệu lực.
-     * Mặc định là 0 (không yêu cầu giá trị tối thiểu).
-     * Ví dụ: 200.000đ → chỉ áp dụng khi đơn hàng ≥ 200.000đ.
-     */
-    @Column(name = "gia_tri_don_hang_toi_thieu")
-    private BigDecimal giaTriDonHangToiThieu = BigDecimal.ZERO;
-
-    /**
-     * Mức giảm tối đa tính bằng VNĐ, chỉ có ý nghĩa khi {@code donVi = "%"}.
-     * Nếu {@code null}: không giới hạn mức giảm.
-     * Ví dụ: giaTri = 30%, giaTriGiamToiDa = 100.000đ → dù đơn lớn đến đâu,
-     * cũng chỉ giảm tối đa 100.000đ.
-     * Với phiếu giảm trực tiếp (VND), trường này luôn là {@code null}.
-     */
     @Column(name = "gia_tri_giam_toi_da")
     private BigDecimal giaTriGiamToiDa;
 
-    /**
-     * Trả về {@code active}, mặc định {@code true} nếu cột chưa có dữ liệu (NULL trong DB).
-     */
+    /** Giá trị đơn hàng tối thiểu để áp dụng phiếu. Nếu null hoặc 0, không có hạn mức tối thiểu. */
+    @Column(name = "gia_tri_don_hang_toi_thieu")
+    private BigDecimal giaTriDonHangToiThieu;
+
     public Boolean getActive() {
-        return active == null ? true : active;
+        // Only reflects quantity availability (i.e. "manually disabled" or exhausted).
+        // Date-based expiry is checked explicitly by the controller AFTER this check,
+        // so that correct error messages are returned for each case.
+        if (soLuongConLai != null && soLuongConLai <= 0) {
+            return false;
+        }
+        return true;
     }
 
-    /**
-     * Trả về {@code giaTriDonHangToiThieu}, mặc định {@code 0} nếu chưa được set.
-     */
-    public BigDecimal getGiaTriDonHangToiThieu() {
-        return giaTriDonHangToiThieu == null ? BigDecimal.ZERO : giaTriDonHangToiThieu;
+    public void setActive(Boolean active) {
+        if (Boolean.FALSE.equals(active)) {
+            this.ngayKetThuc = LocalDateTime.now().minusSeconds(1);
+            this.soLuongConLai = 0;
+        }
     }
 
     /**
@@ -138,7 +121,6 @@ public class PhieuGiamGia {
      * Sử dụng trên giao diện admin để hiển thị badge màu tương ứng.
      *
      * <ul>
-     *   <li>{@code "INACTIVE"} – bị vô hiệu hóa thủ công ({@code active = false}).</li>
      *   <li>{@code "UPCOMING"} – chưa đến ngày bắt đầu.</li>
      *   <li>{@code "EXPIRED"}  – hết hạn hoặc hết số lượng.</li>
      *   <li>{@code "ACTIVE"}   – đang hoạt động, khách có thể dùng.</li>
@@ -147,8 +129,8 @@ public class PhieuGiamGia {
      * @return chuỗi trạng thái, không lưu vào cơ sở dữ liệu.
      */
     public String getDynamicStatus() {
-        if (active != null && !active) {
-            return "INACTIVE";
+        if (!getActive()) {
+            return "EXPIRED";
         }
         LocalDateTime now = LocalDateTime.now();
         if (ngayBatDau != null && now.isBefore(ngayBatDau)) {
@@ -161,5 +143,13 @@ public class PhieuGiamGia {
         } else {
             return "ACTIVE";
         }
+    }
+
+    public String getTenPhieu() {
+        return maPhieu;
+    }
+
+    public void setTenPhieu(String tenPhieu) {
+        this.maPhieu = tenPhieu;
     }
 }

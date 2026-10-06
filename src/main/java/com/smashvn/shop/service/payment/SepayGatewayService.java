@@ -38,8 +38,13 @@ public class SepayGatewayService implements PaymentGatewayService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final AuditService auditService;
     private final GhnService ghnService;
+    private final com.smashvn.shop.service.order.GuestCheckoutService guestCheckoutService;
+    private final PhieuGiamGiaRepository phieuGiamGiaRepository;
+    private final ThongBaoRepository thongBaoRepository;
+    private final SepayOrderPaymentService sepayOrderPaymentService;
 
     @Override
+
     @Transactional
     public Map<String, Object> handleIpn(SepayIpnRequest request, String rawPayload) throws Exception {
         SepayTransactionDto transaction = request.getTransactionData();
@@ -50,14 +55,15 @@ public class SepayGatewayService implements PaymentGatewayService {
         // 1. Fast duplicate check (Idempotency)
         Optional<PaymentTransaction> existingTx = paymentTransactionRepository.findByTransactionId(transactionId);
         if (existingTx.isPresent()) {
-            if ("success".equalsIgnoreCase(existingTx.get().getStatus())) {
-                log.info("SePay IPN: Transaction ID {} already successfully processed (duplicate check).", transactionId);
+            String existingStatus = existingTx.get().getStatus();
+            if ("success".equalsIgnoreCase(existingStatus) || "stock_conflict_blocked".equalsIgnoreCase(existingStatus)) {
+                log.info("SePay IPN: Transaction ID {} already processed (status: {}). Duplicate IPN callback ignored.", transactionId, existingStatus);
                 auditService.log(null, "PaymentTransaction", null, "UPDATE", 
-                        null, "PAID", "127.0.0.1", "[PAYMENT_DUPLICATE] Duplicate IPN callback ignored.", "SYSTEM");
+                        null, "PAID", "127.0.0.1", "[PAYMENT_DUPLICATE] Duplicate IPN callback ignored for status " + existingStatus + ".", "SYSTEM");
                 return createSuccessResponse("Already processed");
             } else {
                 log.info("SePay IPN: Deleting previously failed transaction record {} (status: {}) to re-process.", 
-                        transactionId, existingTx.get().getStatus());
+                        transactionId, existingStatus);
                 paymentTransactionRepository.delete(existingTx.get());
                 paymentTransactionRepository.flush();
             }
@@ -91,7 +97,7 @@ public class SepayGatewayService implements PaymentGatewayService {
         }
 
         // 3.3 Validate that the order's paymentStatus is not already PAID
-        if (PaymentStatus.PAID.getValue().equals(order.getPaymentStatus())) {
+        if (isOrderAlreadyPaid(order)) {
             log.info("SePay IPN: Order {} already paid. Returning success.", orderCode);
             return createSuccessResponse("Already processed");
         }
@@ -105,7 +111,7 @@ public class SepayGatewayService implements PaymentGatewayService {
             order.setMaGiaoDich(transactionId);
             order.setPaidAt(LocalDateTime.now());
             order.setThoiGianXacNhan(LocalDateTime.now());
-            order.setNguoiXacNhanThanhToan("SePay Gateway (POS)");
+            order.setNguoiXacNhanThanhToan("SePay Gateway");
             order.setTrangThaiDonHang(OrderStatus.DA_GIAO.getValue()); // POS -> hoan thanh luon
             
             if (sepayConfig.isDebug()) {
@@ -125,14 +131,14 @@ public class SepayGatewayService implements PaymentGatewayService {
             return createSuccessResponse("Processed");
         }
 
-        // 4. Handle Cancelled Order
-        if (OrderStatus.DA_HUY.getValue().equals(order.getTrangThaiDonHang())) {
-            log.warn("SePay IPN: Payment received for already cancelled order: {}", orderCode);
+        // 4. Handle Cancelled or Expired Order (Late Webhook / Late IPN)
+        if (OrderStatus.DA_HUY.getValue().equals(order.getTrangThaiDonHang()) || "expired".equalsIgnoreCase(order.getPaymentStatus())) {
+            log.warn("SePay IPN: Late payment received for already cancelled/expired order: {}", orderCode);
             
             // Save transaction record
             PaymentTransaction tx = saveTransactionRecord(transaction, order, PaymentStatus.PAID_RECEIVED_AFTER_CANCEL.getValue(), rawPayload);
 
-            // Mark payment status = PAID_RECEIVED_AFTER_CANCEL (Do not reactivate order, do not deduct stock)
+            // Mark payment status = PAID_RECEIVED_AFTER_CANCEL (Do not reactivate order, do not deduct stock, do not clear cart, do not send email)
             order.setPaymentStatus(PaymentStatus.PAID_RECEIVED_AFTER_CANCEL.getValue());
             order.setTrangThaiThanhToan("HUY"); // Keeps payment status synced
             hoaDonRepository.save(order);
@@ -140,105 +146,37 @@ public class SepayGatewayService implements PaymentGatewayService {
             // Create urgent admin alert
             auditService.log(null, "HoaDon", Long.valueOf(order.getId()), "UPDATE",
                     "da_huy", "da_huy", "127.0.0.1", 
-                    "[PAYMENT_RECEIVED_AFTER_CANCEL] CRITICAL: Payment received after order cancellation. Ref: " + transactionId + ", Amt: " + transferAmount, 
+                    "[PAYMENT_RECEIVED_AFTER_CANCEL] CRITICAL: Payment received after order cancellation/expiration. Ref: " + transactionId + ", Amt: " + transferAmount, 
                     "SYSTEM");
             
             return createSuccessResponse("Processed");
         }
 
-        // 5. Normal Payment Processing
-        List<HoaDonChiTiet> orderItems = hoaDonChiTietRepository.findByHoaDon_Id(order.getId());
+        // 4.5 Handle STOCK_CONFLICT Order (Block IPN payment processing)
+        if (OrderStatus.STOCK_CONFLICT.getValue().equalsIgnoreCase(order.getTrangThaiDonHang())) {
+            log.warn("SePay IPN ignored/blocked because order is in STOCK_CONFLICT. maDonHang: {}, transactionId: {}, trangThaiDonHang: {}",
+                    orderCode, transactionId, order.getTrangThaiDonHang());
 
-        // Verify stock is sufficient
-        boolean stockSufficient = true;
-        for (HoaDonChiTiet item : orderItems) {
-            SanPhamChiTiet spct = item.getSanPhamChiTiet();
-            if (spct != null) {
-                Optional<SanPhamChiTiet> lockedSpctOpt = sanPhamChiTietRepository.findByIdWithLock(spct.getId());
-                if (lockedSpctOpt.isPresent()) {
-                    if (lockedSpctOpt.get().getSoLuongTon() < item.getSoLuong()) {
-                        stockSufficient = false;
-                        break;
-                    }
-                } else {
-                    stockSufficient = false;
-                    break;
-                }
-            }
+            saveTransactionRecord(transaction, order, "stock_conflict_blocked", rawPayload);
+
+            auditService.log(null, "HoaDon", Long.valueOf(order.getId()), "UPDATE",
+                    OrderStatus.STOCK_CONFLICT.getValue(), OrderStatus.STOCK_CONFLICT.getValue(), "127.0.0.1",
+                    "[PAYMENT_BLOCKED_STOCK_CONFLICT] SePay IPN ignored/blocked because order is in STOCK_CONFLICT. Ref: " + transactionId + ", Amt: " + transferAmount,
+                    "SYSTEM");
+
+            return createSuccessResponse("Processed");
         }
 
-        String targetOrderStatus = OrderStatus.CHO_XAC_NHAN.getValue();
-        if (stockSufficient) {
-            // Deduct stock
-            for (HoaDonChiTiet item : orderItems) {
-                SanPhamChiTiet spct = item.getSanPhamChiTiet();
-                if (spct != null) {
-                    SanPhamChiTiet lockedSpct = sanPhamChiTietRepository.findByIdWithLock(spct.getId()).get();
-                    lockedSpct.setSoLuongTon(lockedSpct.getSoLuongTon() - item.getSoLuong());
-                    sanPhamChiTietRepository.save(lockedSpct);
-                }
-            }
+        // 5. Normal Payment Processing via SepayOrderPaymentService
+        boolean success = sepayOrderPaymentService.xuLyThanhToanSePay(order.getId(), transactionId, transferAmount, rawPayload);
+        if (success) {
+            log.info("SePay IPN Success: Payment processed via SepayOrderPaymentService for order {}", orderCode);
+            return createSuccessResponse("Processed");
         } else {
-            // Stock conflict
-            targetOrderStatus = OrderStatus.STOCK_CONFLICT.getValue();
-            log.warn("[STOCK_CONFLICT] SePay: Insufficient stock for order #{} on payment success. Set status to stock_conflict.", order.getId());
+            return createErrorResponse("Failed to process payment for order: " + orderCode);
         }
-
-        // Update statuses to PAID and target status
-        order.setPaymentStatus(PaymentStatus.PAID.getValue());
-        order.setTrangThaiThanhToan("DA_THANH_TOAN");
-        order.setTransactionId(transactionId);
-        order.setMaGiaoDich(transactionId);
-        order.setPaidAt(LocalDateTime.now());
-        order.setThoiGianXacNhan(LocalDateTime.now());
-        order.setNguoiXacNhanThanhToan("SePay Gateway");
-        order.setTrangThaiDonHang(targetOrderStatus);
-        
-        if (sepayConfig.isDebug()) {
-            order.setGatewayResponse("SePay: Successful payment processed. Ref: " + transactionId);
-        }
-        hoaDonRepository.save(order);
-
-        // Clear items from customer's cart
-        clearCustomerCart(order, orderItems);
-
-        // Save transaction record in db (Catch race condition database exceptions)
-        saveTransactionRecord(transaction, order, "success", rawPayload);
-
-        // Log PAYMENT_CONFIRMED
-        auditService.log(null, "HoaDon", Long.valueOf(order.getId()), "UPDATE",
-                OrderStatus.CHO_THANH_TOAN.getValue(), OrderStatus.CHO_XAC_NHAN.getValue(), "127.0.0.1",
-                "[PAYMENT_CONFIRMED] Payment success callback handled. Cart items removed.", "SYSTEM");
-
-        log.info("SePay IPN: Payment successfully applied to order {}", orderCode);
-
-        // Tạo đơn GHN nếu đơn hàng đã có thông tin địa chỉ GHN
-        if (order.getGhnToDistrictId() != null && order.getGhnToWardCode() != null
-                && (order.getGhnOrderCode() == null || order.getGhnOrderCode().isBlank())) {
-            try {
-                String ghnCode = ghnService.createShippingOrder(
-                        order, orderItems, order.getGhnToDistrictId(), order.getGhnToWardCode());
-                if (ghnCode != null) {
-                    order.setGhnOrderCode(ghnCode);
-                    order.setGhnStatus("ready_to_pick");
-                    hoaDonRepository.save(order);
-                    log.info("[GHN] Tạo đơn vận chuyển GHN sau SePay thành công: orderId={}, ghnCode={}",
-                            order.getId(), ghnCode);
-                }
-            } catch (Exception ghnEx) {
-                log.error("[GHN] Lỗi tạo đơn GHN sau SePay: orderId={}, error={}",
-                        order.getId(), ghnEx.getMessage());
-                // Không throw – lỗi GHN không làm hỏng thanh toán
-            }
-        }
-
-        // Mask account number in logs
-        String maskedAccount = maskAccountNumber(transaction.getAccountNumber());
-        log.info("SePay IPN Success: TxId: {}, Order: {}, Amount: {}, Account: {}, Gateway: {}", 
-                transactionId, orderCode, transferAmount, maskedAccount, gateway);
-
-        return createSuccessResponse("Processed");
     }
+
 
     private PaymentTransaction saveTransactionRecord(SepayTransactionDto transactionDto, HoaDon order, String status, String rawPayload) {
         PaymentTransaction tx = new PaymentTransaction();
@@ -296,21 +234,33 @@ public class SepayGatewayService implements PaymentGatewayService {
         if (text == null || text.trim().isEmpty()) {
             return null;
         }
-        // Match HDSVN (POS orders), DHSVN or DH followed by YYYYMMDDHHMMSS date and 6 hex chars
-        Pattern pattern = Pattern.compile("(HDSVN|DHSVN|DH)[-_\\s]*\\d+[-_\\s]*[A-Z0-9]+", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(text);
-        if (matcher.find()) {
-            return matcher.group(0).replaceAll("\\s+", "").toUpperCase();
+        // 1. Explicitly match HDSVN (POS orders) or DHSVN (Online orders) with digits and hyphens
+        Pattern specificPattern = Pattern.compile("(HDSVN|DHSVN)[-_\\s]*\\d+([-_\\s]*\\d+)?", Pattern.CASE_INSENSITIVE);
+        Matcher specificMatcher = specificPattern.matcher(text);
+        if (specificMatcher.find()) {
+            return specificMatcher.group(0).replaceAll("\\s+", "").toUpperCase();
         }
-        
-        // General fallback to matches beginning with HDSVN, DHSVN or DH and digits/letters (at least 8 chars to avoid collision)
-        Pattern generalPattern = Pattern.compile("(HDSVN|DHSVN|DH)[-_\\s]*[A-Z0-9]{8,}", Pattern.CASE_INSENSITIVE);
-        Matcher generalMatcher = generalPattern.matcher(text);
-        if (generalMatcher.find()) {
-            return generalMatcher.group(0).replaceAll("\\s+", "").toUpperCase();
+
+        // 2. Match HDSVN or DHSVN with alphanumeric codes anywhere in the text
+        Pattern hsvPattern = Pattern.compile("(HDSVN|DHSVN)[-_\\s]*[A-Z0-9]+", Pattern.CASE_INSENSITIVE);
+        Matcher hsvMatcher = hsvPattern.matcher(text);
+        if (hsvMatcher.find()) {
+            return hsvMatcher.group(0).replaceAll("\\s+", "").toUpperCase();
         }
-        
+
+        // 3. Fallback match for legacy DH prefix with word boundary (to avoid matching inside bank refs like 220D)
+        Pattern dhPattern = Pattern.compile("\\bDH[-_\\s]*\\d+[-_\\s]*[A-Z0-9]+", Pattern.CASE_INSENSITIVE);
+        Matcher dhMatcher = dhPattern.matcher(text);
+        if (dhMatcher.find()) {
+            return dhMatcher.group(0).replaceAll("\\s+", "").toUpperCase();
+        }
+
         return null;
+    }
+
+    private boolean isOrderAlreadyPaid(HoaDon order) {
+        return order != null
+                && "DA_THANH_TOAN".equalsIgnoreCase(order.getTrangThaiThanhToan());
     }
 
     private String maskAccountNumber(String acc) {
@@ -326,4 +276,12 @@ public class SepayGatewayService implements PaymentGatewayService {
         resp.put("message", message);
         return resp;
     }
+
+    private Map<String, Object> createErrorResponse(String message) {
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", false);
+        resp.put("message", message);
+        return resp;
+    }
 }
+

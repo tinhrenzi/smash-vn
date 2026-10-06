@@ -45,8 +45,17 @@ public class DotGiamGia {
      * Hợp lệ: 1% đến {@code PromotionValidationConstants.MAX_CAMPAIGN_DISCOUNT_PERCENT}%.
      * Ví dụ: phanTramGiam = 20 → giá sản phẩm 500.000đ còn 400.000đ.
      */
-    @Column(name = "phan_tram_giam", nullable = false)
+    @Column(name = "phan_tram_giam")
     private Integer phanTramGiam;
+
+    @Column(name = "gia_tri_giam")
+    private java.math.BigDecimal giaTriGiam;
+
+    @Column(name = "gia_tu")
+    private java.math.BigDecimal giaTu;
+
+    @Column(name = "gia_den")
+    private java.math.BigDecimal giaDen;
 
     /**
      * Loại hình giảm giá. Hiện tại hệ thống chỉ hỗ trợ hai giá trị:
@@ -72,8 +81,8 @@ public class DotGiamGia {
      * {@code true}  → đợt giảm giá còn hiệu lực (nếu cũng trong thời gian ngày bắt đầu–kết thúc).
      * {@code false} → đã bị vô hiệu hóa hoặc xóa logic, không xuất hiện trên trang sản phẩm.
      */
-    @Column(name = "kich_hoat")
-    private Boolean active = true;
+    @Column(name = "trang_thai", nullable = false)
+    private Boolean trangThai = true;
 
     /**
      * Danh sách sản phẩm được áp dụng đợt giảm giá này.
@@ -91,10 +100,14 @@ public class DotGiamGia {
     private java.util.Set<SanPham> sanPhams = new java.util.HashSet<>();
 
     /**
-     * Trả về giá trị {@code active}, mặc định là {@code true} nếu cột chưa có dữ liệu (NULL).
+     * Trả về giá trị {@code trangThai}, mặc định là {@code true} nếu cột chưa có dữ liệu (NULL).
      */
     public Boolean getActive() {
-        return active == null ? true : active;
+        return trangThai == null ? true : trangThai;
+    }
+
+    public void setActive(Boolean active) {
+        this.trangThai = active;
     }
 
     /**
@@ -102,7 +115,7 @@ public class DotGiamGia {
      * Được dùng trên giao diện admin và logic lọc trong {@code PricingServiceImpl}.
      *
      * <ul>
-     *   <li>{@code "INACTIVE"} – đã bị vô hiệu hóa thủ công ({@code active = false}).</li>
+     *   <li>{@code "INACTIVE"} – đã bị vô hiệu hóa thủ công ({@code trangThai = false}).</li>
      *   <li>{@code "UPCOMING"} – chưa đến ngày bắt đầu.</li>
      *   <li>{@code "EXPIRED"}  – đã qua ngày kết thúc.</li>
      *   <li>{@code "ACTIVE"}   – đang trong thời gian hiệu lực và chưa bị tắt.</li>
@@ -111,7 +124,7 @@ public class DotGiamGia {
      * @return chuỗi trạng thái động, không lưu vào cơ sở dữ liệu.
      */
     public String getDynamicStatus() {
-        if (active != null && !active) {
+        if (trangThai != null && !trangThai) {
             return "INACTIVE";
         }
         LocalDateTime now = LocalDateTime.now();

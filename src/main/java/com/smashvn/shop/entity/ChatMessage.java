@@ -1,31 +1,12 @@
 package com.smashvn.shop.entity;
 
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ChatMessage")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-
-/**
- * Thực thể cho bản ghi tin nhắn trong cuộc trò chuyện. Dùng để ánh xạ dữ liệu
- * tin nhắn với bảng ChatMessage trong cơ sở dữ liệu. Bao gồm người gửi, nội
- * dung và thời gian gửi.
- */
 public class ChatMessage {
 
     @Id
@@ -36,12 +17,43 @@ public class ChatMessage {
     @JoinColumn(name = "id_cuoc_tro_chuyen", nullable = false)
     private ChatConversation conversation;
 
-    @Column(name = "loai_nguoi_gui", nullable = false, length = 10)
-    private String senderType; // USER, BOT
+    @Column(name = "vai_tro", nullable = false)
+    private String vaiTro; // USER, ASSISTANT, SYSTEM, TOOL
 
     @Column(name = "noi_dung", nullable = false, columnDefinition = "NVARCHAR(MAX)")
     private String noiDung;
 
-    @Column(name = "thoi_gian")
-    private LocalDateTime thoiGian = LocalDateTime.now();
+    @Column(name = "ten_model")
+    private String tenModel;
+
+    @Column(name = "trang_thai", nullable = false)
+    private String trangThai; // PENDING, SUCCESS, FAILED, BLOCKED
+
+    @Column(name = "so_token_dau_vao")
+    private Integer soTokenDauVao;
+
+    @Column(name = "so_token_dau_ra")
+    private Integer soTokenDauRa;
+
+    @Column(name = "thoi_gian_xu_ly_ms")
+    private Long thoiGianXuLyMs;
+
+    @Column(name = "ma_loi")
+    private String maLoi;
+
+    @Column(name = "noi_dung_loi")
+    private String noiDungLoi;
+
+    @Column(name = "ngay_tao", nullable = false, updatable = false)
+    private LocalDateTime ngayTao;
+
+    @PrePersist
+    protected void onCreate() {
+        if (trangThai == null) {
+            trangThai = "SUCCESS";
+        }
+        if (ngayTao == null) {
+            ngayTao = LocalDateTime.now();
+        }
+    }
 }

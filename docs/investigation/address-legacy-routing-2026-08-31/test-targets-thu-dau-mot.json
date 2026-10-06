@@ -1,0 +1,23 @@
+[
+  {
+    "case": "thu-dau-mot-old-phu-cuong",
+    "newWard": "Phường Thủ Dầu Một",
+    "oldProvince": "Bình Dương",
+    "oldDistrict": "Thủ Dầu Một",
+    "oldWard": "Phú Cường"
+  },
+  {
+    "case": "thu-dau-mot-old-phu-tho",
+    "newWard": "Phường Thủ Dầu Một",
+    "oldProvince": "Bình Dương",
+    "oldDistrict": "Thủ Dầu Một",
+    "oldWard": "Phú Thọ"
+  },
+  {
+    "case": "thu-dau-mot-old-chanh-nghia",
+    "newWard": "Phường Thủ Dầu Một",
+    "oldProvince": "Bình Dương",
+    "oldDistrict": "Thủ Dầu Một",
+    "oldWard": "Chánh Nghĩa"
+  }
+]

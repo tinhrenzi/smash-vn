@@ -10,21 +10,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.smashvn.shop.dao.DanhGiaDAO;
+import com.smashvn.shop.entity.CommentViolationLog;
+import com.smashvn.shop.entity.AccountStatus;
 import com.smashvn.shop.entity.DanhGia;
-import com.smashvn.shop.entity.DanhGiaAnh;
+import com.smashvn.shop.entity.HinhAnhDanhGia;
 import com.smashvn.shop.entity.KhachHang;
 import com.smashvn.shop.entity.SanPham;
 import com.smashvn.shop.entity.TaiKhoan;
 import com.smashvn.shop.entity.ThongBao;
-import com.smashvn.shop.entity.CommentViolationLog;
-import com.smashvn.shop.dao.DanhGiaDAO;
-import com.smashvn.shop.repository.DanhGiaAnhRepository;
+import com.smashvn.shop.repository.CommentViolationLogRepository;
+import com.smashvn.shop.repository.HoaDonChiTietRepository;
 import com.smashvn.shop.repository.KhachHangRepository;
 import com.smashvn.shop.repository.SanPhamRepository;
 import com.smashvn.shop.repository.TaiKhoanRepository;
-import com.smashvn.shop.repository.HoaDonChiTietRepository;
 import com.smashvn.shop.repository.ThongBaoRepository;
-import com.smashvn.shop.repository.CommentViolationLogRepository;
+import com.smashvn.shop.service.blog.CommentModerationService;
 import com.smashvn.shop.service.common.FileStorageService;
 import com.smashvn.shop.util.ProfanityFilter;
 import com.smashvn.shop.util.SeverityLevel;
@@ -38,7 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 public class DanhGiaService {
 
     private final DanhGiaDAO danhGiaDAO;
-    private final DanhGiaAnhRepository danhGiaAnhRepository;
     private final SanPhamRepository sanPhamRepository;
     private final KhachHangRepository khachHangRepository;
     private final TaiKhoanRepository taiKhoanRepository;
@@ -47,6 +47,7 @@ public class DanhGiaService {
     private final CommentViolationLogRepository commentViolationLogRepository;
     private final FileStorageService fileStorageService;
     private final ProfanityFilter profanityFilter;
+    private final CommentModerationService commentModerationService;
     private final org.springframework.mail.javamail.JavaMailSender mailSender;
 
     @org.springframework.beans.factory.annotation.Value("${app.admin.emails}")
@@ -56,7 +57,13 @@ public class DanhGiaService {
      * Lấy danh sách đánh giá chưa xóa của một sản phẩm
      */
     public List<DanhGia> layDanhSachDanhGiaTheoSanPham(Integer sanPhamId) {
-        return danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(sanPhamId);
+        return danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(sanPhamId)
+                .stream()
+                .filter(dg -> dg.getBinhLuanAn() == null || !dg.getBinhLuanAn())
+                .filter(dg -> dg.getKhachHang() == null || dg.getKhachHang().getTaiKhoan() == null
+                || dg.getKhachHang().getTaiKhoan().getNgayKhoaBinhLuanDen() == null
+                || dg.getKhachHang().getTaiKhoan().getNgayKhoaBinhLuanDen().isBefore(LocalDateTime.now()))
+                .toList();
     }
 
     /**
@@ -102,16 +109,16 @@ public class DanhGiaService {
                 message.setTo(email.trim());
                 message.setSubject("[Cảnh báo] Bình luận vi phạm nghiêm trọng - Smash VN");
                 message.setText(String.format(
-                        "Chào Admin,\n\n" +
-                        "Hệ thống phát hiện bình luận có mức độ vi phạm %s từ khách hàng:\n" +
-                        "- Người bình luận: %s\n" +
-                        "- Email: %s\n" +
-                        "- Sản phẩm: %s\n" +
-                        "- Nội dung gốc: %s\n" +
-                        "- Nội dung đã lọc: %s\n" +
-                        "- Số lần vi phạm của tài khoản: %d/5\n" +
-                        "- Hình phạt áp dụng: Khóa bình luận %s (Đến: %s)\n\n" +
-                        "Vui lòng truy cập trang quản trị để xử lý nếu cần: http://localhost:8080/admin/danh-gia\n",
+                        "Chào Admin,\n\n"
+                        + "Hệ thống phát hiện bình luận có mức độ vi phạm %s từ khách hàng:\n"
+                        + "- Người bình luận: %s\n"
+                        + "- Email: %s\n"
+                        + "- Sản phẩm: %s\n"
+                        + "- Nội dung gốc: %s\n"
+                        + "- Nội dung đã lọc: %s\n"
+                        + "- Số lần vi phạm của tài khoản: %d/5\n"
+                        + "- Hình phạt áp dụng: Khóa bình luận %s (Đến: %s)\n\n"
+                        + "Vui lòng truy cập trang quản trị để xử lý nếu cần: http://localhost:8080/admin/danh-gia\n",
                         severity, nameKh, emailKh, productName, rawComment, filteredComment, violationCount, banDuration, banExpiration
                 ));
                 mailSender.send(message);
@@ -125,7 +132,10 @@ public class DanhGiaService {
      * Thêm mới hoặc Cập nhật đánh giá của khách hàng
      */
     @Transactional(rollbackFor = Exception.class)
-    public void themHoacCapNhatDanhGia(Integer idTaiKhoan, Integer idSanPham, Double soSao, String binhLuan, List<MultipartFile> files) throws Exception {
+    public boolean themHoacCapNhatDanhGia(Integer idTaiKhoan, Integer idSanPham, Double soSao, String binhLuan, List<MultipartFile> files) throws Exception {
+        if (binhLuan == null || binhLuan.trim().isEmpty()) {
+            throw new IllegalArgumentException("Nội dung đánh giá không được để trống.");
+        }
         // 1. Kiểm tra sự tồn tại và trạng thái sản phẩm (Chặn sản phẩm không hoạt động)
         SanPham sanPham = sanPhamRepository.findById(idSanPham)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm này!"));
@@ -148,6 +158,10 @@ public class DanhGiaService {
         // Concurrency lock: Load TaiKhoan with Pessimistic Write Lock
         TaiKhoan tk = taiKhoanRepository.findByIdForUpdate(idTaiKhoan)
                 .orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại!"));
+        if (tk.getTrangThaiTaiKhoan() != AccountStatus.ACTIVE
+                || (tk.getTrangThai() != null && !"hoat_dong".equalsIgnoreCase(tk.getTrangThai()))) {
+            throw new IllegalStateException("Bạn cần kích hoạt tài khoản thành viên để thực hiện đánh giá.");
+        }
 
         // Check if currently comment-banned
         if (tk.getNgayKhoaBinhLuanDen() != null && tk.getNgayKhoaBinhLuanDen().isAfter(LocalDateTime.now())) {
@@ -187,9 +201,20 @@ public class DanhGiaService {
         }
 
         // 5. Phân tích tục tĩu
+        java.util.List<String> customKeywords;
+        try {
+            customKeywords = commentModerationService.getActiveRawKeywords();
+        } catch (org.springframework.dao.DataAccessException e) {
+            log.error("[REVIEW_MODERATION_ERROR] Cannot load active moderation keywords", e);
+            throw new IllegalStateException("Hệ thống kiểm duyệt đang tạm thời gián đoạn. Vui lòng thử lại sau.");
+        }
+        ProfanityFilter.FilterResult moderation = profanityFilter.filterWithResult(binhLuan, customKeywords);
         SeverityLevel severity = profanityFilter.getSeverity(binhLuan);
-        boolean isViolation = (severity != SeverityLevel.NONE);
-        String filteredComment = profanityFilter.filter(binhLuan);
+        if (severity == SeverityLevel.NONE && moderation.moderated()) {
+            severity = SeverityLevel.MEDIUM;
+        }
+        boolean isViolation = moderation.moderated();
+        String filteredComment = moderation.content();
 
         boolean autoHide = false;
         String textThoiHan = "";
@@ -201,21 +226,26 @@ public class DanhGiaService {
 
             LocalDateTime khoaDen;
             int violations = tk.getSoLanNhacNhoViPham();
-            if (violations == 1) {
-                khoaDen = LocalDateTime.now().plusHours(3);
-                textThoiHan = "3 giờ";
-            } else if (violations == 2) {
-                khoaDen = LocalDateTime.now().plusDays(1);
-                textThoiHan = "1 ngày";
-            } else if (violations == 3) {
-                khoaDen = LocalDateTime.now().plusDays(7);
-                textThoiHan = "7 ngày";
-            } else if (violations == 4) {
-                khoaDen = LocalDateTime.now().plusDays(30);
-                textThoiHan = "30 ngày";
-            } else {
-                khoaDen = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
-                textThoiHan = "Vĩnh viễn";
+            switch (violations) {
+                case 1:
+                    khoaDen = LocalDateTime.now().plusHours(3);
+                    textThoiHan = "3 giờ";
+                    break;
+                case 2:
+                    khoaDen = LocalDateTime.now().plusDays(1);
+                    textThoiHan = "1 ngày";
+                    break;
+                case 3:
+                    khoaDen = LocalDateTime.now().plusDays(7);
+                    textThoiHan = "7 ngày";
+                    break;
+                case 4:
+                    khoaDen = LocalDateTime.now().plusDays(30);
+                    textThoiHan = "30 ngày";
+                    break;
+                default:
+                    khoaDen = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+                    textThoiHan = "Vĩnh viễn";
             }
             tk.setNgayKhoaBinhLuanDen(khoaDen);
             taiKhoanRepository.save(tk);
@@ -224,9 +254,9 @@ public class DanhGiaService {
 
             // Create notification for customer
             String thongBaoNoiDung = String.format(
-                    "Đánh giá của bạn tại sản phẩm '%s' chứa từ ngữ không phù hợp và vi phạm tiêu chuẩn cộng đồng của SMASH-VN (Mức độ: %s). " +
-                    "Số lần vi phạm hiện tại: %d/5. " +
-                    "Quyền bình luận của bạn đã bị khóa tạm thời %s đến %s. Vui lòng tuân thủ hướng dẫn cộng đồng.",
+                    "Đánh giá của bạn tại sản phẩm '%s' chứa từ ngữ không phù hợp và vi phạm tiêu chuẩn cộng đồng của SMASH-VN (Mức độ: %s). "
+                    + "Số lần vi phạm hiện tại: %d/5. "
+                    + "Quyền bình luận của bạn đã bị khóa tạm thời %s đến %s. Vui lòng tuân thủ hướng dẫn cộng đồng.",
                     sanPham.getTenSanPham(), severity.name(), violations, textThoiHan, expirationStr
             );
             ThongBao tb = ThongBao.builder()
@@ -241,7 +271,7 @@ public class DanhGiaService {
             // Send admin email for HIGH and CRITICAL severity
             if (severity == SeverityLevel.HIGH || severity == SeverityLevel.CRITICAL) {
                 String nameKh = kh.getHoKh() + " " + kh.getTenKh();
-                guiEmailCanhBaoAdmin(nameKh, tk.getEmail(), sanPham.getTenSanPham(), binhLuan, filteredComment, severity.name(), violations, textThoiHan, expirationStr);
+                guiEmailCanhBaoAdmin(nameKh, tk.getUsername(), sanPham.getTenSanPham(), binhLuan, filteredComment, severity.name(), violations, textThoiHan, expirationStr);
             }
 
             // CRITICAL severity automatically hides the review
@@ -260,7 +290,7 @@ public class DanhGiaService {
                 // CASE CHỈNH SỬA / GHI ĐÈ ĐÁNH GIÁ CŨ
                 DanhGia dg = existingOpt.get();
                 boolean starChanged = !dg.getSoSao().equals(soSao);
-                
+
                 dg.setSoSao(soSao);
                 dg.setBinhLuan(filteredComment);
                 dg.setNgayCapNhat(LocalDateTime.now());
@@ -281,7 +311,7 @@ public class DanhGiaService {
 
                 if (hasNewUpload) {
                     // Xóa ảnh cũ trên đĩa vật lý
-                    for (DanhGiaAnh oldAnh : dg.getDanhSachAnh()) {
+                    for (HinhAnhDanhGia oldAnh : dg.getDanhSachAnh()) {
                         fileStorageService.deleteImage(oldAnh.getDuongDan(), "reviews");
                     }
                     // Dọn danh sách trong DB
@@ -290,9 +320,9 @@ public class DanhGiaService {
                     // Tải ảnh mới lên
                     uploadedFileNames = fileStorageService.saveReviewImages(files);
                     for (String name : uploadedFileNames) {
-                        DanhGiaAnh anh = DanhGiaAnh.builder()
+                        HinhAnhDanhGia anh = HinhAnhDanhGia.builder()
                                 .danhGia(dg)
-                                .duongDan(name)
+                                .urlHinhAnh(name)
                                 .ngayTao(LocalDateTime.now())
                                 .build();
                         dg.getDanhSachAnh().add(anh);
@@ -315,8 +345,8 @@ public class DanhGiaService {
                         .binhLuan(filteredComment)
                         .ngayDanhGia(LocalDateTime.now())
                         .daXoa(false)
-                        .anBinhLuan(autoHide)
-                        .anHinhAnh(false)
+                        .binhLuanAn(autoHide)
+                        .hinhAnhAn(false)
                         .build();
 
                 // Lưu ảnh đính kèm nếu có
@@ -333,9 +363,9 @@ public class DanhGiaService {
                 if (hasUpload) {
                     uploadedFileNames = fileStorageService.saveReviewImages(files);
                     for (String name : uploadedFileNames) {
-                        DanhGiaAnh anh = DanhGiaAnh.builder()
+                        HinhAnhDanhGia anh = HinhAnhDanhGia.builder()
                                 .danhGia(dg)
-                                .duongDan(name)
+                                .urlHinhAnh(name)
                                 .ngayTao(LocalDateTime.now())
                                 .build();
                         dg.getDanhSachAnh().add(anh);
@@ -355,7 +385,8 @@ public class DanhGiaService {
                         .taiKhoan(tk)
                         .danhGia(dgSaved)
                         .sanPham(sanPham)
-                        .noiDungGoc(binhLuan)
+                        // Never persist the unmoderated text, including in audit logs.
+                        .noiDungGoc(filteredComment)
                         .noiDungDaLoc(filteredComment)
                         .mucDoViPham(severity.name())
                         .soLanViPham(tk.getSoLanNhacNhoViPham())
@@ -374,13 +405,20 @@ public class DanhGiaService {
             }
             throw e;
         }
+        return moderation.moderated();
     }
 
     /**
-     * Tính toán điểm rating trung bình và tổng số lượng đánh giá để cache vào bảng SanPham
+     * Tính toán điểm rating trung bình và tổng số lượng đánh giá để cache vào
+     * bảng SanPham
      */
     public void updateProductRatingStats(Integer idSanPham) {
-        List<DanhGia> activeReviews = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(idSanPham);
+        List<DanhGia> activeReviews = danhGiaDAO.findBySanPham_IdAndDaXoaFalseAndBinhLuanAnFalseOrderByNgayDanhGiaDesc(idSanPham)
+                .stream()
+                .filter(dg -> dg.getKhachHang() == null || dg.getKhachHang().getTaiKhoan() == null
+                || dg.getKhachHang().getTaiKhoan().getNgayKhoaBinhLuanDen() == null
+                || dg.getKhachHang().getTaiKhoan().getNgayKhoaBinhLuanDen().isBefore(LocalDateTime.now()))
+                .toList();
         int soDanhGia = activeReviews.size();
         double diemTrungBinh = activeReviews.stream()
                 .mapToDouble(DanhGia::getSoSao)
@@ -412,9 +450,9 @@ public class DanhGiaService {
         dg.setAnBinhLuan(true);
         dg.setNguoiAnBinhLuan(admin);
         dg.setNgayAnBinhLuan(LocalDateTime.now());
-        danhGiaDAO.save(dg);
+        danhGiaDAO.saveAndFlush(dg);
 
-        // Lưu ý nghiệp vụ: KHÔNG cập nhật cache rating khi ẩn bình luận (sao vẫn hiển thị bình thường)
+        updateProductRatingStats(dg.getSanPham().getId());
     }
 
     /**
@@ -427,10 +465,93 @@ public class DanhGiaService {
         TaiKhoan admin = taiKhoanRepository.findById(adminId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản quản trị!"));
 
+        List<String> customKeywords = commentModerationService.getActiveRawKeywords();
+        if (dg.getBinhLuan() != null && !dg.getBinhLuan().isBlank()) {
+            ProfanityFilter.FilterResult moderation = profanityFilter.filterWithResult(dg.getBinhLuan(), customKeywords);
+            if (moderation.moderated()) {
+                throw new IllegalArgumentException("Không thể hiển thị lại vì nội dung bình luận vẫn vi phạm từ khóa cấm hiện tại.");
+            }
+        }
+
         dg.setAnBinhLuan(false);
         dg.setNguoiHienBinhLuan(admin);
         dg.setNgayHienBinhLuan(LocalDateTime.now());
-        danhGiaDAO.save(dg);
+        danhGiaDAO.saveAndFlush(dg);
+
+        updateProductRatingStats(dg.getSanPham().getId());
+    }
+
+    /**
+     * Quét và tự động ẩn các bình luận vi phạm danh sách từ cấm mới
+     */
+    @Transactional
+    public void scanAndModerateReviews() {
+        long startTime = System.currentTimeMillis();
+        List<String> customKeywords = commentModerationService.getActiveRawKeywords();
+        if (customKeywords == null || customKeywords.isEmpty()) {
+            log.info("[REVIEW_MODERATION_JOB] No active custom keywords found. Exiting scan.");
+            return;
+        }
+
+        List<DanhGia> activeReviews = danhGiaDAO.findByDaXoaFalseAndBinhLuanAnFalse();
+        java.util.Set<Integer> productIdsToUpdate = new java.util.HashSet<>();
+        int hiddenCount = 0;
+
+        for (DanhGia dg : activeReviews) {
+            String text = dg.getBinhLuan();
+            if (text == null || text.trim().isEmpty()) {
+                continue;
+            }
+
+            ProfanityFilter.FilterResult moderation = profanityFilter.filterWithResult(text, customKeywords);
+            if (moderation.moderated()) {
+                dg.setAnBinhLuan(true);
+                dg.setNgayAnBinhLuan(LocalDateTime.now());
+                danhGiaDAO.save(dg);
+
+                productIdsToUpdate.add(dg.getSanPham().getId());
+                hiddenCount++;
+
+                SeverityLevel severity = profanityFilter.getSeverity(text, customKeywords);
+                if (severity == SeverityLevel.NONE) {
+                    severity = SeverityLevel.MEDIUM;
+                }
+
+                TaiKhoan tk = (dg.getKhachHang() != null) ? dg.getKhachHang().getTaiKhoan() : null;
+                if (tk == null) {
+                    // Fallback to avoid dropping the log silently
+                    tk = taiKhoanRepository.findAll().stream().findFirst().orElse(null);
+                }
+
+                if (tk != null) {
+                    CommentViolationLog logEntry = CommentViolationLog.builder()
+                            .taiKhoan(tk)
+                            .danhGia(dg)
+                            .sanPham(dg.getSanPham())
+                            .noiDungGoc(text)
+                            .noiDungDaLoc(moderation.content())
+                            .mucDoViPham(severity.name())
+                            .soLanViPham(tk.getSoLanNhacNhoViPham())
+                            .thoiHanKhoa(null)
+                            .ngayViPham(LocalDateTime.now())
+                            .createdAt(LocalDateTime.now())
+                            .build();
+                    commentViolationLogRepository.save(logEntry);
+                }
+            }
+        }
+
+        if (!productIdsToUpdate.isEmpty()) {
+            danhGiaDAO.flush();
+            for (Integer productId : productIdsToUpdate) {
+                updateProductRatingStats(productId);
+            }
+        }
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        log.info("[REVIEW_MODERATION_JOB] Scan summary: checked {} reviews, hidden {} reviews, recalculated {} products, duration {} ms.",
+                 activeReviews.size(), hiddenCount, productIdsToUpdate.size(), duration);
     }
 
     /**
@@ -480,9 +601,10 @@ public class DanhGiaService {
         dg.setDaXoa(true);
         dg.setNguoiXoa(admin);
         dg.setNgayXoa(LocalDateTime.now());
-        danhGiaDAO.save(dg);
+        danhGiaDAO.saveAndFlush(dg);
 
         // Cập nhật lại cache rating trên thực thể SanPham khi đánh giá bị loại bỏ
         updateProductRatingStats(dg.getSanPham().getId());
     }
+
 }

@@ -10,6 +10,7 @@ public record TransactionHistoryDTO(
     LocalDateTime transactionTime,
     String paymentMethod,
     String paymentStatus,
+    String paymentStatusLabel,
     String transactionId,
     BigDecimal amount
 ) {}

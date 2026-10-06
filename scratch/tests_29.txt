@@ -1,0 +1,87 @@
+1. [FAILURE] AdminPosCustomerRegisterTest#testRegisterDuplicateUsername_Exception
+   Package: com.smashvn.shop.controller.admin.AdminPosCustomerRegisterTest
+   Detail: Status expected:<400> but was:<200>
+2. [FAILURE] AdminPosCustomerRegisterTest#testRegisterExistingCustomer_RequiresConfirmation
+   Package: com.smashvn.shop.controller.admin.AdminPosCustomerRegisterTest
+   Detail: Status expected:<200> but was:<400>
+3. [FAILURE] AdminPosCustomerRegisterTest#testRegisterNewCustomer_Success
+   Package: com.smashvn.shop.controller.admin.AdminPosCustomerRegisterTest
+   Detail: JSON path "$.created" expected:<true> but was:<false>
+4. [FAILURE] CartRuntimeRegressionTest#testAddSingleSpctAccessory
+   Package: com.smashvn.shop.controller.order.CartRuntimeRegressionTest
+   Detail: Status expected:<200> but was:<400>
+5. [FAILURE] CartRuntimeRegressionTest#testItemRemovalAndTotalCalculation
+   Package: com.smashvn.shop.controller.order.CartRuntimeRegressionTest
+   Detail: Status expected:<200> but was:<400>
+6. [FAILURE] CartRuntimeRegressionTest#testAddShoesMultiColorSizeSpct
+   Package: com.smashvn.shop.controller.order.CartRuntimeRegressionTest
+   Detail: Status expected:<200> but was:<400>
+7. [FAILURE] CheckoutControllerTest#testViewCheckout_OneSavedAddress_NoDefault
+   Package: com.smashvn.shop.controller.order.CheckoutControllerTest
+   Detail: expected: <false> but was: <true>
+8. [FAILURE] CheckoutRuntimeRegressionTest#testServerSidePriceAuthorityAndSubtotal
+   Package: com.smashvn.shop.controller.order.CheckoutRuntimeRegressionTest
+   Detail: Status expected:<200> but was:<400>
+9. [ERROR] QuickAddAndCheckoutTest#testQuickAddAndCheckoutForGuestWithExistingSessionId
+   Package: com.smashvn.shop.controller.order.QuickAddAndCheckoutTest
+   Detail: Số điện thoại này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng số điện thoại khác.
+10. [FAILURE] ProductDetailRuntimeRegressionTest#testProductDetailLoadAllCategories
+   Package: com.smashvn.shop.controller.product.ProductDetailRuntimeRegressionTest
+   Detail: Model attribute 'sp' does not exist
+11. [FAILURE] ProductDetailRuntimeRegressionTest#testApparelSizeResolution
+   Package: com.smashvn.shop.controller.product.ProductDetailRuntimeRegressionTest
+   Detail: expected: not <null>
+12. [FAILURE] ProductDetailRuntimeRegressionTest#testRacketMultiVariantResolution
+   Package: com.smashvn.shop.controller.product.ProductDetailRuntimeRegressionTest
+   Detail: listBienTheJS model attribute must exist ==> expected: not <null>
+13. [FAILURE] ProductDetailRuntimeRegressionTest#testShoesMultiColorSizeResolution
+   Package: com.smashvn.shop.controller.product.ProductDetailRuntimeRegressionTest
+   Detail: expected: not <null>
+14. [FAILURE] ReviewModerationAndRatingTest#testSchedulerAutoScan
+   Package: com.smashvn.shop.controller.product.ReviewModerationAndRatingTest
+   Detail: expected: <AUTO_SCAN> but was: <USER>
+15. [FAILURE] GuestCheckoutSecurityIntegrationTest#testAnonymousCannotUpgradeGuestByEmail
+   Package: com.smashvn.shop.security.GuestCheckoutSecurityIntegrationTest
+   Detail: expected: <true> but was: <false>
+16. [FAILURE] SecurityHardeningIntegrationTest#testProductDescriptionBoundary_2001Chars
+   Package: com.smashvn.shop.security.SecurityHardeningIntegrationTest
+   Detail: Expected java.lang.RuntimeException to be thrown, but nothing was thrown.
+17. [FAILURE] SecurityHardeningIntegrationTest#testProductNameBoundary_101Chars
+   Package: com.smashvn.shop.security.SecurityHardeningIntegrationTest
+   Detail: Expected java.lang.RuntimeException to be thrown, but nothing was thrown.
+18. [ERROR] InventoryFlowFullVerificationTest#test13_pessimisticLockingConcurrencyProtection
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+19. [ERROR] InventoryFlowFullVerificationTest#test02_overQuantityOrderRejection
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+20. [ERROR] InventoryFlowFullVerificationTest#test04_orderCancellationStockRestorationAndIdempotency
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+21. [ERROR] InventoryFlowFullVerificationTest#test10_exchangeStockReservationAndCompletion
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+22. [ERROR] InventoryFlowFullVerificationTest#test01_successfulCheckoutStockDeduction
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+23. [ERROR] InventoryFlowFullVerificationTest#test07_returnSellableStockRestoration
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+24. [ERROR] InventoryFlowFullVerificationTest#test09_duplicateRestockIdempotencyProtection
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+25. [ERROR] InventoryFlowFullVerificationTest#test03_buyingOutTotalStock
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+26. [ERROR] InventoryFlowFullVerificationTest#test08_returnDefectiveStockHandling
+   Package: com.smashvn.shop.service.inventory.InventoryFlowFullVerificationTest
+   Detail: could not execute statement [Cannot insert the value NULL into column 'id_nhan_vien', table 'BadmintonShopDB1.dbo.SanPham'; column does not allow nulls. INSERT fails.] [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; SQL [insert into SanPham (id_danh_muc,diem_trung_binh,mo_ta,ngay_cap_nhat,ngay_tao,id_nhan_vien,so_luot_danh_gia,ten_san_pham,id_thuong_hieu,trang_thai) values (?,?,?,?,?,?,?,?,?,?)]; constraint [id_nhan_vien]
+27. [FAILURE] SepayTimeoutAndExpirationTest#testOrderHistory_FiltersOutChoThanhToanAndUnconfirmedDaHuy
+   Package: com.smashvn.shop.service.order.SepayTimeoutAndExpirationTest
+   Detail: expected: <1> but was: <3>
+28. [FAILURE] UniqueVariantImagesValidationTest#testPathTraversalIsSanitized
+   Package: com.smashvn.shop.service.product.UniqueVariantImagesValidationTest
+   Detail: expected: <unsafe_image.png> but was: <feab9f72-bd3a-4b05-9b2d-1333f4e53631.png>
+29. [FAILURE] UniqueVariantImagesValidationTest#testUploadImagePreservesOriginalVietnameseNameAndDeduplicates
+   Package: com.smashvn.shop.service.product.UniqueVariantImagesValidationTest
+   Detail: expected: <Axforce Thunder Cannon_Xanh Đậm.png> but was: <e65a6a2f-6ad3-4bb1-9761-a382e6a9b1c7.png>

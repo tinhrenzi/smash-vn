@@ -12,14 +12,14 @@
     <meta name="robots" content="index, follow">
     
     <!-- Canonical URL -->
-    <link rel="canonical" th:href="'https://smashvn.com/blog/' + ${blog.slug}">
+    <link rel="canonical" th:href="|https://smashvn.com/blog/${blog.slug}|">
     
     <!-- OpenGraph Tags -->
     <meta property="og:type" content="article">
     <meta property="og:title" th:content="${blog.title + ' - Smash VN'}">
     <meta property="og:description" th:content="${blog.summary}">
     <meta property="og:image" th:content="${#strings.startsWith(blog.image, '/uploads/') ? blog.image : '/images/blog/' + blog.image}">
-    <meta property="og:url" th:content="'https://smashvn.com/blog/' + ${blog.slug}">
+    <meta property="og:url" th:content="|https://smashvn.com/blog/${blog.slug}|">
     <meta property="og:site_name" content="Smash VN">
     <meta property="article:published_time" th:content="${blog.publishDate}">
     <meta property="article:author" th:content="${blog.author}">
@@ -46,7 +46,7 @@
       "headline": /*[[${blog.title}]]*/ "Tiêu đề bài viết",
       "image": /*[[${#strings.startsWith(blog.image, '/uploads/') ? 'https://smashvn.com' + blog.image : 'https://smashvn.com/images/blog/' + blog.image}]]*/ "",
       "genre": /*[[${blog.category}]]*/ "Category",
-      "keywords": /*[[${#strings.listJoin(blog.tags, ',')}]]*/ "Tags",
+      "keywords": /*[[${blog.tags != null and !blog.tags.isEmpty() ? T(java.lang.String).join(',', blog.tags) : ''}]]*/ "Tags",
       "publisher": {
         "@type": "Organization",
         "name": "Smash VN",
@@ -55,7 +55,7 @@
           "url": "https://smashvn.com/images/logo/logo-1.png"
         }
       },
-      "url": /*[['https://smashvn.com/blog/' + ${blog.slug}]]*/ "",
+      "url": /*[[${'https://smashvn.com/blog/' + blog.slug}]]*/ "",
       "datePublished": /*[[${blog.publishDate}]]*/ "",
       "author": {
         "@type": "Person",
@@ -64,7 +64,37 @@
       "description": /*[[${blog.summary}]]*/ "Summary"
     }
     </script>
-    <style th:if="${isPreview != null}">
+    <style>
+        .iframe-mode header,
+        .iframe-mode footer,
+        .iframe-mode .header--style-1,
+        .iframe-mode .outer-footer,
+        .iframe-mode .lower-footer,
+        .iframe-mode .footer,
+        .iframe-mode #smashvn-chatbot-container,
+        .iframe-mode #chatbot-trigger,
+        .iframe-mode #chatbot-window,
+        .iframe-mode #floating-cart,
+        .iframe-mode .floating-cart,
+        .iframe-mode .floating-cart-dropdown,
+        .iframe-mode #topScroll,
+        .iframe-mode .app-setting,
+        .iframe-mode .breadcrumb,
+        .iframe-mode .pd-breadcrumb,
+        .iframe-mode .btn-floating-cart,
+        .iframe-mode .btn-back-to-top,
+        .iframe-mode .preloader,
+        .iframe-mode #preloader,
+        .iframe-mode .sticky-header {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
         body.iframe-mode {
             background-color: #ffffff !important;
             padding: 0 !important;
@@ -72,13 +102,61 @@
         }
         body.iframe-mode .app-content {
             padding: 0 !important;
+            padding-bottom: 30px !important;
         }
         body.iframe-mode .blog-d-t {
             box-shadow: none !important;
             border: none !important;
             padding: 20px !important;
         }
-        body.iframe-mode .preloader {
+    </style>
+
+    <style th:if="${isPreview == true or previewMode == true}">
+        header,
+        footer,
+        .header--style-1,
+        .outer-footer,
+        .lower-footer,
+        .footer,
+        #smashvn-chatbot-container,
+        #chatbot-trigger,
+        #chatbot-window,
+        #floating-cart,
+        .floating-cart,
+        .floating-cart-dropdown,
+        #topScroll,
+        .app-setting,
+        .breadcrumb,
+        .pd-breadcrumb,
+        .btn-floating-cart,
+        .btn-back-to-top,
+        .preloader,
+        #preloader,
+        .sticky-header {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        body, body.iframe-mode {
+            background-color: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .app-content {
+            padding: 0 !important;
+            padding-bottom: 30px !important;
+        }
+        .blog-d-t {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 20px !important;
+        }
+        .preloader {
             display: none !important;
         }
     </style>
@@ -164,81 +242,80 @@
         // Bulletproof client-side check to automatically hide header & footer when page is loaded inside an iframe (preview mode)
         if (window.self !== window.top) {
             document.documentElement.classList.add('iframe-mode');
-            const style = document.createElement('style');
-            style.innerHTML = `
-                footer, .outer-footer, .lower-footer, header, .header--style-1, .preloader, #preloader {
-                    display: none !important;
-                }
-                body, body.iframe-mode {
-                    background-color: #ffffff !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                }
-                .app-content {
-                    padding: 0 !important;
-                }
-                .blog-d-t {
-                    box-shadow: none !important;
-                    border: none !important;
-                    padding: 20px !important;
-                }
-                /* Disable all links and cursor actions in preview mode */
-                a {
-                    pointer-events: none !important;
-                    cursor: default !important;
-                    text-decoration: none !important;
-                }
-            `;
-            document.head.appendChild(style);
-            
             document.addEventListener('DOMContentLoaded', function() {
                 document.body.classList.add('iframe-mode');
+                // Force remove any remaining floating widgets in preview iframe
+                ['smashvn-chatbot-container', 'topScroll', 'floating-cart'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.remove();
+                });
+                document.querySelectorAll('footer, .outer-footer, .lower-footer').forEach(f => f.remove());
             });
         }
     </script>
 </head>
-<body class="config" th:classappend="${isPreview != null} ? 'iframe-mode' : ''">
-    <div class="preloader is-active" th:style="${isPreview != null} ? 'display:none!important;' : ''">
-        <div class="preloader__wrap">
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt="Loading...">
+<body class="config" th:classappend="${isPreview == true or previewMode == true} ? 'iframe-mode' : ''">
+    <th:block th:unless="${isPreview == true or previewMode == true}">
+        <div class="preloader is-active">
+            <div class="preloader__wrap">
+                <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải..." width="64" height="64">
+            </div>
         </div>
-    </div>
+    </th:block>
 
     <!--====== Main App ======-->
     <div id="app">
         <!--====== Main Header ======-->
-        <header class="header--style-1" th:if="${isPreview == null}">
-            <div th:replace="~{layout/header :: header}"></div>
-        </header>
+        <th:block th:unless="${isPreview == true or previewMode == true}">
+            <header class="header--style-1">
+                <div th:replace="~{layout/header :: header}"></div>
+            </header>
+        </th:block>
 
         <!--====== App Content ======-->
         <div class="app-content">
             <!--====== Section 1: Breadcrumb ======-->
-            <div class="u-s-p-y-60" th:if="${isPreview == null}">
-                <div class="section__content">
-                    <div class="container">
-                        <div class="breadcrumb">
-                            <div class="breadcrumb__wrap">
-                                <ul class="breadcrumb__list">
-                                    <li class="has-separator">
-                                        <a th:href="@{/}">Trang chủ</a>
-                                    </li>
-                                    <li class="has-separator">
-                                        <a th:href="@{/blog}">Tin tức / Blogs</a>
-                                    </li>
-                                    <li class="is-marked">
-                                        <a th:href="@{'/blog/' + ${blog.slug}}" th:text="${blog.title}">Chi tiết bài viết</a>
-                                    </li>
-                                </ul>
+            <th:block th:unless="${isPreview == true or previewMode == true}">
+                <div class="u-s-p-y-60">
+                    <div class="section__content">
+                        <div class="container">
+                            <div class="breadcrumb">
+                                <div class="breadcrumb__wrap">
+                                    <ul class="breadcrumb__list">
+                                        <li class="has-separator">
+                                            <a th:href="@{/}">Trang chủ</a>
+                                        </li>
+                                        <li class="has-separator">
+                                            <a th:href="@{/blog}">Tin tức / Blogs</a>
+                                        </li>
+                                        <li class="is-marked">
+                                            <a th:href="@{/blog/{slug}(slug=${blog.slug})}" th:text="${blog.title}">Chi tiết bài viết</a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </th:block>
 
             <!--====== Section 2 ======-->
-            <div class="u-s-p-y-90">
+            <div th:class="${(isPreview == true or previewMode == true) ? 'u-s-p-t-20 u-s-p-b-60' : 'u-s-p-y-90'}">
                 <div class="container">
+                    <!--====== Preview Mode Alert Banner ======-->
+                    <div th:if="${isPreview == true or previewMode == true}" class="u-s-m-b-20">
+                        <div class="alert alert-warning py-2 px-3 rounded-3 border-start border-warning border-4 shadow-sm" style="background-color: #fff3cd; color: #664d03; border-color: #ffecb5;" role="alert">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div style="font-size: 13.5px;">
+                                    <i class="fas fa-eye me-2 text-warning"></i>
+                                    <strong>Chế độ xem trước bài viết:</strong>
+                                    <span th:if="${blog.status == 'DRAFT'}">Bài viết hiện đang ở trạng thái <strong>Nháp</strong> và chưa hiển thị công khai cho khách hàng.</span>
+                                    <span th:if="${blog.status == 'PUBLISHED'}">Bài viết hiện <strong>Đã xuất bản</strong> và đang hiển thị công khai trên website.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-lg-12">
                             <!--====== Thumbnail Image (Wide, aligned with comments) ======-->
@@ -278,7 +355,7 @@
                             </div>
 
                             <span class="bp-detail__h1">
-                                <a th:href="@{'/blog/' + ${blog.slug}}" th:text="${blog.title}" style="font-size: 32px; font-weight: 700; line-height: 1.25; color: #333333;">Wait till its open</a>
+                                <a th:href="@{/blog/{slug}(slug=${blog.slug})}" th:text="${blog.title}" style="font-size: 32px; font-weight: 700; line-height: 1.25; color: #333333;">Wait till its open</a>
                             </span>
 
                             <div class="blog-t-w" style="margin-bottom: 30px;">
@@ -291,7 +368,7 @@
 
                             <blockquote class="bp-detail__q" style="margin-top: 30px; margin-bottom: 30px;"><i class="fas fa-quote-left"></i>
                                 <span class="bp-detail__q-title" th:text="${blog.summary}">It’s Easier to Fool People Than to Convince Them That They Have Been Fooled.</span>
-                                <cite class="bp-detail__q-citation" th:text="'— ' + ${blog.author.toUpperCase()}">— MARK TWAIN</cite>
+                                <cite class="bp-detail__q-citation" th:text="${blog.author != null ? '— ' + #strings.toUpperCase(blog.author) : ''}">— MARK TWAIN</cite>
                             </blockquote>
 
                             <div class="post-center-wrap" style="margin-top: 40px; margin-bottom: 40px;">
@@ -313,11 +390,11 @@
 
                             <div class="gl-l-r bp-detail__postnp" style="border-top: 1px solid #eeeeee; border-bottom: 1px solid #eeeeee; padding: 20px 0; margin-top: 40px; margin-bottom: 50px;">
                                 <div>
-                                    <a th:href="${prevBlogSlug != null} ? @{'/blog/' + ${prevBlogSlug}} : '/blog'" 
+                                    <a th:href="@{${prevBlogSlug != null ? '/blog/' + prevBlogSlug : '/blog'}}" 
                                        th:style="${prevBlogSlug == null} ? 'pointer-events: none; opacity: 0.5; border-bottom: none;' : ''">Bài viết trước</a>
                                 </div>
                                 <div>
-                                    <a th:href="${nextBlogSlug != null} ? @{'/blog/' + ${nextBlogSlug}} : '/blog'" 
+                                    <a th:href="@{${nextBlogSlug != null ? '/blog/' + nextBlogSlug : '/blog'}}" 
                                        th:style="${nextBlogSlug == null} ? 'pointer-events: none; opacity: 0.5; border-bottom: none;' : ''">Bài viết tiếp theo</a>
                                 </div>
                             </div>
@@ -326,7 +403,7 @@
                 </div>
             </div>
             <!--====== Section 3: Comments ======-->
-            <div class="u-s-p-b-60" th:if="${isPreview == null}">
+            <div class="u-s-p-b-60" th:if="${isPreview != true and previewMode != true}">
                 <div class="d-meta">
                     <div class="container">
                         <div class="row">
@@ -382,27 +459,33 @@
                                     </div>
 
                                     <!-- Comment Submission Banner/Form -->
-                                    <div th:if="${session.idNguoiDung == null}" class="alert alert-warning text-center" style="padding: 25px; margin-top: 40px; margin-bottom: 20px; border-left: 4px solid #ffc107; background-color: #fffdf5; border-radius: 6px;">
-                                        <span style="font-size: 14.5px; font-weight: 500; color: #664d03;">Bạn cần <a th:href="@{/user/dang-nhap}" style="font-weight: 700; color: #ff4500; text-decoration: underline;">đăng nhập</a> để gửi bình luận cho bài viết này.</span>
+                                    <div th:if="${isPreview == true or previewMode == true}" class="text-center text-muted py-3 bg-light rounded-3 border my-4">
+                                        <i class="fas fa-info-circle me-1 text-primary"></i> Chế độ xem trước: Chức năng gửi bình luận và tương tác bị tạm khóa.
                                     </div>
 
-                                    <div th:if="${session.idNguoiDung != null}" style="margin-top: 40px;">
-                                        <span class="d-meta__text-2 u-s-m-b-6">Viết Bình Luận</span>
-                                        <span class="d-meta__text-3 u-s-m-b-16">Tài khoản của bạn: <strong th:text="${session.tenHienThi}">Người dùng</strong> (<span th:text="${session.nguoiDungDangNhap}">email</span>)</span>
-                                        
-                                        <form class="respond__form" th:action="@{'/blog/' + ${blog.slug} + '/comment'}" method="POST">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                                            <div class="respond__group">
-                                                <div class="u-s-m-b-15" style="width: 100%;">
-                                                    <label class="gl-label" for="comment">NỘI DUNG BÌNH LUẬN (Tối đa 1000 ký tự) *</label>
-                                                    <textarea class="text-area text-area--primary-style" id="comment" name="content" required maxlength="1000" style="padding: 15px; height: 120px; font-size: 13px;" placeholder="Nhập bình luận của bạn tại đây... Phông chữ lịch sự và văn minh." th:text="${commentContent}"></textarea>
+                                    <th:block th:unless="${isPreview == true or previewMode == true}">
+                                        <div th:if="${session.idNguoiDung == null}" class="alert alert-warning text-center" style="padding: 25px; margin-top: 40px; margin-bottom: 20px; border-left: 4px solid #ffc107; background-color: #fffdf5; border-radius: 6px;">
+                                            <span style="font-size: 14.5px; font-weight: 500; color: #664d03;">Bạn cần <a th:href="@{/user/dang-nhap}" style="font-weight: 700; color: #ff4500; text-decoration: underline;">đăng nhập</a> để gửi bình luận cho bài viết này.</span>
+                                        </div>
+
+                                        <div th:if="${session.idNguoiDung != null}" style="margin-top: 40px;">
+                                            <span class="d-meta__text-2 u-s-m-b-6">Viết Bình Luận</span>
+                                            <span class="d-meta__text-3 u-s-m-b-16">Tài khoản của bạn: <strong th:text="${session.tenHienThi}">Người dùng</strong> (<span th:text="${session.nguoiDungDangNhap}">email</span>)</span>
+                                            
+                                            <form class="respond__form" th:action="@{/blog/{slug}/comment(slug=${blog.slug})}" method="POST">
+                                                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                                <div class="respond__group">
+                                                    <div class="u-s-m-b-15" style="width: 100%;">
+                                                        <label class="gl-label" for="comment">NỘI DUNG BÌNH LUẬN (Tối đa 1000 ký tự) *</label>
+                                                        <textarea class="text-area text-area--primary-style" id="comment" name="content" required maxlength="1000" style="padding: 15px; height: 120px; font-size: 13px;" placeholder="Nhập bình luận của bạn tại đây... Phông chữ lịch sự và văn minh." th:text="${commentContent}"></textarea>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn--e-brand-shadow" type="submit" style="padding: 14px 40px; font-weight: 700; border-radius: 0px; background-color: #ff4500; border-color: #ff4500; color: #ffffff;">GỬI BÌNH LUẬN</button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                                <div>
+                                                    <button class="btn btn--e-brand-shadow" type="submit" style="padding: 14px 40px; font-weight: 700; border-radius: 0px; background-color: #ff4500; border-color: #ff4500; color: #ffffff;">GỬI BÌNH LUẬN</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </th:block>
                                 </div>
                             </div>
                         </div>
@@ -411,11 +494,11 @@
             </div>
 
             <!-- Delete Comment Modal -->
-            <div th:if="${session.vaiTro == 'QL'}" class="modal fade" id="deleteCommentModal" tabindex="-1" aria-labelledby="deleteCommentModalLabel" aria-hidden="true">
+            <div th:if="${session.vaiTro == 'QL' and isPreview != true and previewMode != true}" class="modal fade" id="deleteCommentModal" tabindex="-1" aria-labelledby="deleteCommentModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-radius: 8px;">
                         <form id="deleteCommentForm" th:action="@{/blog/comment/delete/0}" method="POST">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                             <input type="hidden" name="blogSlug" th:value="${blog.slug}" />
                             <div class="modal-header bg-dark text-white" style="border-bottom: 0; border-top-left-radius: 8px; border-top-right-radius: 8px;">
                                 <h5 class="modal-title" id="deleteCommentModalLabel"><i class="fas fa-exclamation-triangle me-2 text-warning"></i> Xóa bình luận của người dùng</h5>
@@ -446,7 +529,7 @@
             </div>
 
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-            <script th:inline="javascript" th:if="${session.vaiTro == 'QL'}">
+            <script th:inline="javascript" th:if="${session.vaiTro == 'QL' and isPreview != true and previewMode != true}">
                 let deleteCommentModal;
                 document.addEventListener("DOMContentLoaded", function() {
                     const modalEl = document.getElementById('deleteCommentModal');
@@ -482,7 +565,7 @@
                     const customInput = document.getElementById('customReasonInput');
                     if (select.value === 'custom') {
                         if (!customInput.value.trim()) {
-                            alert('Vui lòng nhập lý do xóa chi tiết!');
+                            showToast('Vui lòng nhập lý do xóa chi tiết!', 'warning');
                             event.preventDefault();
                             return;
                         }
@@ -495,10 +578,10 @@
         <!--====== End - App Content ======-->
 
         <!--====== Main Footer ======-->
-        <footer th:replace="~{layout/footer :: footer}" th:if="${isPreview == null}"></footer>
+        <footer th:replace="~{layout/footer :: footer}" th:if="${isPreview != true and previewMode != true}"></footer>
 
         <!--====== Modal Section ======-->
-        <div th:replace="~{layout/modals :: all-modals}" th:if="${isPreview == null}"></div>
+        <div th:replace="~{layout/modals :: all-modals}" th:if="${isPreview != true and previewMode != true}"></div>
     </div>
 
     <!--====== Vendor Js ======-->

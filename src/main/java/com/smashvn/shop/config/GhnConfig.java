@@ -25,7 +25,7 @@ public class GhnConfig {
     @Value("${ghn.from-ward-code}")
     private String fromWardCode;
 
-    @Value("${ghn.from-address:10 Kim Mã, Ba Đình, Hà Nội}")
+    @Value("${ghn.from-address}")
     private String fromAddress;
 
     @Value("${ghn.webhook-token:smashvn_ghn_webhook_secret_2026}")
@@ -34,6 +34,9 @@ public class GhnConfig {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(10000);
+        return new RestTemplate(factory);
     }
 }

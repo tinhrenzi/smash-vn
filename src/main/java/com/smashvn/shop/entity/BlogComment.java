@@ -45,8 +45,4 @@ public class BlogComment {
 
     @Column(name = "ly_do_xoa", length = 500)
     private String deletedReason;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_binh_luan_cha")
-    private BlogComment parentComment;
 }

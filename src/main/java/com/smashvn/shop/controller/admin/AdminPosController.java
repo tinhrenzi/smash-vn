@@ -15,7 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.smashvn.shop.config.SepayConfig;
+import com.smashvn.shop.dto.user.PosCustomerResponse;
+import com.smashvn.shop.dto.user.PosRegisterCustomerRequest;
 import com.smashvn.shop.entity.HoaDon;
 import com.smashvn.shop.entity.HoaDonChiTiet;
 import com.smashvn.shop.entity.TaiKhoan;
@@ -23,9 +27,8 @@ import com.smashvn.shop.repository.HoaDonChiTietRepository;
 import com.smashvn.shop.repository.HoaDonRepository;
 import com.smashvn.shop.repository.TaiKhoanRepository;
 import com.smashvn.shop.service.admin.AdminPosService;
-import com.smashvn.shop.service.product.PricingService;
 import com.smashvn.shop.service.product.PriceSnapshot;
-import com.smashvn.shop.config.SepayConfig;
+import com.smashvn.shop.service.product.PricingService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -44,12 +47,11 @@ public class AdminPosController {
     private final com.smashvn.shop.repository.ThuongHieuRepository thuongHieuRepository;
     private final PricingService pricingService;
     private final SepayConfig sepayConfig;
+    private final com.smashvn.shop.service.order.OrderViewService orderViewService;
 
     // ─── Trang chính POS ────────────────────────────────────────────────────────
     @GetMapping
     public String viewPos(Model model, HttpSession session) {
-        model.addAttribute("customers", adminPosService.searchCustomers(""));
-        model.addAttribute("variants", adminPosService.searchActiveVariants("", -1, -1));
         model.addAttribute("categories", danhMucRepository.findAll());
         model.addAttribute("brands", thuongHieuRepository.findAll());
         // Thông tin ngân hàng SePay để hiển thị trong modal chuyển khoản POS
@@ -70,21 +72,31 @@ public class AdminPosController {
         List<Map<String, Object>> results = adminPosService.searchActiveVariants(query, danhMucId, thuongHieuId).stream().map(v -> {
             Map<String, Object> map = new HashMap<>();
             // Dùng PriceSnapshot duy nhất để lấy giá thực sau DotGiamGia
-            PriceSnapshot snap = pricingService.buildPriceSnapshot(v);
+            PriceSnapshot snap;
+            try {
+                snap = pricingService.buildPriceSnapshot(v);
+            } catch (Exception ex) {
+                BigDecimal giaGoc = v.getGiaBan() != null ? v.getGiaBan() : BigDecimal.ZERO;
+                snap = new PriceSnapshot(giaGoc, giaGoc, BigDecimal.ZERO, BigDecimal.ZERO, null, null);
+            }
             map.put("id", v.getId());
-            map.put("tenSanPham", v.getSanPham().getTenSanPham());
-            map.put("mauSac", v.getMauSac());
-            map.put("trongLuong", v.getTrongLuong());
-            map.put("mucCang", v.getMucCang());
+            map.put("sku", v.getSku() != null ? v.getSku() : "");
+            map.put("maSanPham", v.getSanPham() != null && v.getSanPham().getMaSanPham() != null ? v.getSanPham().getMaSanPham() : "");
+            map.put("tenSanPham", v.getSanPham() != null && v.getSanPham().getTenSanPham() != null ? v.getSanPham().getTenSanPham() : "Sản phẩm");
+            map.put("phanLoai", v.getPhanLoaiHienThi());
+            map.put("mauSac", v.getMauSac() != null ? v.getMauSac() : "");
+            map.put("kichThuoc", v.getKichThuoc() != null ? v.getKichThuoc() : "");
+            map.put("trongLuong", v.getTrongLuong() != null ? v.getTrongLuong() : "");
+            map.put("mucCang", v.getMucCang() != null ? v.getMucCang() : "");
             // Giá bán thực sau khi áp dụng đợt giảm giá (nếu có)
-            map.put("giaBan", snap.giaBanSauGiam());
+            map.put("giaBan", snap.giaBanSauGiam() != null ? snap.giaBanSauGiam() : BigDecimal.ZERO);
             // Giá niêm yết gốc để gạch ngang trên UI
-            map.put("giaNiemYet", snap.giaNiemYet());
+            map.put("giaNiemYet", snap.giaNiemYet() != null ? snap.giaNiemYet() : BigDecimal.ZERO);
             // % giảm (0 nếu không có đợt giảm)
-            map.put("phanTramGiam", snap.phanTramGiam());
+            map.put("phanTramGiam", snap.phanTramGiam() != null ? snap.phanTramGiam() : BigDecimal.ZERO);
             // Tên chiến dịch (null nếu không có)
             map.put("tenDotGiamGia", snap.tenDotGiamGia());
-            map.put("soLuongTon", v.getSoLuongTon());
+            map.put("soLuongTon", v.getSoLuongTon() != null ? v.getSoLuongTon() : 0);
             map.put("hinhAnh", v.getHinhAnhSanPham() != null ? v.getHinhAnhSanPham() : "product9.jpg");
             return map;
         }).toList();
@@ -98,9 +110,11 @@ public class AdminPosController {
         List<Map<String, Object>> results = adminPosService.searchCustomers(query).stream().map(c -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
-            map.put("hoTen", c.getHoKh() + " " + c.getTenKh());
-            map.put("sdt", c.getSoDienThoaiKh());
-            map.put("email", c.getTaiKhoan().getEmail());
+            String ho = c.getHoKh() != null ? c.getHoKh() : "";
+            String ten = c.getTenKh() != null ? c.getTenKh() : "";
+            map.put("hoTen", (ho + " " + ten).trim());
+            map.put("sdt", c.getSoDienThoaiKh() != null ? c.getSoDienThoaiKh() : "");
+            map.put("email", c.getTaiKhoan() != null && c.getTaiKhoan().getUsername() != null ? c.getTaiKhoan().getUsername() : "");
             return map;
         }).toList();
         return ResponseEntity.ok(results);
@@ -159,7 +173,7 @@ public class AdminPosController {
             org.springframework.security.core.Authentication auth
                     = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated()) {
-                TaiKhoan tk = taiKhoanRepository.findByEmail(auth.getName());
+                TaiKhoan tk = taiKhoanRepository.findByUsername(auth.getName());
                 if (tk != null) {
                     idNguoiDung = tk.getId();
                     session.setAttribute("idNguoiDung", idNguoiDung);
@@ -223,11 +237,13 @@ public class AdminPosController {
             );
 
             response.put("success", true);
-            response.put("message", "Thanh toán thành công!");
+            boolean isPending = "CHUYEN_KHOAN".equalsIgnoreCase(req.phuongThucPos);
+            response.put("message", isPending ? "Đã khởi tạo đơn hàng chờ thanh toán!" : "Thanh toán thành công!");
             response.put("hoaDonId", hd.getId());
-            response.put("maHoaDon", hd.getMaDonHang() != null ? hd.getMaDonHang() : "HD-" + hd.getId());
+            response.put("maHoaDon", hd.getMaDonHang());
             response.put("paymentMethod", req.phuongThucPos);
             response.put("tongTien", hd.getTongTien());
+            response.put("isPendingPayment", isPending);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -261,12 +277,28 @@ public class AdminPosController {
                 ? hd.getPhuongThucThanhToan().getTenPhuongThuc()
                 : "Tiền mặt";
 
-        String trangThaiLabel = "DA_THANH_TOAN".equals(hd.getTrangThaiThanhToan())
-                ? "ĐÃ THANH TOÁN"
-                : ("CHO_THANH_TOAN".equals(hd.getTrangThaiThanhToan()) ? "CHỜ THANH TOÁN" : "HỦY");
+        var paymentInfo = orderViewService.getPaymentStatusInfo(hd.getTrangThaiThanhToan());
+        String trangThaiLabel = paymentInfo.label();
+
+        if (hd.getMaVoucherApDung() == null || hd.getMaVoucherApDung().isEmpty()) {
+            if (hd.getPhieuGiamGia() != null) {
+                hd.setMaVoucherApDung(hd.getPhieuGiamGia().getMaPhieu());
+            } else if (hd.getSoTienGiamVoucher().compareTo(BigDecimal.ZERO) > 0) {
+                hd.setMaVoucherApDung("Voucher");
+            } else {
+                hd.setMaVoucherApDung("Không áp dụng voucher");
+            }
+        }
+
+        if (hd.getThoiGianXacNhan() == null && hd.getPaidAt() != null) {
+            hd.setThoiGianXacNhan(hd.getPaidAt());
+        }
+        if (hd.getNguoiXacNhanThanhToan() == null && hd.getNhanVien() != null) {
+            hd.setNguoiXacNhanThanhToan(hd.getNhanVien().getHoTenNv());
+        }
 
         model.addAttribute("hoaDon", hd);
-        model.addAttribute("maHoaDon", "HD-" + hd.getId());
+        model.addAttribute("maHoaDon", hd.getMaDonHang());
         model.addAttribute("items", items);
         model.addAttribute("tongTienTruocGiam", tongTienTruocGiam);
         model.addAttribute("tienGiam", tienGiam);
@@ -297,6 +329,24 @@ public class AdminPosController {
         }
     }
 
+    @PostMapping("/confirm-payment-ui")
+    public String confirmPaymentUi(
+            @RequestParam("idHoaDon") Integer idHoaDon,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+        Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
+        if (idNguoiDung == null) {
+            return "redirect:/admin/dang-nhap";
+        }
+        try {
+            adminPosService.confirmPaymentPos(idHoaDon, idNguoiDung);
+            redirectAttributes.addFlashAttribute("successMsg", "Xác nhận thanh toán thành công cho đơn POS #" + idHoaDon + "!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMsg", "Lỗi xác nhận thanh toán: " + e.getMessage());
+        }
+        return "redirect:/admin/don-hang";
+    }
+
     @PostMapping("/cancel-order/{id}")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> cancelOrder(@PathVariable("id") Integer id, HttpSession session) {
@@ -316,6 +366,40 @@ public class AdminPosController {
             response.put("success", false);
             response.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PostMapping("/customers/register")
+    @ResponseBody
+    public ResponseEntity<PosCustomerResponse> registerCustomer(
+            @jakarta.validation.Valid @RequestBody PosRegisterCustomerRequest req,
+            org.springframework.validation.BindingResult result,
+            HttpSession session) {
+
+        Integer idNguoiDung = (Integer) session.getAttribute("idNguoiDung");
+        if (idNguoiDung == null) {
+            return ResponseEntity.status(401).body(PosCustomerResponse.builder()
+                    .success(false)
+                    .message("Phiên làm việc hết hạn hoặc chưa đăng nhập.")
+                    .build());
+        }
+
+        if (result.hasErrors()) {
+            String errorMsg = result.getAllErrors().get(0).getDefaultMessage();
+            return ResponseEntity.badRequest().body(PosCustomerResponse.builder()
+                    .success(false)
+                    .message(errorMsg)
+                    .build());
+        }
+
+        try {
+            PosCustomerResponse resp = adminPosService.registerCustomerAtPos(req);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(PosCustomerResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build());
         }
     }
 }

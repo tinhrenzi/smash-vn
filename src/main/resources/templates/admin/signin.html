@@ -11,7 +11,7 @@
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
         :root {
@@ -313,9 +313,9 @@
             <form id="adminLoginForm" th:action="@{/admin/dang-nhap}" method="post">
                 
                 <div class="form-group">
-                    <label class="form-label-custom" for="email">Tài khoản Email</label>
+                    <label class="form-label-custom" for="email">Tài khoản</label>
                     <div class="input-group-custom">
-                        <input class="input-custom" type="email" id="email" name="email" required placeholder="name@company.com" autocomplete="email">
+                        <input class="input-custom" type="text" id="email" name="username" required placeholder="Nhập email hoặc tên đăng nhập..." autocomplete="username">
                         <i class="fas fa-envelope input-icon"></i>
                     </div>
                 </div>
@@ -338,7 +338,7 @@
             </form>
 
             <div class="footer-info">
-                &copy; 2026 SmashVN. All rights reserved.<br>
+                &copy; 2026 SmashVN. Tất cả quyền được bảo lưu.<br>
                 <a th:href="@{/}"><i class="fas fa-arrow-left me-1"></i> Quay lại trang bán hàng</a>
             </div>
 

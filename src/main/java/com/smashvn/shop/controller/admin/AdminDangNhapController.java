@@ -55,7 +55,7 @@ public class AdminDangNhapController {
 
     // Xử lý khi bấm nút "Đăng nhập" Admin
     @PostMapping("/dang-nhap")
-    public String xuLyDangNhapAdmin(@RequestParam("email") String email,
+    public String xuLyDangNhapAdmin(@RequestParam("username") String username,
             @RequestParam("matKhau") String matKhau,
             HttpServletRequest request,
             HttpSession session,
@@ -69,12 +69,13 @@ public class AdminDangNhapController {
         }
 
         try {
-            TaiKhoan tkDangNhap = userDangNhapService.kiemTraDangNhap(email, matKhau);
+            TaiKhoan tkDangNhap = userDangNhapService.kiemTraDangNhap(username, matKhau);
 
             // 2. Kiểm tra vai trò: Chỉ cho phép QL và NV
-            if (!Boolean.TRUE.equals(tkDangNhap.getLaNhanVien()) && !Boolean.TRUE.equals(tkDangNhap.getLaQuanLy())) {
+            String userRole = tkDangNhap.getVaiTro();
+            if (!"NV".equals(userRole) && !"QL".equals(userRole)) {
                 loginRateLimiter.loginFailed(ip);
-                log.warn("[SECURITY_EVENT] UNAUTHORIZED_ADMIN_LOGIN_ATTEMPT: Email: {}, IP: {}", email, ip);
+                log.warn("[SECURITY_EVENT] UNAUTHORIZED_ADMIN_LOGIN_ATTEMPT: Username: {}, IP: {}", username, ip);
                 model.addAttribute("loi", "Tài khoản không có quyền truy cập trang quản trị!");
                 return "admin/signin";
             }
@@ -87,16 +88,13 @@ public class AdminDangNhapController {
             session = request.getSession(true);
 
             // Default active role for admin login
-            String vaiTro = Boolean.TRUE.equals(tkDangNhap.getLaQuanLy()) ? "QL" : "NV";
+            String vaiTro = "QL".equals(userRole) ? "QL" : "NV";
 
             // Lưu thông tin vào Session
-            session.setAttribute("nguoiDungDangNhap", tkDangNhap.getEmail());
+            session.setAttribute("nguoiDungDangNhap", tkDangNhap.getUsername());
             session.setAttribute("idNguoiDung", tkDangNhap.getId());
-            session.setAttribute("vaiTro", vaiTro);
+            session.setAttribute("vaiTro", tkDangNhap.getVaiTro());
             session.setAttribute("activeRole", vaiTro);
-            session.setAttribute("laKhachHang", Boolean.TRUE.equals(tkDangNhap.getLaKhachHang()));
-            session.setAttribute("laNhanVien", Boolean.TRUE.equals(tkDangNhap.getLaNhanVien()));
-            session.setAttribute("laQuanLy", Boolean.TRUE.equals(tkDangNhap.getLaQuanLy()));
 
             // Tìm tên hiển thị của nhân viên
             NhanVien nv = nhanVienRepository.findByTaiKhoanId(tkDangNhap.getId());
@@ -108,12 +106,12 @@ public class AdminDangNhapController {
 
             // 4. Gán/Cập nhật Authentication vào Spring Security Context
             List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + vaiTro));
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(tkDangNhap.getEmail(), null, authorities);
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(tkDangNhap.getUsername(), null, authorities);
             SecurityContext sc = SecurityContextHolder.getContext();
             sc.setAuthentication(auth);
             session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, sc);
 
-            log.info("[SECURITY_EVENT] ADMIN_LOGIN_SUCCESS: Email: {}, VaiTro: {}, IP: {}", email, vaiTro, ip);
+            log.info("[SECURITY_EVENT] ADMIN_LOGIN_SUCCESS: Username: {}, VaiTro: {}, IP: {}", username, vaiTro, ip);
 
             // Đăng nhập thành công, chuyển hướng theo vai trò
             if ("QL".equals(vaiTro)) {
@@ -124,7 +122,7 @@ public class AdminDangNhapController {
 
         } catch (RuntimeException e) {
             loginRateLimiter.loginFailed(ip);
-            log.warn("[SECURITY_EVENT] FAILED_ADMIN_LOGIN: Email: {}, IP: {}, Lỗi: {}", email, ip, e.getMessage());
+            log.warn("[SECURITY_EVENT] FAILED_ADMIN_LOGIN: Username: {}, IP: {}, Lỗi: {}", username, ip, e.getMessage());
 
             model.addAttribute("loi", e.getMessage());
             return "admin/signin";

@@ -422,6 +422,7 @@
             font-weight: normal;
         }
 
+
         /* Override list active styles for product-m__hover container */
         .is-list-active .product-m__hover {
             position: static !important;
@@ -432,12 +433,68 @@
             background: transparent !important;
             display: block !important;
         }
+
+        /* Clamp long descriptions to max 4 lines with ellipsis */
+        .product-m__preview-description {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 4 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: normal !important;
+            line-height: 1.6 !important;
+            max-height: 6.4em !important; /* 4 lines * 1.6 */
+            margin-bottom: 8px !important;
+        }
+
+        /* ===== Compact Sidebar Filter Options ===== */
+        .shop-w__list.gl-scroll {
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .shop-w__list.gl-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .shop-w__list.gl-scroll::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        .shop-w__list.gl-scroll::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+        .shop-w__list li {
+            padding: 4px 0;
+        }
+        .shop-w__list li .check-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .shop-w__list li .check-box__state {
+            flex: 1;
+            min-width: 0;
+        }
+        .shop-w__list li .check-box__label {
+            white-space: normal;
+            word-break: break-word;
+            font-size: 13px;
+            line-height: 1.3;
+            color: #333;
+        }
+        .shop-w__total-text {
+            font-size: 12px;
+            color: #888;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body class="config">
     <div class="preloader is-active">
         <div class="preloader__wrap">
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt="">
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64">
         </div>
     </div>
 
@@ -486,7 +543,7 @@
                                             <div class="shop-w__wrap collapse show" id="s-category">
                                                 <ul class="filter-list gl-scroll">
                                                     <li>
-                                                        <a th:href="@{/shop(q=${keyword}, sort=${currentSort}, brandId=${selectedBrandId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null}, trongLuong=${selectedTrongLuong})}"
+                                                        <a th:href="@{/shop(q=${keyword}, sort=${currentSort}, brandId=${selectedBrandId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null})}"
                                                            class="filter-item-link"
                                                            th:classappend="${selectedCategoryId == null} ? 'active-filter' : ''">
                                                             <span>Tất cả danh mục</span>
@@ -494,7 +551,7 @@
                                                         </a>
                                                     </li>
                                                     <li th:each="category : ${categories}">
-                                                        <a th:href="@{/shop(q=${keyword}, categoryId=${category.id}, sort=${currentSort}, brandId=${selectedBrandId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null}, trongLuong=${selectedTrongLuong})}"
+                                                        <a th:href="@{/shop(q=${keyword}, categoryId=${category.id}, sort=${currentSort}, brandId=${selectedBrandId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null})}"
                                                            class="filter-item-link"
                                                            th:classappend="${selectedCategoryId == category.id} ? 'active-filter' : ''">
                                                             <span th:text="${category.tenDanhMuc}">Danh mục</span>
@@ -516,7 +573,7 @@
                                             <div class="shop-w__wrap collapse show" id="s-manufacturer">
                                                 <ul class="filter-list gl-scroll">
                                                     <li>
-                                                        <a th:href="@{/shop(q=${keyword}, sort=${currentSort}, categoryId=${selectedCategoryId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null}, trongLuong=${selectedTrongLuong})}"
+                                                        <a th:href="@{/shop(q=${keyword}, sort=${currentSort}, categoryId=${selectedCategoryId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null})}"
                                                            class="filter-item-link"
                                                            th:classappend="${selectedBrandId == null} ? 'active-filter' : ''">
                                                             <span>Tất cả thương hiệu</span>
@@ -524,7 +581,7 @@
                                                         </a>
                                                     </li>
                                                     <li th:each="brand : ${brands}">
-                                                        <a th:href="@{/shop(q=${keyword}, brandId=${brand.id}, categoryId=${selectedCategoryId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null}, trongLuong=${selectedTrongLuong})}"
+                                                        <a th:href="@{/shop(q=${keyword}, brandId=${brand.id}, categoryId=${selectedCategoryId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating != null and selectedRating > 0.0 ? selectedRating : null})}"
                                                            class="filter-item-link"
                                                            th:classappend="${selectedBrandId == brand.id} ? 'active-filter' : ''">
                                                             <span th:text="${brand.tenThuongHieu}">Thương hiệu</span>
@@ -540,7 +597,7 @@
                                      <div class="u-s-m-b-30">
                                          <div class="shop-w shop-w--style">
                                              <div class="shop-w__intro-wrap">
-                                                 <h1 class="shop-w__h">PRICE</h1>
+                                                 <h1 class="shop-w__h">MỨC GIÁ</h1>
                                                  <span class="fas fa-minus shop-w__toggle" data-target="#s-price" data-toggle="collapse"></span>
                                              </div>
                                              <div class="shop-w__wrap collapse show" id="s-price">
@@ -551,14 +608,18 @@
                                                      <input type="hidden" name="brandId" th:value="${selectedBrandId}" th:if="${selectedBrandId != null}">
                                                      <input type="hidden" name="sort" th:value="${currentSort}">
                                                      <input type="hidden" name="rating" th:value="${selectedRating}" th:if="${selectedRating != null and selectedRating > 0.0}">
-                                                     <input type="hidden" name="trongLuong" th:each="tl : ${selectedTrongLuong}" th:value="${tl}" th:if="${selectedTrongLuong != null}">
+                                                     <th:block th:if="${selectedAttributes != null}">
+                                                         <th:block th:each="entry : ${selectedAttributes}">
+                                                             <input type="hidden" th:each="val : ${entry.value}" th:name="'attr_' + ${entry.key}" th:value="${val}">
+                                                         </th:block>
+                                                     </th:block>
 
                                                      <div class="shop-w__form-p-wrap">
                                                          <div>
-                                                             <input class="input-text input-text--style-1" type="number" name="minPrice" th:value="${selectedMinPrice}" placeholder="Min" th:min="${globalMinPrice}" th:max="${globalMaxPrice}" step="50000">
+                                                             <input class="input-text input-text--style-1" type="number" name="minPrice" th:value="${selectedMinPrice}" placeholder="Từ" th:min="${globalMinPrice}" th:max="${globalMaxPrice}" step="50000">
                                                          </div>
                                                          <div>
-                                                             <input class="input-text input-text--style-1" type="number" name="maxPrice" th:value="${selectedMaxPrice}" placeholder="Max" th:min="${globalMinPrice}" th:max="${globalMaxPrice}" step="50000">
+                                                             <input class="input-text input-text--style-1" type="number" name="maxPrice" th:value="${selectedMaxPrice}" placeholder="Đến" th:min="${globalMinPrice}" th:max="${globalMaxPrice}" step="50000">
                                                          </div>
                                                          <div>
                                                              <button class="btn btn--e-brand" type="submit"><i class="fas fa-angle-right"></i></button>
@@ -569,7 +630,6 @@
                                          </div>
                                      </div>
 
-                                    <!-- Lọc theo đánh giá sao (client-side) -->
                                     <!-- Lọc theo đánh giá sao -->
                                     <div class="u-s-m-b-30">
                                         <div class="shop-w shop-w--style">
@@ -579,12 +639,12 @@
                                             </div>
                                             <div class="shop-w__wrap collapse show" id="s-rating">
                                                 <div id="star-filter-list">
-                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=0, trongLuong=${selectedTrongLuong})}"
+                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=0)}"
                                                         class="star-filter-item"
                                                         th:classappend="${selectedRating == null or selectedRating == 0.0} ? 'active' : ''">
                                                          <span>Tất cả đánh giá</span>
                                                      </a>
-                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=5.0, trongLuong=${selectedTrongLuong})}"
+                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=5.0)}"
                                                         class="star-filter-item"
                                                         th:classappend="${selectedRating == 5.0} ? 'active' : ''">
                                                          <span class="stars">
@@ -592,7 +652,7 @@
                                                          </span>
                                                          <span>5 sao</span>
                                                      </a>
-                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=4.0, trongLuong=${selectedTrongLuong})}"
+                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=4.0)}"
                                                         class="star-filter-item"
                                                         th:classappend="${selectedRating == 4.0} ? 'active' : ''">
                                                          <span class="stars">
@@ -600,7 +660,7 @@
                                                          </span>
                                                          <span>4 sao trở lên</span>
                                                      </a>
-                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=3.0, trongLuong=${selectedTrongLuong})}"
+                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=3.0)}"
                                                         class="star-filter-item"
                                                         th:classappend="${selectedRating == 3.0} ? 'active' : ''">
                                                          <span class="stars">
@@ -608,7 +668,7 @@
                                                          </span>
                                                          <span>3 sao trở lên</span>
                                                      </a>
-                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=2.0, trongLuong=${selectedTrongLuong})}"
+                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=2.0)}"
                                                         class="star-filter-item"
                                                         th:classappend="${selectedRating == 2.0} ? 'active' : ''">
                                                          <span class="stars">
@@ -616,7 +676,7 @@
                                                          </span>
                                                          <span>2 sao trở lên</span>
                                                      </a>
-                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=1.0, trongLuong=${selectedTrongLuong})}"
+                                                     <a th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice != globalMinPrice ? selectedMinPrice : null}, maxPrice=${selectedMaxPrice != globalMaxPrice ? selectedMaxPrice : null}, rating=1.0)}"
                                                         class="star-filter-item"
                                                         th:classappend="${selectedRating == 1.0} ? 'active' : ''">
                                                          <span class="stars">
@@ -629,32 +689,41 @@
                                         </div>
                                     </div>
 
-                                    <!-- Bộ lọc Size / Trọng lượng -->
-                                    <div class="u-s-m-b-30">
-                                        <div class="shop-w shop-w--style">
-                                            <div class="shop-w__intro-wrap">
-                                                <h1 class="shop-w__h">SIZE / TRỌNG LƯỢNG</h1>
-                                                <span class="fas fa-minus shop-w__toggle" data-target="#s-size" data-toggle="collapse"></span>
-                                            </div>
-                                            <div class="shop-w__wrap collapse show" id="s-size">
-                                                <ul class="shop-w__list gl-scroll">
-                                                    <li th:each="tl : ${danhSachTrongLuong}">
-                                                        <!-- ====== Check Box ====== -->
-                                                        <div class="check-box">
-                                                            <input type="checkbox" class="size-filter-checkbox" th:id="'size-' + ${tl}" th:value="${tl}"
-                                                                   th:checked="${selectedTrongLuong != null and selectedTrongLuong.contains(tl)}"
-                                                                   onclick="filterBySizes()">
-                                                            <div class="check-box__state check-box__state--primary">
-                                                                <label class="check-box__label" th:for="'size-' + ${tl}" th:text="${tl}">3U</label>
+                                    <!-- Dynamic Faceted Attribute Filter Groups -->
+                                    <th:block th:if="${dynamicAttributeFilters != null and !dynamicAttributeFilters.isEmpty()}">
+                                        <div class="u-s-m-b-30" th:each="filterGroup, groupStat : ${dynamicAttributeFilters}" th:if="${filterGroup.options != null and !filterGroup.options.isEmpty()}">
+                                            <div class="shop-w shop-w--style">
+                                                <div class="shop-w__intro-wrap">
+                                                    <h1 class="shop-w__h" th:text="${#strings.toUpperCase(filterGroup.tenThuocTinh)}">THUỘC TÍNH</h1>
+                                                    <span class="fas fa-minus shop-w__toggle" th:data-target="'#s-attr-' + ${filterGroup.thuocTinhId}" data-toggle="collapse"></span>
+                                                </div>
+                                                <div class="shop-w__wrap collapse show" th:id="'s-attr-' + ${filterGroup.thuocTinhId}">
+                                                    <ul class="shop-w__list gl-scroll">
+                                                        <li th:each="option, optStat : ${filterGroup.options}" th:if="${option.count > 0}">
+                                                            <!-- ====== Check Box ====== -->
+                                                            <div class="check-box">
+                                                                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                                                                    <input type="checkbox" class="dynamic-attribute-checkbox"
+                                                                           th:id="'attr-' + ${filterGroup.thuocTinhId} + '-' + ${optStat.index}"
+                                                                           th:data-attribute-id="${filterGroup.thuocTinhId}"
+                                                                           th:data-value="${option.value}"
+                                                                           th:value="${option.value}"
+                                                                           th:checked="${option.selected}">
+                                                                    <div class="check-box__state check-box__state--primary">
+                                                                        <label class="check-box__label"
+                                                                               th:for="'attr-' + ${filterGroup.thuocTinhId} + '-' + ${optStat.index}"
+                                                                               th:text="${option.value}">Value</label>
+                                                                    </div>
+                                                                </div>
+                                                                <span class="shop-w__total-text" th:text="'(' + ${option.count} + ')'">(0)</span>
                                                             </div>
-                                                        </div>
-                                                        <!-- ====== End Check Box ====== -->
-                                                        <span class="shop-w__total-text" th:text="'(' + ${(sizeCounts.get(tl) != null ? sizeCounts.get(tl) : 0)} + ')'">(0)</span>
-                                                    </li>
-                                                </ul>
+                                                            <!-- ====== End Check Box ====== -->
+                                                        </li>
+                                                    </ul>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </th:block>
 
                                 </div>
                             </div>
@@ -671,6 +740,51 @@
                                     <span class="search-result-count" th:text="'(' + ${totalElements} + ' sản phẩm)'"></span>
                                     <a th:href="@{/shop}" class="clear-search-btn">✕ Xóa bộ lọc</a>
                                 </div>
+
+                                <!-- ===== FILTER CHIPS BAR ===== -->
+                                <div th:if="${(selectedCategoryId != null) or (selectedBrandId != null) or (keyword != null) or (selectedRating != null and selectedRating > 0.0) or (selectedMinPrice != null) or (selectedAttributes != null and !selectedAttributes.isEmpty())}"
+                                     class="filter-chips-bar u-s-m-b-20"
+                                     style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #f8f9fa; padding: 10px 16px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                    <span style="font-size: 13px; font-weight: 600; color: #495057; margin-right: 4px;">Đang lọc:</span>
+
+                                    <!-- Category Chip -->
+                                    <a th:if="${selectedCategoryId != null}"
+                                       th:href="@{/shop(q=${keyword}, brandId=${selectedBrandId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating}, sort=${currentSort})}"
+                                       class="filter-chip" style="display: inline-flex; align-items: center; gap: 6px; background: #e7f5ff; color: #1971c2; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 500; text-decoration: none;">
+                                        <span>Danh mục</span>
+                                        <span style="font-weight: bold;">×</span>
+                                    </a>
+
+                                    <!-- Brand Chip -->
+                                    <a th:if="${selectedBrandId != null}"
+                                       th:href="@{/shop(q=${keyword}, categoryId=${selectedCategoryId}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating}, sort=${currentSort})}"
+                                       class="filter-chip" style="display: inline-flex; align-items: center; gap: 6px; background: #e7f5ff; color: #1971c2; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 500; text-decoration: none;">
+                                        <span>Thương hiệu</span>
+                                        <span style="font-weight: bold;">×</span>
+                                    </a>
+
+                                    <!-- Dynamic Attribute Chips -->
+                                    <th:block th:if="${dynamicAttributeFilters != null}">
+                                        <th:block th:each="filterGroup : ${dynamicAttributeFilters}">
+                                            <th:block th:each="option : ${filterGroup.options}" th:if="${option.selected}">
+                                                <a href="javascript:void(0)"
+                                                   class="filter-chip remove-attribute-chip"
+                                                   th:data-attribute-id="${filterGroup.thuocTinhId}"
+                                                   th:data-value="${option.value}"
+                                                   style="display: inline-flex; align-items: center; gap: 6px; background: #fff3bf; color: #f59f00; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 500; text-decoration: none;">
+                                                    <span th:text="${filterGroup.tenThuocTinh + ': ' + option.value}">Thuộc tính</span>
+                                                    <span style="font-weight: bold;">×</span>
+                                                </a>
+                                            </th:block>
+                                        </th:block>
+                                    </th:block>
+
+                                    <!-- Clear All Button -->
+                                    <a th:href="@{/shop}" class="clear-all-chip" style="font-size: 12px; font-weight: 600; color: #e03131; text-decoration: underline; margin-left: 8px;">
+                                        Xóa tất cả
+                                    </a>
+                                </div>
+
                                 <!-- ===== TOOLBAR ===== -->
                                 <div class="shop-p__toolbar u-s-m-b-30"
                                      style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom: 1px solid #eee; padding-bottom: 14px; margin-bottom: 20px;">
@@ -678,14 +792,14 @@
                                     <!-- Bên trái: Grid/List toggle -->
                                     <div style="display:flex; gap:0;">
                                         <button id="btn-grid-view" onclick="setView('grid')" class="view-btn active" title="Dạng lưới">
-                                            Grid
+                                            Lưới
                                         </button>
                                         <button id="btn-list-view" onclick="setView('list')" class="view-btn" title="Dạng danh sách">
-                                            List
+                                            Danh sách
                                         </button>
                                     </div>
 
-                                    <!-- Bên phải: Show + Sort (Bản tiếng Anh theo mẫu) -->
+                                    <!-- Bên phải: Show + Sort -->
                                      <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
                                          <form th:action="@{/shop}" method="get" id="toolbar-filter-form" style="display:flex; align-items:center; gap:16px;">
                                              <input type="hidden" name="categoryId" th:value="${selectedCategoryId}" th:if="${selectedCategoryId != null}">
@@ -693,7 +807,11 @@
                                              <input type="hidden" name="minPrice" th:value="${selectedMinPrice}" th:if="${selectedMinPrice != null}">
                                              <input type="hidden" name="maxPrice" th:value="${selectedMaxPrice}" th:if="${selectedMaxPrice != null}">
                                              <input type="hidden" name="rating" th:value="${selectedRating}" th:if="${selectedRating != null and selectedRating > 0.0}">
-                                             <input type="hidden" name="trongLuong" th:each="tl : ${selectedTrongLuong}" th:value="${tl}" th:if="${selectedTrongLuong != null}">
+                                             <th:block th:if="${selectedAttributes != null}">
+                                                 <th:block th:each="entry : ${selectedAttributes}">
+                                                     <input type="hidden" th:each="val : ${entry.value}" th:name="'attr_' + ${entry.key}" th:value="${val}">
+                                                 </th:block>
+                                             </th:block>
 
                                              <!-- Show count select -->
                                              <div style="display:flex; align-items:center; gap:6px;">
@@ -735,12 +853,17 @@
                                              th:if="${product.sanPhamChiTiets != null and !product.sanPhamChiTiets.isEmpty()}"
                                              th:data-rating="${product.diemTrungBinh != null ? product.diemTrungBinh : 0.0}">
                                             <div class="product-m">
-                                                <div class="product-m__thumb">
-                                                    <a class="aspect aspect--bg-grey aspect--square u-d-block"
-                                                       th:href="@{/san-pham/{id}(id=${product.id})}">
+                                                <div class="product-m__thumb" style="background-color: #ffffff !important; border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9;">
+                                                    <a class="aspect aspect--bg-white aspect--square u-d-block"
+                                                       th:href="@{/san-pham/{id}(id=${product.id})}"
+                                                       style="background-color: #ffffff !important;">
                                                         <img class="aspect__img"
-                                                             th:src="@{'/uploads/product/' + ${product.sanPhamChiTiets[0].hinhAnhSanPham}}"
-                                                             alt="">
+                                                             th:src="@{${product.sanPhamChiTiets[0].hinhAnhUrl}}"
+                                                             loading="lazy"
+                                                             decoding="async"
+                                                             onerror="this.onerror=null; this.src='/images/placeholder.png';"
+                                                             alt=""
+                                                             style="object-fit: contain; padding: 12px; background-color: #ffffff !important;">
                                                     </a>
                                                     <!-- Badge giảm giá -->
                                                     <div th:if="${product.activeGiamGiaPhanTram > 0}" class="shopee-discount-badge" th:text="'-' + ${product.activeGiamGiaPhanTram} + '%'"></div>
@@ -751,7 +874,7 @@
                                                     <!-- Quick Look (kính lúp) - gọi AJAX modal -->
                                                     <div class="product-m__quick-look">
                                                         <a href="javascript:void(0)"
-                                                           th:onclick="'openQuickLookModal(' + ${product.id} + ')'"
+                                                           th:onclick="|openQuickLookModal(${product.id})|"
                                                            class="fas fa-search"
                                                            data-tooltip="tooltip"
                                                            data-placement="top"
@@ -760,7 +883,9 @@
 
                                                     <!-- Nút Thêm vào giỏ -->
                                                     <div class="product-m__add-cart">
-                                                        <a class="btn--e-brand" th:href="@{/san-pham/{id}(id=${product.id})}">Xem Chi Tiết</a>
+                                                        <a href="javascript:void(0)" th:if="${product.sanPhamChiTiets != null and product.sanPhamChiTiets.size() > 1}" th:onclick="|openQuickLookModal(${product.id})|" class="btn--e-brand">Thêm Vào Giỏ</a>
+                                                        <a href="javascript:void(0)" th:if="${product.sanPhamChiTiets != null and product.sanPhamChiTiets.size() == 1}" th:onclick="|quickAddToCart(${product.sanPhamChiTiets[0].id})|" class="btn--e-brand">Thêm Vào Giỏ Nhanh</a>
+                                                        <a th:if="${product.sanPhamChiTiets == null or product.sanPhamChiTiets.isEmpty()}" th:href="@{/san-pham/{id}(id=${product.id})}" class="btn--e-brand">Xem Chi Tiết</a>
                                                     </div>
                                                 </div>
 
@@ -797,10 +922,10 @@
 
                                                     <!-- Hover container chứa Mô tả và Wishlist để ẩn hiện đúng theo chế độ (Grid/List) -->
                                                     <div class="product-m__hover">
-                                                        <div class="product-m__preview-description" th:text="${product.moTa}">Mô tả sản phẩm...</div>
+                                                        <div class="product-m__preview-description" th:utext="${product.moTa}">Mô tả sản phẩm...</div>
                                                         <div class="product-m__wishlist">
                                                             <a href="javascript:void(0)"
-                                                               th:onclick="'addToWishlist(' + ${product.id} + ', this)'"
+                                                               th:onclick="|addToWishlist(${product.id}, this)|"
                                                                title="Yêu thích">
                                                                 <i class="far fa-heart"></i>
                                                             </a>
@@ -815,12 +940,12 @@
                                 <!-- ===== END PRODUCT CONTAINER ===== -->
 
 
-                                <!-- ===== PHÂN TRANG (Sử dụng class native shop-p__pagination) ===== -->
+                                <!-- ===== PHẦN PHẢI (Sử dụng class native shop-p__pagination) ===== -->
                                 <div th:if="${totalPages > 1}" style="margin-top: 40px;">
                                     <ul class="shop-p__pagination">
                                         <!-- Prev -->
                                         <li th:style="${currentPage == 0} ? 'display: none;' : ''">
-                                            <a th:href="@{/shop(q=${keyword}, page=${currentPage - 1}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating}, trongLuong=${selectedTrongLuong})}">
+                                            <a th:href="@{/shop(q=${keyword}, page=${currentPage - 1}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating})}">
                                                 <i class="fas fa-angle-left"></i>
                                             </a>
                                         </li>
@@ -828,13 +953,13 @@
                                         <!-- Page numbers -->
                                         <li th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
                                             th:classappend="${i == currentPage} ? 'is-active' : ''">
-                                            <a th:href="@{/shop(q=${keyword}, page=${i}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating}, trongLuong=${selectedTrongLuong})}"
+                                            <a th:href="@{/shop(q=${keyword}, page=${i}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating})}"
                                                th:text="${i + 1}">1</a>
                                         </li>
 
                                         <!-- Next -->
                                         <li th:style="${currentPage >= totalPages - 1} ? 'display: none;' : ''">
-                                            <a th:href="@{/shop(q=${keyword}, page=${currentPage + 1}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating}, trongLuong=${selectedTrongLuong})}">
+                                            <a th:href="@{/shop(q=${keyword}, page=${currentPage + 1}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, sort=${currentSort}, minPrice=${selectedMinPrice}, maxPrice=${selectedMaxPrice}, rating=${selectedRating})}">
                                                 <i class="fas fa-angle-right"></i>
                                             </a>
                                         </li>
@@ -883,35 +1008,74 @@
     <script th:src="@{/js/jquery.shopnav.js}"></script>
 
     <!--====== App Js ======-->
-    <script th:src="@{/js/app.js}"></script>
+    <script th:src="@{/js/app.js(v=1.0.4)}"></script>
 
     <script>
-        // ===== Multiple Size / Weight Filter (Checkbox) =====
-        function filterBySizes() {
-            var checkedSizes = [];
-            var checkboxes = document.querySelectorAll('.size-filter-checkbox');
-            for (var i = 0; i < checkboxes.length; i++) {
-                if (checkboxes[i].checked) {
-                    checkedSizes.push(checkboxes[i].value);
-                }
-            }
-            
+        // ===== Dynamic Faceted Attribute Filter =====
+        function applyDynamicFilters() {
             var url = new URL(window.location.href);
-            
-            // Remove existing trongLuong parameters
-            url.searchParams.delete('trongLuong');
-            
-            // Add new selected sizes
-            for (var j = 0; j < checkedSizes.length; j++) {
-                url.searchParams.append('trongLuong', checkedSizes[j]);
-            }
-            
-            // Reset page to 0 if filter changes
+
+            // 1. Clear existing dynamic attribute parameters and legacy trongLuong
+            var keysToDelete = [];
+            url.searchParams.forEach(function(val, key) {
+                if (key.startsWith('attr_') || key.startsWith('attrs[') || key === 'trongLuong') {
+                    keysToDelete.push(key);
+                }
+            });
+            keysToDelete.forEach(function(key) {
+                url.searchParams.delete(key);
+            });
+
+            // 2. Gather checked dynamic attribute checkboxes
+            var checkedBoxes = document.querySelectorAll('.dynamic-attribute-checkbox:checked');
+            checkedBoxes.forEach(function(cb) {
+                var attrId = cb.getAttribute('data-attribute-id');
+                var val = cb.value;
+                if (attrId && val) {
+                    url.searchParams.append('attr_' + attrId, val);
+                }
+            });
+
+            // 3. Reset page to 0
             url.searchParams.set('page', '0');
-            
-            // Redirect via AJAX
+
+            // 4. Load updated product list via AJAX
             loadShopProducts(url.toString());
         }
+
+        // ===== Remove Single Attribute Chip =====
+        function removeSingleAttribute(attrId, val) {
+            var url = new URL(window.location.href);
+            var key = 'attr_' + attrId;
+            var values = url.searchParams.getAll(key);
+            url.searchParams.delete(key);
+            values.forEach(function(v) {
+                if (v !== val) {
+                    url.searchParams.append(key, v);
+                }
+            });
+            url.searchParams.set('page', '0');
+            loadShopProducts(url.toString());
+        }
+
+        // ===== Event Delegation for Dynamic Filters & Remove Chips =====
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.classList.contains('dynamic-attribute-checkbox')) {
+                applyDynamicFilters();
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            var removeChip = e.target.closest('.remove-attribute-chip');
+            if (removeChip) {
+                e.preventDefault();
+                var attrId = removeChip.getAttribute('data-attribute-id');
+                var val = removeChip.getAttribute('data-value');
+                if (attrId && val) {
+                    removeSingleAttribute(attrId, val);
+                }
+            }
+        });
 
         // ===== View Toggle (Grid / List) - dùng class Reshop =====
         function setView(view) {
@@ -944,15 +1108,14 @@
             }
         })();
 
-        // ===== Star Filter (Server-side) =====
-        // Bộ lọc đánh giá sao hiện tại được thực hiện trực tiếp thông qua đường dẫn liên kết (Thymeleaf URL) để đồng bộ phân trang.
-
         // ===== AJAX Filtering and Pagination =====
         function submitFormAjax(form) {
             form.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
         }
 
-        function loadShopProducts(url) {
+        function loadShopProducts(url, pushHistory) {
+            if (pushHistory === undefined) pushHistory = true;
+
             var productSection = document.getElementById('shop-content-area');
             if (!productSection) {
                 window.location.href = url;
@@ -1001,7 +1164,7 @@
                         }
                     }
                     
-                    // Smooth scroll to top of the shop toolbar (not the very top of the page)
+                    // Smooth scroll to top of the shop toolbar
                     var toolbar = newContent.querySelector('.shop-p__toolbar');
                     if (toolbar) {
                         toolbar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1012,8 +1175,10 @@
                     return;
                 }
                 
-                // Update address bar URL
-                history.pushState({}, '', url);
+                // Update address bar URL only when triggered by user interaction (not popstate)
+                if (pushHistory) {
+                    history.pushState({}, '', url);
+                }
             })
             .catch(function(error) {
                 console.error('AJAX filtering error, falling back to page reload:', error);
@@ -1025,19 +1190,48 @@
             });
         }
 
-        // Intercept all clicks on shop links
+        // Intercept clicks on shop catalog internal links with parameter preservation
         document.addEventListener('click', function(e) {
             var anchor = e.target.closest('a');
-            if (anchor && anchor.getAttribute('href')) {
-                var href = anchor.getAttribute('href');
-                if (href === '/shop' || href.startsWith('/shop?') || href.startsWith('shop?')) {
-                    e.preventDefault();
-                    loadShopProducts(anchor.href);
+            if (!anchor) return;
+
+            var isShopInternalLink = anchor.closest('.shop-w-master') || 
+                                     anchor.closest('.shop-p') || 
+                                     anchor.closest('.filter-chips-bar') ||
+                                     anchor.classList.contains('filter-item-link') || 
+                                     anchor.classList.contains('star-filter-item') ||
+                                     anchor.classList.contains('filter-chip');
+            if (!isShopInternalLink) return;
+            
+            var href = anchor.getAttribute('href');
+            if (href && (href === '/shop' || href.startsWith('/shop?') || href.startsWith('shop?'))) {
+                if (href.startsWith('javascript:')) return;
+                
+                e.preventDefault();
+                
+                var currentUrl = new URL(window.location.href);
+                var targetUrl = new URL(anchor.href, window.location.origin);
+                
+                var targetCat = targetUrl.searchParams.get('categoryId');
+                var currentCat = currentUrl.searchParams.get('categoryId');
+                
+                // Preserve active dynamic attributes if navigating within the SAME category
+                if (targetCat && currentCat && targetCat === currentCat) {
+                    currentUrl.searchParams.forEach(function(val, key) {
+                        if (key.startsWith('attr_') || key.startsWith('attrs[')) {
+                            var existingVals = targetUrl.searchParams.getAll(key);
+                            if (!existingVals.includes(val)) {
+                                targetUrl.searchParams.append(key, val);
+                            }
+                        }
+                    });
                 }
+                
+                loadShopProducts(targetUrl.toString());
             }
         });
 
-        // Intercept form submissions
+        // Intercept form submissions (Price Filter & Toolbar Filter)
         document.addEventListener('submit', function(e) {
             var form = e.target;
             if (form && form.getAttribute('action')) {
@@ -1045,28 +1239,40 @@
                 if (action.startsWith('/shop') || action.startsWith('shop') || action === '/shop') {
                     e.preventDefault();
                     
-                    var formData = new FormData(form);
-                    var params = new URLSearchParams();
+                    var currentUrl = new URL(window.location.href);
+                    var targetUrl = new URL(form.getAttribute('action').split('?')[0], window.location.origin);
                     
+                    // Copy form input fields into targetUrl without duplicate parameters
+                    var formData = new FormData(form);
                     for (var pair of formData.entries()) {
                         if (pair[1] !== "") {
-                            params.append(pair[0], pair[1]);
+                            var existingVals = targetUrl.searchParams.getAll(pair[0]);
+                            if (!existingVals.includes(pair[1])) {
+                                targetUrl.searchParams.append(pair[0], pair[1]);
+                            }
                         }
                     }
                     
-                    var actionUrl = form.getAttribute('action');
-                    var url = actionUrl.split('?')[0] + '?' + params.toString();
+                    // Preserve active dynamic attributes from currentUrl if not present in form
+                    currentUrl.searchParams.forEach(function(val, key) {
+                        if (key.startsWith('attr_') || key.startsWith('attrs[')) {
+                            var existingVals = targetUrl.searchParams.getAll(key);
+                            if (!existingVals.includes(val)) {
+                                targetUrl.searchParams.append(key, val);
+                            }
+                        }
+                    });
                     
-                    loadShopProducts(url);
+                    targetUrl.searchParams.set('page', '0');
+                    loadShopProducts(targetUrl.toString());
                 }
             }
         });
 
-        // Handle browser Back/Forward navigation
+        // Handle browser Back/Forward navigation without pushState loop
         window.addEventListener('popstate', function() {
-            loadShopProducts(window.location.href);
+            loadShopProducts(window.location.href, false);
         });
-
     </script>
 
     <!--====== No JS fallback ======-->
@@ -1076,8 +1282,8 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="app-setting__wrap">
-                            <h1 class="app-setting__h1">JavaScript is disabled in your browser.</h1>
-                            <span class="app-setting__text">Please enable JavaScript in your browser or upgrade to a JavaScript-capable browser.</span>
+                            <h1 class="app-setting__h1">Trình duyệt của bạn đang tắt JavaScript.</h1>
+                            <span class="app-setting__text">Vui lòng bật JavaScript trên trình duyệt của bạn để trải nghiệm đầy đủ các tính năng của website.</span>
                         </div>
                     </div>
                 </div>

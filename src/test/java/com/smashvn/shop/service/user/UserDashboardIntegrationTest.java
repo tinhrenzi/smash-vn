@@ -29,11 +29,11 @@ public class UserDashboardIntegrationTest {
     void testIntegration_CapNhatHoSo_Success_And_Sanitization() {
         // 1. Create a test user account
         TaiKhoan tk = new TaiKhoan();
-        tk.setEmail("test_integration_user@gmail.com");
+        tk.setUsername("test_integration_user@gmail.com");
         tk.setMatKhau("testpass123");
         tk.setVaiTro("KH");
         tk.setTrangThai("hoat_dong");
-        tk.setLaKhachHang(true);
+
         tk = taiKhoanRepository.save(tk);
 
         KhachHang kh = new KhachHang();
@@ -64,11 +64,11 @@ public class UserDashboardIntegrationTest {
     void testIntegration_CapNhatHoSo_DuplicatePhoneRejected() {
         // 1. Create User A
         TaiKhoan tkA = new TaiKhoan();
-        tkA.setEmail("usera@gmail.com");
+        tkA.setUsername("usera@gmail.com");
         tkA.setMatKhau("pass123");
         tkA.setVaiTro("KH");
         tkA.setTrangThai("hoat_dong");
-        tkA.setLaKhachHang(true);
+
         tkA = taiKhoanRepository.save(tkA);
 
         KhachHang khA = new KhachHang();
@@ -80,11 +80,11 @@ public class UserDashboardIntegrationTest {
 
         // 2. Create User B
         TaiKhoan tkB = new TaiKhoan();
-        tkB.setEmail("userb@gmail.com");
+        tkB.setUsername("userb@gmail.com");
         tkB.setMatKhau("pass123");
         tkB.setVaiTro("KH");
         tkB.setTrangThai("hoat_dong");
-        tkB.setLaKhachHang(true);
+
         tkB = taiKhoanRepository.save(tkB);
 
         KhachHang khB = new KhachHang();

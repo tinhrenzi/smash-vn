@@ -11,7 +11,7 @@ public class LoginRateLimiter {
     private static final int MAX_ATTEMPTS = 5;
     private static final long BLOCK_DURATION_MS = TimeUnit.MINUTES.toMillis(15);
     
-    // Lưu số lần đăng nhập sai
+    // Lưu số lần đăng nhập sai theo khóa do caller truyền vào (email, IP, ...)
     private final ConcurrentHashMap<String, Integer> attemptsCache = new ConcurrentHashMap<>();
     // Lưu mốc thời gian bắt đầu bị khóa
     private final ConcurrentHashMap<String, Long> lockTimeCache = new ConcurrentHashMap<>();
@@ -25,7 +25,7 @@ public class LoginRateLimiter {
                 // Đã hết thời gian khóa, tự động mở khóa
                 lockTimeCache.remove(key);
                 attemptsCache.remove(key);
-                log.info("Mở khóa rate-limit thành công cho IP: {}", key);
+                log.info("Mở khóa rate-limit thành công cho khóa đăng nhập: {}", key);
             }
         }
         return false;
@@ -34,12 +34,12 @@ public class LoginRateLimiter {
     public void loginFailed(String key) {
         int attempts = attemptsCache.getOrDefault(key, 0) + 1;
         attemptsCache.put(key, attempts);
-        log.warn("Đăng nhập thất bại lần {} cho IP: {}", attempts, key);
+        log.warn("Đăng nhập thất bại lần {} cho khóa đăng nhập: {}", attempts, key);
         
         if (attempts >= MAX_ATTEMPTS) {
             lockTimeCache.put(key, System.currentTimeMillis());
             // Log an ninh dạng WARN
-            log.warn("[SECURITY_EVENT] RATE_LIMIT_TRIGGER: IP: {} bị chặn đăng nhập do vượt quá {} lần thử.", key, MAX_ATTEMPTS);
+            log.warn("[SECURITY_EVENT] RATE_LIMIT_TRIGGER: Khóa đăng nhập {} bị chặn do vượt quá {} lần thử.", key, MAX_ATTEMPTS);
         }
     }
     

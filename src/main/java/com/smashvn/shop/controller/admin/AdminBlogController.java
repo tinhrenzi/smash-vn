@@ -19,7 +19,7 @@ import jakarta.servlet.http.HttpSession;
 import java.util.List;
 
 @Controller
-@RequestMapping("/admin/blog")
+@RequestMapping({"/admin/blog", "/admin/blogs"})
 @RequiredArgsConstructor
 @Slf4j
 public class AdminBlogController {
@@ -62,9 +62,12 @@ public class AdminBlogController {
     }
 
     @GetMapping("/add")
-    public String showAddForm(Model model) {
+    public String showAddForm(
+            @RequestParam(value = "iframe", defaultValue = "false") boolean isIframe,
+            Model model) {
         model.addAttribute("blog", new BlogDTO());
         model.addAttribute("activeTab", "blog");
+        model.addAttribute("isIframe", isIframe);
         return "admin/blog-add";
     }
 
@@ -105,19 +108,23 @@ public class AdminBlogController {
         }
     }
 
-    @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable("id") Integer id, Model model) {
+    @GetMapping({"/edit/{id}", "/sua/{id}"})
+    public String showEditForm(
+            @PathVariable("id") Integer id,
+            @RequestParam(value = "iframe", defaultValue = "false") boolean isIframe,
+            Model model) {
         try {
             BlogDTO blog = blogService.getAdminBlogById(id);
             model.addAttribute("blog", blog);
             model.addAttribute("activeTab", "blog");
+            model.addAttribute("isIframe", isIframe);
             return "admin/blog-edit";
         } catch (Exception e) {
             return "redirect:/admin/blog";
         }
     }
 
-    @PostMapping("/edit/{id}")
+    @PostMapping({"/edit/{id}", "/sua/{id}"})
     public String processEdit(
             @PathVariable("id") Integer id,
             @ModelAttribute("blog") BlogDTO blogDTO,
@@ -215,7 +222,11 @@ public class AdminBlogController {
 
             model.addAttribute("blog", blog);
             model.addAttribute("recentBlogs", recentBlogs);
-            model.addAttribute("isPreview", true); // To optionally show a preview ribbon
+            model.addAttribute("isPreview", true);
+            model.addAttribute("previewMode", true);
+            
+            List<com.smashvn.shop.dto.blog.BlogCommentDTO> comments = blogService.getCommentsForBlog(blog.getId());
+            model.addAttribute("comments", comments);
             return "blog-detail";
         } catch (Exception e) {
             return "redirect:/admin/blog";

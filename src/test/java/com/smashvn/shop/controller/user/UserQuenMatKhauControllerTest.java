@@ -44,6 +44,14 @@ public class UserQuenMatKhauControllerTest {
     }
 
     @Test
+    void testHienThiTrangQuenMK_WithEmail() {
+        Model model = new ConcurrentModel();
+        String view = controller.hienThiTrangQuenMK("guest@example.com", model);
+        assertEquals("lost-password", view);
+        assertEquals("guest@example.com", model.getAttribute("email"));
+    }
+
+    @Test
     void testXuLyQuenMK_Success() {
         String email = "test@gmail.com";
         when(rateLimiter.isBlocked("127.0.0.1")).thenReturn(false);

@@ -75,7 +75,7 @@ public class SanPhamYeuThichService {
             map.put("tenDanhMuc", sp.getDanhMuc() != null ? sp.getDanhMuc().getTenDanhMuc() : "Chưa phân loại");
 
             // Lấy danh sách chi tiết của sản phẩm này để trích xuất Giá và Ảnh đại diện
-            List<SanPhamChiTiet> listChiTiet = sanPhamChiTietRepository.findBySanPham_Id(sp.getId());
+            List<SanPhamChiTiet> listChiTiet = sanPhamChiTietRepository.findActiveBySanPham_Id(sp.getId());
             if (!listChiTiet.isEmpty()) {
                 map.put("giaBan", listChiTiet.get(0).getGiaBan());
                 map.put("hinhAnh", listChiTiet.get(0).getHinhAnhSanPham());

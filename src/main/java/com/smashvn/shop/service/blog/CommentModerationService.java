@@ -30,7 +30,17 @@ public class CommentModerationService {
                 .collect(Collectors.toList());
     }
 
-    @CacheEvict(value = "moderationKeywords", allEntries = true)
+    @Cacheable(value = "moderationRawKeywords")
+    public List<String> getActiveRawKeywords() {
+        log.info("[CACHE_EVENT] Loading active raw moderation keywords from database...");
+        List<CommentModerationKeyword> list = keywordRepository.findAllByActiveTrue();
+        return list.stream()
+                .map(CommentModerationKeyword::getKeyword)
+                .filter(k -> k != null && !k.trim().isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    @CacheEvict(value = {"moderationKeywords", "moderationRawKeywords"}, allEntries = true)
     public void clearKeywordCache() {
         log.info("[CACHE_EVENT] Evicting moderation keywords cache...");
     }

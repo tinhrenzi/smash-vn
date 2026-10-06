@@ -22,7 +22,7 @@
                         <div class="col-lg-5">
                             <!-- Breadcrumb -->
                             <div class="pd-breadcrumb u-s-m-b-20" style="font-size:12px; color:#888;">
-                                <a th:href="@{/}" style="color:#888; text-decoration:none;">Home</a>
+                                <a th:href="@{/}" style="color:#888; text-decoration:none;">Trang chủ</a>
                                 <span style="margin:0 6px;">-</span>
                                 <a th:href="@{/shop(categoryId=${spQuickLook.danhMuc.id})}"
                                    th:text="${spQuickLook.danhMuc.tenDanhMuc}"
@@ -37,7 +37,7 @@
                                 <div class="pd-wrap">
                                     <div id="js-product-detail-modal">
                                         <div th:each="chitiet : ${listChiTiet}">
-                                            <img class="u-img-fluid" th:src="@{'/uploads/product/' + ${chitiet.hinhAnhSanPham}}" alt="Ảnh Sản Phẩm">
+                                            <img class="u-img-fluid" th:src="@{${chitiet.hinhAnhUrl}}" onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh Sản Phẩm">
                                         </div>
                                     </div>
                                 </div>
@@ -45,7 +45,7 @@
                                 <div class="u-s-m-t-15">
                                     <div id="js-product-detail-modal-thumbnail">
                                         <div th:each="chitiet : ${listChiTiet}">
-                                            <img class="u-img-fluid" th:src="@{'/uploads/product/' + ${chitiet.hinhAnhSanPham}}" alt="Thumbnail">
+                                            <img class="u-img-fluid" th:src="@{${chitiet.hinhAnhUrl}}" onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh thu nhỏ sản phẩm">
                                         </div>
                                     </div>
                                 </div>
@@ -100,34 +100,21 @@
 
                                 <!-- Mô tả ngắn -->
                                 <div class="u-s-m-b-15">
-                                    <span class="pd-detail__preview-desc" th:text="${spQuickLook.moTa}"
-                                          style="font-size:13px; color:#666; line-height:1.6;">Mô tả ngắn...</span>
+                                    <div class="pd-detail__preview-desc" th:utext="${spQuickLook.moTa}"
+                                           style="font-size:13px; color:#666; line-height:1.6;">Mô tả ngắn...</div>
                                 </div>
 
-                                <!-- Chọn màu sắc -->
-                                <div class="u-s-m-b-15" th:if="${listMauSac != null and !listMauSac.isEmpty()}">
-                                    <span class="pd-detail__label u-s-m-b-8">Màu sắc:</span>
+                                <!-- Chọn thuộc tính động -->
+                                <div class="u-s-m-b-15" th:each="entry, iterStat : ${dynamicAttributes}">
+                                    <span class="pd-detail__label u-s-m-b-8" th:text="${iterStat.count} + '. ' + ${entry.key} + ':'">Thuộc tính:</span>
                                     <div class="d-flex flex-wrap">
-                                        <button th:each="mau : ${listMauSac}"
+                                        <button th:each="val : ${entry.value}"
                                                 type="button"
-                                                class="variant-btn color-btn u-s-m-r-8 u-s-m-b-8"
-                                                th:attr="data-color=${mau}"
-                                                onclick="selectColor(this)"
-                                                th:text="${mau}">
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Chọn kích thước -->
-                                <div class="u-s-m-b-15" th:if="${listKichThuoc != null and !listKichThuoc.isEmpty()}">
-                                    <span class="pd-detail__label u-s-m-b-8">Trọng lượng / Kích thước:</span>
-                                    <div class="d-flex flex-wrap">
-                                        <button th:each="size : ${listKichThuoc}"
-                                                type="button"
-                                                class="variant-btn size-btn u-s-m-r-8 u-s-m-b-8"
-                                                th:attr="data-size=${size}"
-                                                onclick="selectSize(this)"
-                                                th:text="${size}">
+                                                class="variant-btn u-s-m-r-8 u-s-m-b-8 dynamic-attr-btn"
+                                                th:classappend="'attr-btn-' + ${#strings.replace(entry.key, ' ', '_')}"
+                                                th:attr="data-attr-name=${entry.key}, data-attr-value=${val}"
+                                                onclick="selectDynamicAttribute(this)"
+                                                th:text="${val}">
                                         </button>
                                     </div>
                                 </div>
@@ -170,7 +157,7 @@
                                 <!-- Form thêm vào giỏ + bộ đếm số lượng -->
                                 <div class="u-s-m-b-25">
                                     <form class="pd-detail__form" th:action="@{/gio-hang/them}" method="post">
-                                        <input type="hidden" name="idSanPhamChiTiet" class="js-variant-id" required>
+                                        <input type="hidden" name="idSanPhamChiTiet" class="js-variant-id" th:value="${listChiTiet != null and listChiTiet.size() == 1 ? listChiTiet[0].id : ''}" required>
                                         <div class="pd-detail-inline-2" style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
                                             <!-- Bộ đếm số lượng -->
                                             <div class="input-counter" style="background:#f1f3f5; border:none; border-radius:30px; display:inline-block; position:relative !important; overflow:hidden; height:45px; min-width:120px !important; max-width:120px !important;">
@@ -253,7 +240,7 @@
 	                                <span>Thêm vào giỏ hàng thành công!</span>
 	                            </div>
 	                            <div class="success__img-wrap">
-	                                <img class="u-img-fluid" id="js-modal-cart-img" src="" alt="Product">
+	                                <img class="u-img-fluid" id="js-modal-cart-img" src="" alt="Hình ảnh sản phẩm">
 	                            </div>
 	                            <div class="success__info-wrap">
 	                                <span class="success__name" id="js-modal-cart-name">Tên SP</span>
@@ -268,8 +255,9 @@
 	                            <span class="s-option__text">Giỏ hàng của bạn đã được cập nhật</span>
 	                            <div class="s-option__link-box">
 	                                <a class="s-option__link btn--e-white-brand-shadow" data-dismiss="modal">TIẾP TỤC MUA SẮM</a>
-	                                <a class="s-option__link btn--e-white-brand-shadow" th:href="@{/gio-hang}">XEM GIỎ HÀNG</a>
-	                                <a class="s-option__link btn--e-brand-shadow" th:href="@{/checkout}">THANH TOÁN TỚI ĐÂY</a>
+	                                <a class="s-option__link btn--e-white-brand-shadow" th:href="@{/gio-hang}" onclick="$('#add-to-cart').modal('hide');">XEM GIỎ HÀNG</a>
+	                                <button type="button" class="s-option__link btn--e-brand-shadow js-quick-add-checkout-btn" id="js-quick-add-checkout-btn" disabled>THANH TOÁN TỚI ĐÂY</button>
+
 	                            </div>
 	                        </div>
 	                    </div>
@@ -303,13 +291,13 @@
                                     <form class="new-l__form">
                                         <div class="u-s-m-b-15">
 
-                                            <input class="news-l__input" type="text" placeholder=".... @gmail.com"></div>
+                                            <input class="news-l__input" type="text" placeholder="Nhập địa chỉ email..."></div>
                                         <div class="u-s-m-b-15">
 
-                                            <button class="btn btn--e-brand-b-2" type="submit">Sign up!</button></div>
+                                            <button class="btn btn--e-brand-b-2" type="submit">Đăng ký ngay!</button></div>
                                     </form>
                                     <div class="u-s-m-b-15 new-l--center">
-                                        <p class="new-l__p2">Bằng cách đăng ký, bạn đồng ý nhận các ưu đãi, khuyến mãi và các tin nhắn thương mại khác từ Reshop.<br\> Bạn có thể hủy đăng ký bất cứ lúc nào.</p>
+                                        <p class="new-l__p2">Bằng cách đăng ký, bạn đồng ý nhận các ưu đãi, khuyến mãi và các tin nhắn thương mại khác từ SMASH-VN.<br\> Bạn có thể hủy đăng ký bất cứ lúc nào.</p>
                                     </div>
                                     <div class="u-s-m-b-15 new-l--center">
 

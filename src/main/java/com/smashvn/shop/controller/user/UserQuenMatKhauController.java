@@ -1,5 +1,8 @@
 package com.smashvn.shop.controller.user;
 
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -16,10 +19,91 @@ public class UserQuenMatKhauController {
     private final UserQuenMatKhauService quenMatKhauService;
     private final ForgotPasswordRateLimiter forgotPasswordRateLimiter;
 
+    @org.springframework.beans.factory.annotation.Value("${app.base-url:}")
+    private String configuredBaseUrl;
+
+    private String resolveBaseUrl(HttpServletRequest request) {
+        if (configuredBaseUrl != null && !configuredBaseUrl.trim().isEmpty()) {
+            return configuredBaseUrl.trim().replaceAll("/+$", "");
+        }
+        try {
+            return org.springframework.web.servlet.support.ServletUriComponentsBuilder
+                    .fromContextPath(request)
+                    .build()
+                    .toUriString();
+        } catch (Exception e) {
+            String scheme = request.getScheme();
+            String serverName = request.getServerName();
+            int serverPort = request.getServerPort();
+            String contextPath = request.getContextPath();
+            if ((scheme.equalsIgnoreCase("http") && serverPort == 80) || (scheme.equalsIgnoreCase("https") && serverPort == 443)) {
+                return scheme + "://" + serverName + contextPath;
+            }
+            return scheme + "://" + serverName + ":" + serverPort + contextPath;
+        }
+    }
+
     // 1. Hiển thị trang nhập Email
     @GetMapping("/quen-mat-khau")
-    public String hienThiTrangQuenMK() {
+    public String hienThiTrangQuenMK(@RequestParam(value = "email", required = false) String email, Model model) {
+        if (email != null && !email.trim().isEmpty() && model != null) {
+            model.addAttribute("email", email.trim());
+        }
         return "lost-password"; 
+    }
+
+    public String hienThiTrangQuenMK() {
+        return hienThiTrangQuenMK(null, null);
+    }
+
+    // 1.5 API AJAX Quên mật khẩu dùng cho Modal Checkout
+    @PostMapping("/checkout/api/forgot-password")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> forgotPasswordAjax(@RequestParam("email") String email, HttpServletRequest request) {
+        Map<String, Object> response = new HashMap<>();
+        String ip = request.getRemoteAddr();
+
+        if (forgotPasswordRateLimiter.isBlocked(ip)) {
+            response.put("success", false);
+            response.put("message", "Hành động bị chặn tạm thời do yêu cầu quá nhiều lần liên tiếp. Vui lòng thử lại sau 15 phút.");
+            return ResponseEntity.ok(response);
+        }
+
+        String sanitizedEmail = sanitizeInput(email);
+        String trimmedEmail = (sanitizedEmail != null) ? sanitizedEmail.trim() : "";
+
+        if (trimmedEmail.isEmpty()) {
+            forgotPasswordRateLimiter.forgotPasswordFailed(ip);
+            response.put("success", false);
+            response.put("message", "Email không được để trống!");
+            return ResponseEntity.ok(response);
+        }
+        if (trimmedEmail.length() > 100) {
+            forgotPasswordRateLimiter.forgotPasswordFailed(ip);
+            response.put("success", false);
+            response.put("message", "Email không được vượt quá 100 ký tự!");
+            return ResponseEntity.ok(response);
+        }
+        if (!trimmedEmail.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$")) {
+            forgotPasswordRateLimiter.forgotPasswordFailed(ip);
+            response.put("success", false);
+            response.put("message", "Định dạng email không hợp lệ!");
+            return ResponseEntity.ok(response);
+        }
+
+        try {
+            String appUrl = resolveBaseUrl(request);
+            quenMatKhauService.guiYeuCauKhoiPhuc(trimmedEmail, appUrl);
+            forgotPasswordRateLimiter.forgotPasswordSucceeded(ip);
+            response.put("success", true);
+            response.put("message", "Đã gửi link khôi phục mật khẩu tới email " + trimmedEmail + ". Vui lòng kiểm tra hộp thư!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            forgotPasswordRateLimiter.forgotPasswordFailed(ip);
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.ok(response);
+        }
     }
 
     // 2. Xử lý Gửi Email
@@ -55,9 +139,7 @@ public class UserQuenMatKhauController {
         }
 
         try {
-            // Lấy địa chỉ gốc của web (VD: http://localhost:8080)
-            String appUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-            
+            String appUrl = resolveBaseUrl(request);
             quenMatKhauService.guiYeuCauKhoiPhuc(trimmedEmail, appUrl);
             forgotPasswordRateLimiter.forgotPasswordSucceeded(ip);
             model.addAttribute("thongBao", "Đường link khôi phục mật khẩu đã được gửi vào Email của bạn. Vui lòng kiểm tra hộp thư!");

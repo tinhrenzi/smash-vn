@@ -50,8 +50,8 @@ public class PendingOrderDeletionBugTest {
         if (vcs.isEmpty()) {
             DonViVanChuyen vc = new DonViVanChuyen();
             vc.setTenDonVi("Standard Shipping");
-            vc.setWebsite("https://smashvn.com");
             vc.setHotline("1900");
+            vc.setWebsite("https://smashvn.com");
             testDvvc = donViVanChuyenDAO.save(vc);
         } else {
             testDvvc = vcs.get(0);
@@ -68,19 +68,20 @@ public class PendingOrderDeletionBugTest {
 
         String email = "test-pending-bug-" + System.nanoTime() + "@example.com";
         testTk = new TaiKhoan();
-        testTk.setEmail(email);
+        testTk.setUsername(email);
         testTk.setMatKhau("password123");
         testTk.setTrangThaiTaiKhoan(AccountStatus.ACTIVE);
         testTk.setVaiTro("KH");
         testTk.setTrangThai("hoat_dong");
-        testTk.setLaKhachHang(true);
+
         testTk = taiKhoanRepository.save(testTk);
 
         testKh = new KhachHang();
         testKh.setTaiKhoan(testTk);
         testKh.setHoKh("Test");
         testKh.setTenKh("User");
-        testKh.setSoDienThoaiKh("0900000000");
+        String uniqueSdt = "09" + String.format("%08d", (int)(Math.random() * 100000000));
+        testKh.setSoDienThoaiKh(uniqueSdt);
         testKh.setLaTaiKhoanNoiBo(false);
         testKh = khachHangRepository.save(testKh);
     }
@@ -93,7 +94,7 @@ public class PendingOrderDeletionBugTest {
         hd.setTrangThaiThanhToan("CHO_THANH_TOAN");
         hd.setTongTien(new BigDecimal("500000"));
         hd.setDiaChiNhan("123 Street");
-        hd.setSdtNhan("0900000000");
+        hd.setSdtNhan(testKh.getSoDienThoaiKh());
         hd.setMaDonHang("PENDING-BUG-ORDER-" + System.nanoTime());
         hd.setDonViVanChuyen(testDvvc);
         hd.setPhuongThucThanhToan(testPttt);
@@ -122,8 +123,10 @@ public class PendingOrderDeletionBugTest {
         // Perform clean pending orders
         gioHangService.cleanPendingOrders(testTk.getId());
 
-        // Verify that the order has been deleted
-        assertFalse(hoaDonRepository.findById(expiredOrder.getId()).isPresent(), 
-                "Pending order created 20 minutes ago should be deleted.");
+        // Verify that the order has been marked as expired (da_huy)
+        HoaDon reloaded = hoaDonRepository.findById(expiredOrder.getId()).orElse(null);
+        assertNotNull(reloaded, "Expired pending order record should exist.");
+        assertEquals("da_huy", reloaded.getTrangThaiDonHang(), "Pending order created 20 minutes ago should be expired to da_huy.");
+        assertEquals("expired", reloaded.getPaymentStatus(), "Pending order created 20 minutes ago should have paymentStatus expired.");
     }
 }

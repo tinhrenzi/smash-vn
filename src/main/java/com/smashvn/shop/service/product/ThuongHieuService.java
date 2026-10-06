@@ -60,6 +60,16 @@ public class ThuongHieuService {
         return thuongHieuRepository.save(th);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public ThuongHieu anHoacHienThuongHieu(Integer id) {
+        ThuongHieu th = thuongHieuRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thương hiệu với ID: " + id));
+        boolean currentStatus = Boolean.TRUE.equals(th.getTrangThai());
+        th.setTrangThai(!currentStatus);
+        log.info("[BRAND] Toggled status for brand ID {}: {} -> {}", id, currentStatus, !currentStatus);
+        return thuongHieuRepository.save(th);
+    }
+
     // ----------------------------------------------------------------
     // Private helpers
     // ----------------------------------------------------------------

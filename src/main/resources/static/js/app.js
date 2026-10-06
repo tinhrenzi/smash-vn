@@ -555,45 +555,86 @@
         }
     };
 
-    // Isotope Filter Component Initialization
+    // Filter Component with smooth CSS animation (replaces Isotope)
     RESHOP.initIsotopeFilter = function() {
-        console.log("[Isotope] initIsotopeFilter started");
         var $wrapper = $('.filter__grid-wrapper');
         var $btns = $('.filter__btn');
         
-        console.log("[Isotope] wrapper length:", $wrapper.length, "buttons length:", $btns.length);
-        
-        if ($wrapper.length && typeof $.fn.isotope === 'function') {
+        if ($wrapper.length) {
             var $row = $wrapper.find('.row');
-            console.log("[Isotope] Row container found:", $row.length);
+            var $items = $row.find('.filter__item');
             
-            var $grid = $row.isotope({
-                itemSelector: '.filter__item',
-                layoutMode: 'fitRows'
+            // Show top 14 items initially for 'TẤT CẢ' tab (row 4 product 2)
+            $items.css({'transition': 'all 0.35s ease'});
+            $items.each(function(idx) {
+                if (idx < 14) {
+                    $(this).css({'opacity': '1', 'transform': 'scale(1)'}).show();
+                } else {
+                    $(this).css({'opacity': '0', 'transform': 'scale(0.8)'}).hide();
+                }
             });
-            
-            if (typeof $.fn.imagesLoaded === 'function') {
-                console.log("[Isotope] imagesLoaded is defined");
-                $grid.imagesLoaded().progress(function() {
-                    $grid.isotope('layout');
-                });
-            } else {
-                console.warn("[Isotope] imagesLoaded is NOT defined on jQuery, using fallback");
-                setTimeout(function() {
-                    $grid.isotope('layout');
-                }, 500);
-            }
             
             $btns.on('click', function() {
                 var filterValue = $(this).attr('data-filter');
-                console.log("[Isotope] Filter button clicked:", filterValue);
-                $grid.isotope({ filter: filterValue });
+                
+                // Update active button style
                 $btns.removeClass('js-checked');
                 $(this).addClass('js-checked');
+                
+                if (filterValue === '*') {
+                    // Show first 14 items for 'TẤT CẢ' tab, hide the rest
+                    $items.each(function(idx) {
+                        var $item = $(this);
+                        if (idx < 14) {
+                            if ($item.css('display') === 'none') {
+                                $item.css({'opacity': '0', 'transform': 'scale(0.8)'}).show();
+                                setTimeout(function() {
+                                    $item.css({'opacity': '1', 'transform': 'scale(1)'});
+                                }, 50);
+                            }
+                        } else {
+                            $item.css({'opacity': '0', 'transform': 'scale(0.8)'});
+                            setTimeout(function() {
+                                $item.hide();
+                            }, 350);
+                        }
+                    });
+                } else {
+                    // Filter by brand name using data-brand attribute with normalized brand matching
+                    function normalizeBrandName(str) {
+                        if (!str) return '';
+                        var s = str.toLowerCase().trim().replace(/[\s\-_]/g, '');
+                        if (s.indexOf('lining') !== -1) return 'lining';
+                        return s;
+                    }
+                    var normFilter = normalizeBrandName(filterValue);
+                    var matchCount = 0;
+
+                    $items.each(function() {
+                        var $item = $(this);
+                        var itemBrand = $item.attr('data-brand') || '';
+                        var normItem = normalizeBrandName(itemBrand);
+                        var isMatch = (normItem === normFilter) || (normFilter === 'lining' && normItem === 'lining');
+
+                        if (isMatch && matchCount < 14) {
+                            matchCount++;
+                            // Show matching items (up to max 14)
+                            if ($item.css('display') === 'none') {
+                                $item.css({'opacity': '0', 'transform': 'scale(0.8)'}).show();
+                                setTimeout(function() {
+                                    $item.css({'opacity': '1', 'transform': 'scale(1)'});
+                                }, 50);
+                            }
+                        } else {
+                            // Hide non-matching or excess items with animation
+                            $item.css({'opacity': '0', 'transform': 'scale(0.8)'});
+                            setTimeout(function() {
+                                $item.hide();
+                            }, 350);
+                        }
+                    });
+                }
             });
-            console.log("[Isotope] Click handlers bound successfully");
-        } else {
-            console.warn("[Isotope] Skipping initialization. Wrapper length:", $wrapper.length, "Isotope defined:", (typeof $.fn.isotope === 'function'));
         }
     };
 
@@ -628,14 +669,12 @@
   ==============================================================*/
 function selectColor(element) {
     if (!element) return;
-    // 1. Tìm khu vực bao quanh nó (để tách biệt giữa Modal và Trang chủ)
     let container = element.closest('.pd-detail'); 
     if (!container) return;
     
     container.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
     element.classList.add('active');
     
-    // 2. Lưu màu vừa chọn trực tiếp vào khu vực đó
     container.setAttribute('data-selected-color', element.getAttribute('data-color'));
     checkAndApplyVariant(container);
 }
@@ -652,18 +691,47 @@ function selectSize(element) {
     checkAndApplyVariant(container);
 }
 
+function resolveImageUrl(imgPath) {
+    if (!imgPath) return '/images/placeholder.png';
+    var s = imgPath.trim();
+    if (s.startsWith('/')) return s;
+    if (s.startsWith('uploads/')) return '/' + s;
+    return '/uploads/product/' + s;
+}
+
+function selectDynamicAttribute(element) {
+    if (!element) return;
+    let container = element.closest('.pd-detail');
+    if (!container) return;
+
+    const attrName = element.getAttribute('data-attr-name');
+    const attrVal = element.getAttribute('data-attr-value');
+
+    // Remove active class from buttons in the same attribute group
+    container.querySelectorAll('.dynamic-attr-btn').forEach(btn => {
+        if (btn.getAttribute('data-attr-name') === attrName) {
+            btn.classList.remove('active');
+        }
+    });
+    element.classList.add('active');
+
+    // Store in container
+    const sanitizedKey = 'data-selected-attr-' + attrName.replace(/\s+/g, '_').toLowerCase();
+    container.setAttribute(sanitizedKey, attrVal);
+    checkAndApplyVariant(container);
+}
+
 function checkAndApplyVariant(container) {
     if (!container) return;
-    // 1. Lấy các phần tử DOM thông qua class
     const btnAdd = container.querySelector('.js-btn-add-cart');
     const stockStatus = container.querySelector('.js-stock-status');
     const inputId = container.querySelector('.js-variant-id');
     const quantityInput = container.querySelector('.js-quantity-input');
-    // Tìm phần tử hiển thị giá và tồn kho bên trong container trước để tránh trùng lặp giữa trang chi tiết và quick-look modal
+    
     const priceDisplay = container.querySelector('.js-display-price') || container.querySelector('.pd-detail__price') || document.getElementById('js-display-price');
     const originalPriceDisplay = container.querySelector('.js-display-original-price') || container.querySelector('.pd-detail__del');
     const discountBadgeDisplay = container.querySelector('.js-display-discount-badge') || container.querySelector('.pd-detail__discount');
-    // Panel tồn kho riêng
+    
     const stockInfoPanel = container.querySelector('.js-variant-stock-info') || document.getElementById('js-variant-stock-info');
     const stockCountEl = container.querySelector('.js-variant-stock-count') || document.getElementById('js-variant-stock-count');
     const stockBadgeEl = container.querySelector('.js-variant-stock-badge') || document.getElementById('js-variant-stock-badge');
@@ -671,15 +739,32 @@ function checkAndApplyVariant(container) {
     const selectedColor = container.getAttribute('data-selected-color');
     const selectedSize = container.getAttribute('data-selected-size');
 
-    // Kiểm tra xem trên giao diện thực tế có hiển thị các tùy chọn để chọn không
     const hasColorOptions = container.querySelector('.color-btn') !== null;
     const hasSizeOptions = container.querySelector('.size-btn') !== null;
 
-    // Nếu có tùy chọn nhưng chưa chọn đủ
-    if ((hasColorOptions && !selectedColor) || (hasSizeOptions && !selectedSize)) {
+    // Scan dynamic attributes
+    const dynamicButtons = container.querySelectorAll('.dynamic-attr-btn');
+    const dynamicAttrNames = Array.from(new Set(Array.from(dynamicButtons).map(btn => btn.getAttribute('data-attr-name'))));
+    
+    let hasMissingAttr = false;
+    const selectedAttributes = {};
+    for (const name of dynamicAttrNames) {
+        const key = 'data-selected-attr-' + name.replace(/\s+/g, '_').toLowerCase();
+        const val = container.getAttribute(key);
+        if (!val) {
+            hasMissingAttr = true;
+        } else {
+            selectedAttributes[name] = val;
+        }
+    }
+
+    const btnBuyNow = container.querySelector('.js-btn-buy-now');
+
+    if ((hasColorOptions && !selectedColor) || (hasSizeOptions && !selectedSize) || hasMissingAttr) {
+        if (inputId) inputId.value = '';
         if(stockStatus) {
-            stockStatus.style.display = 'none';
-            stockStatus.innerHTML = '<i class="fas fa-info-circle"></i> Vui lòng chọn Màu sắc và Kích thước.';
+            stockStatus.style.display = 'block';
+            stockStatus.innerHTML = '<i class="fas fa-info-circle"></i> Vui lòng chọn đầy đủ các thuộc tính phân loại.';
             stockStatus.className = 'js-stock-status u-s-m-b-15 text-warning fw-bold';
         }
         if (stockInfoPanel) stockInfoPanel.style.display = 'none';
@@ -689,10 +774,16 @@ function checkAndApplyVariant(container) {
             btnAdd.style.backgroundColor = '';
             btnAdd.style.borderColor = '';
         }
+        if (btnBuyNow) {
+            btnBuyNow.disabled = false;
+            btnBuyNow.innerText = 'Mua ngay';
+            btnBuyNow.style.backgroundColor = '#e65100';
+            btnBuyNow.style.borderColor = '#e65100';
+        }
         return;
     }
 
-    const variants = container.danhSachBienThe;
+    const variants = container.danhSachBienTo || container.danhSachBienThe;
     if (typeof variants === 'undefined' || !variants) {
         console.error("Lỗi: Không tìm thấy danh sách biến thể trên container!", container);
         if (stockStatus) {
@@ -703,12 +794,36 @@ function checkAndApplyVariant(container) {
         return;
     }
 
-    // Tìm biến thể khớp với Màu và Size đã chọn (Bọc trim() và toLowerCase() phòng trường hợp khoảng trắng thừa trong DB)
-    // Nếu giao diện không hiển thị tùy chọn nào, mặc định khớp với biến thể đầu tiên
     const matchedVariant = variants.find(v => {
         const matchColor = !hasColorOptions || (v.mauSac && selectedColor && v.mauSac.trim().toLowerCase() === selectedColor.trim().toLowerCase());
-        const matchSize = !hasSizeOptions || (v.trongLuong && selectedSize && v.trongLuong.trim().toLowerCase() === selectedSize.trim().toLowerCase());
-        return matchColor && matchSize;
+        const matchSize = !hasSizeOptions || (selectedSize && ((v.trongLuong && v.trongLuong.trim().toLowerCase() === selectedSize.trim().toLowerCase()) || (v.kichThuoc && v.kichThuoc.trim().toLowerCase() === selectedSize.trim().toLowerCase())));
+        
+        let matchDynamic = true;
+        if (v.attributes) {
+            for (const name in selectedAttributes) {
+                const vVal = v.attributes[name];
+                const selVal = selectedAttributes[name];
+                if (!vVal || vVal.trim().toLowerCase() !== selVal.trim().toLowerCase()) {
+                    matchDynamic = false;
+                    break;
+                }
+            }
+        } else {
+            for (const name in selectedAttributes) {
+                const selVal = selectedAttributes[name].trim().toLowerCase();
+                if (name === "Màu sắc") {
+                    if (!v.mauSac || v.mauSac.trim().toLowerCase() !== selVal) matchDynamic = false;
+                } else if (name === "Kích thước") {
+                    if (!v.kichThuoc || v.kichThuoc.trim().toLowerCase() !== selVal) matchDynamic = false;
+                } else if (name === "Trọng lượng") {
+                    if (!v.trongLuong || v.trongLuong.trim().toLowerCase() !== selVal) matchDynamic = false;
+                } else if (name === "Mức căng" || name === "Sức căng") {
+                    const vCang = v.mucCang || v.sucCang;
+                    if (!vCang || vCang.trim().toLowerCase() !== selVal) matchDynamic = false;
+                }
+            }
+        }
+        return matchColor && matchSize && matchDynamic;
     });
 
     if (matchedVariant) {
@@ -728,6 +843,18 @@ function checkAndApplyVariant(container) {
                 btnAdd.innerText = 'Hết hàng';
                 btnAdd.style.backgroundColor = '#a0a0a0';
                 btnAdd.style.borderColor = '#a0a0a0';
+            }
+        }
+        if (btnBuyNow) {
+            btnBuyNow.disabled = !conHang;
+            if (conHang) {
+                btnBuyNow.innerText = 'Mua ngay';
+                btnBuyNow.style.backgroundColor = '#e65100';
+                btnBuyNow.style.borderColor = '#e65100';
+            } else {
+                btnBuyNow.innerText = 'Hết hàng';
+                btnBuyNow.style.backgroundColor = '#a0a0a0';
+                btnBuyNow.style.borderColor = '#a0a0a0';
             }
         }
         
@@ -795,7 +922,7 @@ function checkAndApplyVariant(container) {
         const mainRow = container.closest('.row');
         
         if (mainRow && matchedVariant.hinhAnhSanPham) {
-            const newImgSrc = '/uploads/product/' + matchedVariant.hinhAnhSanPham;
+            const newImgSrc = resolveImageUrl(matchedVariant.hinhAnhSanPham);
 
             // Ưu tiên tìm ảnh đang active trong slider Slick (Của Modal hoặc Detail)
             let activeImage = mainRow.querySelector('#js-product-detail-modal .slick-current img') ||
@@ -809,6 +936,10 @@ function checkAndApplyVariant(container) {
 
             if (activeImage) {
                 // Đổi đường dẫn ảnh hiển thị
+                activeImage.onerror = function() {
+                    this.onerror = null;
+                    this.src = '/images/placeholder.png';
+                };
                 activeImage.src = newImgSrc;
 
                 // Nếu ảnh có plugin Kính lúp (ElevateZoom) ở trang Chi tiết
@@ -832,6 +963,12 @@ function checkAndApplyVariant(container) {
             btnAdd.innerText = 'Hết hàng';
             btnAdd.style.backgroundColor = '#a0a0a0';
             btnAdd.style.borderColor = '#a0a0a0';
+        }
+        if (btnBuyNow) {
+            btnBuyNow.disabled = true;
+            btnBuyNow.innerText = 'Hết hàng';
+            btnBuyNow.style.backgroundColor = '#a0a0a0';
+            btnBuyNow.style.borderColor = '#a0a0a0';
         }
         if (stockInfoPanel) stockInfoPanel.style.display = 'none';
         if(stockStatus) {
@@ -864,7 +1001,6 @@ function checkAndApplyVariant(container) {
               $('#quick-look').modal('show');
           },
           error: function(error) {
-              console.log("Lỗi khi tải dữ liệu Quick Look", error);
               showToast("Có lỗi xảy ra khi tải dữ liệu sản phẩm!", "error");
           }
       });
@@ -900,7 +1036,7 @@ function checkAndApplyVariant(container) {
               response.danhSach.forEach(function(item) {
                   var formattedPrice = new Intl.NumberFormat('vi-VN').format(item.giaBan) + ' đ';
                   var productUrl = '/san-pham/' + item.idSanPham;
-                  var imageUrl = '/uploads/product/' + item.hinhAnh;
+                  var imageUrl = resolveImageUrl(item.hinhAnh);
 
                   var variantHtml = '';
                   var hasMau = item.mauSac && item.mauSac.trim().length > 0;
@@ -956,7 +1092,7 @@ function checkAndApplyVariant(container) {
               $cartContainer.html(htmlContent);
           },
           error: function(error) {
-              console.log("Lỗi khi tải Mini Cart:", error);
+              showToast("Không thể tải giỏ hàng. Vui lòng thử lại.", "error");
           }
       });
   }
@@ -979,19 +1115,34 @@ function checkAndApplyVariant(container) {
       
       // 1. Kiểm tra xem đã chọn thuộc tính chưa
       var container = form.closest('.pd-detail');
+      var spctId = form.find('.js-variant-id').val();
       if (container.length) {
           var selectedColor = container.attr('data-selected-color');
           var selectedSize = container.attr('data-selected-size');
           var hasColorOptions = container.find('.color-btn').length > 0;
           var hasSizeOptions = container.find('.size-btn').length > 0;
           
-          if ((hasColorOptions && !selectedColor) || (hasSizeOptions && !selectedSize)) {
+          var dynamicButtons = container.find('.dynamic-attr-btn');
+          var dynamicAttrNames = Array.from(new Set(Array.from(dynamicButtons).map(btn => $(btn).attr('data-attr-name'))));
+          var hasMissingDynamic = false;
+          for (var i = 0; i < dynamicAttrNames.length; i++) {
+              var key = 'data-selected-attr-' + dynamicAttrNames[i].replace(/\s+/g, '_').toLowerCase();
+              if (!container.attr(key)) {
+                  hasMissingDynamic = true;
+                  break;
+              }
+          }
+          
+          if ((hasColorOptions && !selectedColor) || (hasSizeOptions && !selectedSize) || hasMissingDynamic || !spctId) {
               e.preventDefault();
               var stockStatus = container.find('.js-stock-status');
               if (stockStatus.length) {
-                  stockStatus.html('<i class="fas fa-info-circle"></i> Vui lòng chọn Màu sắc và Kích thước.');
+                  stockStatus.html('<i class="fas fa-exclamation-circle"></i> Vui lòng chọn đầy đủ các thuộc tính phân loại sản phẩm.');
                   stockStatus.attr('class', 'js-stock-status u-s-m-b-15 text-danger fw-bold');
                   stockStatus.css('display', 'block');
+              }
+              if (typeof showToast === 'function') {
+                  showToast('Vui lòng chọn đầy đủ các thuộc tính phân loại sản phẩm trước khi thêm vào giỏ hàng!', 'warning');
               }
               return false;
           }
@@ -1001,6 +1152,10 @@ function checkAndApplyVariant(container) {
       
       var url = form.attr('action');
       var data = form.serialize(); // Lấy tự động idSanPhamChiTiet và soLuong
+
+      // Reset Quick Add button token state before sending request
+      const $quickAddBtn = $('.js-quick-add-checkout-btn, #js-quick-add-checkout-btn');
+      $quickAddBtn.removeData('checkout-url').removeAttr('data-checkout-url').prop('disabled', true);
 
       // Khóa nút bấm lại để tránh khách click đúp 2 lần
       var submitBtn = form.find('button[type="submit"]');
@@ -1029,13 +1184,19 @@ function checkAndApplyVariant(container) {
                   var formattedPrice = new Intl.NumberFormat('vi-VN').format(response.giaBan) + ' đ';
                   $('#js-modal-cart-price').text(formattedPrice);
                   
-                  $('#js-modal-cart-img').attr('src', '/uploads/product/' + response.hinhAnh);
+                  $('#js-modal-cart-img').attr('src', resolveImageUrl(response.hinhAnh));
 
                   // 2. Ẩn modal Quick Look nếu khách đang thao tác từ Quick Look
                   $('#quick-look').modal('hide');
 
+                  if (response.quickAddCheckoutUrl) {
+                      $quickAddBtn.attr('data-checkout-url', response.quickAddCheckoutUrl)
+                                  .data('checkout-url', response.quickAddCheckoutUrl)
+                                  .prop('disabled', false);
+                  }
                   // 3. Hiển thị modal thông báo thành công
                   $('#add-to-cart').modal('show');
+
 
                   // 4. Update tự động Mini Cart trên thanh Header
                   if (typeof loadMiniCart === 'function') {
@@ -1047,12 +1208,9 @@ function checkAndApplyVariant(container) {
           },
           error: function(xhr) {
               submitBtn.prop('disabled', false).html(originalBtnText);
-              var message = "Có lỗi kết nối đến máy chủ. Vui lòng thử lại!";
-              if (xhr && xhr.responseText) {
-                  message = xhr.responseText;
-              }
+              var rawMsg = (xhr && xhr.responseText) ? xhr.responseText : "Có lỗi kết nối đến máy chủ. Vui lòng thử lại!";
+              var message = getFriendlyErrorMessage(rawMsg, "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
               showToast(message, "error");
-              console.log(xhr);
           }
       });
   });
@@ -1066,7 +1224,13 @@ function checkAndApplyVariant(container) {
       var btn = $(this);
       var idChiTiet = btn.data('id');
 
-      if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ?')) {
+      SmashNotify.confirm({
+          title: 'Xóa sản phẩm khỏi giỏ?',
+          message: 'Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ?',
+          confirmText: 'Xóa',
+          danger: true
+      }).then(function(confirmed) {
+          if (!confirmed) return;
           // Làm mờ nút đi một chút để báo hiệu đang chờ Server xử lý
           btn.css('opacity', '0.5');
 
@@ -1085,32 +1249,24 @@ function checkAndApplyVariant(container) {
                       if (row.length) {
                           row.fadeOut(300, function() {
                               $(this).remove(); // Cắt bỏ thẻ <tr> khỏi giao diện
+
+                              if (typeof recalculateSelectedCartSummary === 'function') {
+                                  recalculateSelectedCartSummary();
+                              }
                               
                               // Nếu bảng trống trơn, hiển thị thông báo "Giỏ hàng trống"
-                              if ($('table.table-p tbody tr').length === 0) {
-                                  $('table.table-p tbody').html('<tr><td colspan="4" class="text-center u-s-p-y-30">Giỏ hàng của bạn đang trống. Hãy thêm sản phẩm vào giỏ nhé!</td></tr>');
+                              if ($('table.table-p tbody tr.js-cart-row').length === 0) {
+                                  $('table.table-p tbody').html('<tr><td colspan="5" class="text-center u-s-p-y-30">Giỏ hàng của bạn đang trống. Hãy thêm sản phẩm vào giỏ nhé!</td></tr>');
                                   $('.f-cart').fadeOut(); // Ẩn luôn khu vực Tạm tính tiền
                               }
                           });
                       }
 
+
                       // 2. Tái sử dụng lại API loadMiniCart để nó tự lo việc tính toán TỔNG TIỀN và SỐ LƯỢNG MỚI
                       if (typeof loadMiniCart === 'function') {
                           loadMiniCart();
                       }
-                      
-                      // 3. Nếu ở trang cart.html, cập nhật luôn số TỔNG CỘNG bự chà bá
-                      $.ajax({
-                          url: '/gio-hang/api/mini-cart',
-                          type: 'GET',
-                          success: function(res) {
-                              if (res.trangThai === 'ok') {
-                                  var formattedTotal = new Intl.NumberFormat('vi-VN').format(res.tongTien) + ' đ';
-                                  $('.js-cart-summary-subtotal').text(formattedTotal);
-                                  $('.js-cart-summary-total').text(formattedTotal);
-                              }
-                          }
-                      });
 
                   } else {
                       showToast("Có lỗi xảy ra khi xóa!", "error");
@@ -1118,16 +1274,19 @@ function checkAndApplyVariant(container) {
                   }
               },
               error: function() {
-                  showToast("Lỗi kết nối máy chủ!", "error");
+                  showToast("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.", "error");
                   btn.css('opacity', '1');
               }
           });
-      }
+      });
   });
   /*==============================================================
     # CUSTOM JS: Thêm nhanh vào giỏ (Dành cho SP có duy nhất 1 biến thể)
     ==============================================================*/
   function quickAddToCart(idSanPhamChiTiet) {
+      const $quickAddBtn = $('.js-quick-add-checkout-btn, #js-quick-add-checkout-btn');
+      $quickAddBtn.removeData('checkout-url').removeAttr('data-checkout-url').prop('disabled', true);
+
       $.ajax({
           url: '/gio-hang/them',
           type: 'POST',
@@ -1149,10 +1308,16 @@ function checkAndApplyVariant(container) {
                   
                   var formattedPrice = new Intl.NumberFormat('vi-VN').format(response.giaBan) + ' đ';
                   $('#js-modal-cart-price').text(formattedPrice);
-                  $('#js-modal-cart-img').attr('src', '/uploads/product/' + response.hinhAnh);
+                  $('#js-modal-cart-img').attr('src', resolveImageUrl(response.hinhAnh));
 
+                  if (response.quickAddCheckoutUrl) {
+                      $quickAddBtn.attr('data-checkout-url', response.quickAddCheckoutUrl)
+                                  .data('checkout-url', response.quickAddCheckoutUrl)
+                                  .prop('disabled', false);
+                  }
                   // Hiển thị modal thông báo thành công
                   $('#add-to-cart').modal('show');
+
 
                   // Load lại Mini Cart trên Header
                   if (typeof loadMiniCart === 'function') {
@@ -1163,12 +1328,9 @@ function checkAndApplyVariant(container) {
               }
           },
           error: function(xhr) {
-              var message = "Có lỗi kết nối đến máy chủ. Vui lòng thử lại!";
-              if (xhr && xhr.responseText) {
-                  message = xhr.responseText;
-              }
+              var rawMsg = (xhr && xhr.responseText) ? xhr.responseText : "Có lỗi kết nối đến máy chủ. Vui lòng thử lại!";
+              var message = getFriendlyErrorMessage(rawMsg, "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
               showToast(message, "error");
-              console.log(xhr);
           }
       });
   }
@@ -1185,54 +1347,6 @@ function checkAndApplyVariant(container) {
       }
   });
   /*==============================================================
-    # CUSTOM JS: Toast Notification (No Browser Alerts)
-  ==============================================================*/
-  function showToast(message, type) {
-      type = type || 'success';
-      var $container = $('#custom-toast-container');
-      if ($container.length === 0) {
-          $container = $('<div id="custom-toast-container"></div>').appendTo('body');
-      }
-      
-      // Limit to 2 toasts. Hide/remove the oldest one.
-      var $activeToasts = $container.children('.custom-toast.show:not(.hiding)');
-      if ($activeToasts.length >= 2) {
-          var $oldest = $activeToasts.first();
-          $oldest.addClass('hiding').removeClass('show');
-          setTimeout(function() {
-              $oldest.remove();
-          }, 300);
-      }
-      
-      var iconClass = 'fa-check-circle';
-      if (type === 'error') {
-          iconClass = 'fa-exclamation-circle';
-      } else if (type === 'info') {
-          iconClass = 'fa-info-circle';
-      }
-      
-      var $toast = $(`
-          <div class="custom-toast custom-toast--${type}">
-              <i class="fas ${iconClass}"></i>
-              <span class="custom-toast__message">${message}</span>
-          </div>
-      `);
-      
-      $container.append($toast);
-      
-      setTimeout(function() {
-          $toast.addClass('show');
-      }, 10);
-      
-      setTimeout(function() {
-          $toast.removeClass('show');
-          setTimeout(function() {
-              $toast.remove();
-          }, 300);
-      }, 3000);
-  }
-
-  /*==============================================================
     # CUSTOM JS: Thêm vào Wishlist bằng AJAX
   ==============================================================*/
   function addToWishlist(idSanPham, element) {
@@ -1244,7 +1358,12 @@ function checkAndApplyVariant(container) {
               var status = res.status;
               var count = res.count;
               if (status === 'chuadangnhap') {
-                  window.location.href = '/user/dang-nhap';
+                  showToast('Vui lòng đăng nhập để sử dụng tính năng yêu thích!', 'info');
+                  setTimeout(function() {
+                      window.location.href = '/user/dang-nhap';
+                  }, 1000);
+              } else if (status === 'loi') {
+                  showToast(res.message || 'Có lỗi xảy ra, vui lòng thử lại!', 'error');
               } else if (status === 'xoa') {
                   showToast('Đã xóa sản phẩm khỏi danh sách yêu thích!', 'info');
                   if (element) {
@@ -1287,8 +1406,15 @@ function checkAndApplyVariant(container) {
                   }
               }
           },
-          error: function() {
-              showToast('Có lỗi xảy ra, vui lòng thử lại!', 'error');
+          error: function(xhr) {
+              if (xhr.status === 401 || xhr.status === 403) {
+                  showToast('Vui lòng đăng nhập để sử dụng tính năng yêu thích!', 'info');
+                  setTimeout(function() {
+                      window.location.href = '/user/dang-nhap';
+                  }, 1000);
+              } else {
+                  showToast('Có lỗi xảy ra, vui lòng thử lại!', 'error');
+              }
           }
       });
   }
@@ -1300,7 +1426,13 @@ function checkAndApplyVariant(container) {
       var btn = $(this);
       var idSanPham = btn.data('id');
 
-      if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi danh sách yêu thích?')) {
+      SmashNotify.confirm({
+          title: 'Xóa khỏi danh sách yêu thích?',
+          message: 'Bạn có chắc chắn muốn xóa sản phẩm này khỏi danh sách yêu thích?',
+          confirmText: 'Xóa',
+          danger: true
+      }).then(function(confirmed) {
+          if (!confirmed) return;
           btn.css('opacity', '0.5');
 
           $.ajax({
@@ -1338,180 +1470,15 @@ function checkAndApplyVariant(container) {
                   btn.css('opacity', '1');
               }
           });
-      }
+      });
   });
   /*==============================================================
     # CUSTOM JS: Lấy vị trí hiện tại (Geolocation + OpenStreetMap + Bản đồ tương tác)
   ==============================================================*/
 
-  // Global variables for Map and Marker
-  let leafletMap = null;
-  let mapMarker = null;
-
-  // Dynamic Toast CSS injection for premium notifications
-  (function injectToastStyles() {
-      if (document.getElementById('custom-toast-styles')) return;
-      const styles = `
-          .custom-toast-container {
-              position: fixed;
-              top: 20px;
-              right: 20px;
-              z-index: 99999;
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-              max-width: 380px;
-              width: calc(100% - 40px);
-              pointer-events: none;
-          }
-          .custom-toast {
-              display: flex;
-              align-items: flex-start;
-              gap: 12px;
-              background: rgba(255, 255, 255, 0.95);
-              backdrop-filter: blur(10px);
-              border-radius: 12px;
-              padding: 16px;
-              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-              border-left: 5px solid #ccc;
-              transform: translateX(120%);
-              transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
-              opacity: 0;
-              pointer-events: auto;
-          }
-          .custom-toast.show {
-              transform: translateX(0);
-              opacity: 1;
-          }
-          .custom-toast-success {
-              border-left-color: #2ecc71;
-          }
-          .custom-toast-warning {
-              border-left-color: #f1c40f;
-          }
-          .custom-toast-error {
-              border-left-color: #e74c3c;
-          }
-          .custom-toast-info {
-              border-left-color: #3498db;
-          }
-          .custom-toast-icon {
-              font-size: 1.25rem;
-              flex-shrink: 0;
-              margin-top: 2px;
-          }
-          .custom-toast-success .custom-toast-icon { color: #2ecc71; }
-          .custom-toast-warning .custom-toast-icon { color: #f1c40f; }
-          .custom-toast-error .custom-toast-icon { color: #e74c3c; }
-          .custom-toast-info .custom-toast-icon { color: #3498db; }
-          
-          .custom-toast-content {
-              flex-grow: 1;
-              color: #2c3e50;
-          }
-          .custom-toast-title {
-              font-weight: 700;
-              font-size: 0.95rem;
-              margin-bottom: 4px;
-          }
-          .custom-toast-message {
-              font-size: 0.85rem;
-              line-height: 1.4;
-              color: #7f8c8d;
-          }
-          .custom-toast-close {
-              background: none;
-              border: none;
-              color: #bdc3c7;
-              cursor: pointer;
-              font-size: 1rem;
-              padding: 0;
-              line-height: 1;
-              flex-shrink: 0;
-              transition: color 0.2s;
-          }
-          .custom-toast-close:hover {
-              color: #7f8c8d;
-          }
-          
-          @media (max-width: 480px) {
-              .custom-toast-container {
-                  top: 10px;
-                  right: 10px;
-                  width: calc(100% - 20px);
-              }
-          }
-      `;
-      const styleSheet = document.createElement("style");
-      styleSheet.id = 'custom-toast-styles';
-      styleSheet.type = "text/css";
-      styleSheet.innerText = styles;
-      document.head.appendChild(styleSheet);
-  })();
-
-  // Toast displaying helper
-  function showToast(title, message, type = 'info', duration = 5000) {
-      let container = document.querySelector('.custom-toast-container');
-      if (!container) {
-          container = document.createElement('div');
-          container.className = 'custom-toast-container';
-          document.body.appendChild(container);
-      }
-      
-      // Limit to 2 toasts. Hide/remove the oldest one.
-      const activeToasts = container.querySelectorAll('.custom-toast.show:not(.hiding)');
-      if (activeToasts.length >= 2) {
-          const oldestToast = activeToasts[0];
-          oldestToast.classList.add('hiding');
-          oldestToast.classList.remove('show');
-          let removed = false;
-          const removeOldest = () => {
-              if (!removed) {
-                  removed = true;
-                  oldestToast.remove();
-              }
-          };
-          oldestToast.addEventListener('transitionend', removeOldest);
-          setTimeout(removeOldest, 400);
-      }
-      
-      const toast = document.createElement('div');
-      toast.className = `custom-toast custom-toast-${type}`;
-      
-      let iconClass = 'fa-info-circle';
-      if (type === 'success') iconClass = 'fa-check-circle';
-      else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
-      else if (type === 'error') iconClass = 'fa-times-circle';
-      
-      toast.innerHTML = `
-          <span class="custom-toast-icon fas ${iconClass}"></span>
-          <div class="custom-toast-content">
-              <div class="custom-toast-title">${title}</div>
-              <div class="custom-toast-message">${message}</div>
-          </div>
-          <button class="custom-toast-close fas fa-times"></button>
-      `;
-      
-      container.appendChild(toast);
-      
-      // Force reflow
-      toast.offsetHeight;
-      toast.classList.add('show');
-      
-      const closeToast = () => {
-          toast.classList.remove('show');
-          toast.addEventListener('transitionend', () => {
-              toast.remove();
-          });
-      };
-      
-      let timer = setTimeout(closeToast, duration);
-      
-      toast.querySelector('.custom-toast-close').addEventListener('click', () => {
-          clearTimeout(timer);
-          closeToast();
-      });
-  }
+  // Global variables for Map and Marker (use var to allow re-declaration if script is re-evaluated by jQuery globalEval)
+  var leafletMap = null;
+  var mapMarker = null;
 
   // Debounce helper (Requirement: Debounce reverse geocoding when dragging marker)
   function debounce(func, delay) {
@@ -1550,168 +1517,23 @@ function checkAndApplyVariant(container) {
       return !isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
   }
 
-  // Parser: Smart Vietnam Administrative Mapping (Requirement 3)
-  function parseNominatimAddress(data) {
-      const address = data.address || {};
-      let displayParts = [];
-      if (data.display_name) {
-          displayParts = data.display_name.split(',').map(p => p.trim());
-      }
-
-      // Province mapping
-      let province = address.city || address.province || address.state || address.county || "";
-      
-      // District mapping
-      let district = address.city_district || address.county || address.district || "";
-      
-      // Ward / Commune mapping
-      let ward = address.suburb || address.neighbourhood || address.quarter || address.village || "";
-
-      // Road mapping
-      let road = address.road || address.street || address.footway || address.path || address.pedestrian || "";
-
-      // Specific house/building
-      const buildingCandidates = [
-          address.house_number,
-          address.building,
-          address.office,
-          address.amenity,
-          address.shop,
-          address.historic,
-          address.tourism,
-          address.leisure
-      ];
-      let localDetails = [];
-      buildingCandidates.forEach(val => {
-          if (val && val.trim() !== "" && !localDetails.includes(val.trim())) {
-              localDetails.push(val.trim());
-          }
-      });
-      let building = localDetails.join(' ');
-
-      let diaChiCuThe = "";
-      let tinhThanh = province.trim();
-      let quocGia = address.country || "Việt Nam";
-
-      // Build structured diaChiCuThe
-      let specificParts = [];
-      if (building) specificParts.push(building);
-      if (road) specificParts.push(road);
-      if (ward) specificParts.push(ward);
-      if (district) specificParts.push(district);
-
-      specificParts = specificParts.map(p => p.trim()).filter(Boolean);
-      
-      // Deduplicate parts
-      let uniqueParts = [];
-      specificParts.forEach(p => {
-          if (!uniqueParts.includes(p)) {
-              uniqueParts.push(p);
-          }
-      });
-
-      if (uniqueParts.length > 0) {
-          diaChiCuThe = uniqueParts.join(', ');
-      }
-
-      // Fallback to display_name slice if structured parts are too sparse
-      if (!diaChiCuThe || uniqueParts.length < 2) {
-          if (displayParts.length >= 2) {
-              quocGia = displayParts[displayParts.length - 1];
-              let penIdx = displayParts.length - 2;
-              let penValue = displayParts[penIdx];
-              if (/^\d+$/.test(penValue) && penIdx - 1 >= 0) {
-                  if (!tinhThanh) tinhThanh = displayParts[penIdx - 1];
-                  diaChiCuThe = displayParts.slice(0, penIdx - 1).join(', ');
-              } else {
-                  if (!tinhThanh) tinhThanh = penValue;
-                  diaChiCuThe = displayParts.slice(0, penIdx).join(', ');
-              }
-          } else {
-              diaChiCuThe = data.display_name || "";
-          }
-      }
-
-      if (!tinhThanh && displayParts.length >= 2) {
-          let penIdx = displayParts.length - 2;
-          let penValue = displayParts[penIdx];
-          if (/^\d+$/.test(penValue) && penIdx - 1 >= 0) {
-              tinhThanh = displayParts[penIdx - 1];
-          } else {
-              tinhThanh = penValue;
-          }
-      }
-
-      // Format cleanups
-      if (tinhThanh) {
-          tinhThanh = tinhThanh.replace(/\d+/g, '').trim();
-      }
-      if (quocGia) {
-          quocGia = quocGia.trim();
-      }
-
-      return {
-          diaChiCuThe: diaChiCuThe,
-          tinhThanh: tinhThanh,
-          quocGia: quocGia
-      };
-  }
-
-  // Provider abstraction with Zoom level fallbacks (Requirement 7 & 8)
+  // Reverse geocoding and administrative matching are handled by the backend.
   async function reverseGeocode(latitude, longitude) {
       if (!navigator.onLine) {
           throw new Error("OFFLINE_ERROR");
       }
-
-      const zoomLevels = [18, 17, 16];
-      let fallbackResult = null;
-
-      for (let zoom of zoomLevels) {
-          try {
-              const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=${zoom}&addressdetails=1&accept-language=vi`;
-              const response = await fetchWithTimeout(apiUrl, { timeout: 6000 });
-              
-              if (!response.ok) {
-                  if (response.status === 429 || response.status >= 500) {
-                      throw new Error("PROVIDER_ERROR");
-                  }
-                  continue; // Try next zoom level on other errors
-              }
-
-              const data = await response.json();
-              const parsed = parseNominatimAddress(data);
-
-              // Check if details are sufficient (Requirement 7)
-              const partsCount = parsed.diaChiCuThe ? parsed.diaChiCuThe.split(',').length : 0;
-              if (partsCount >= 3) {
-                  return parsed; // Excellent detail level, return immediately
-              }
-              
-              // Keep as fallback if it contains at least some address structure
-              if (!fallbackResult || partsCount > (fallbackResult.diaChiCuThe ? fallbackResult.diaChiCuThe.split(',').length : 0)) {
-                  fallbackResult = parsed;
-              }
-          } catch (err) {
-              console.warn(`[Geocoding] Zoom ${zoom} failed:`, err.message);
-              if (err.message === "OFFLINE_ERROR" || err.message === "PROVIDER_ERROR") {
-                  throw err; // Propagate blocking network or provider-rate-limit errors immediately
-              }
-          }
+      if (!window.SmashAddressBook || typeof window.SmashAddressBook.resolveCoordinates !== 'function') {
+          throw new Error("GEOCODE_FAILED");
       }
-
-      if (fallbackResult && fallbackResult.diaChiCuThe) {
-          return fallbackResult;
-      }
-
-      throw new Error("GEOCODE_FAILED");
+      return window.SmashAddressBook.resolveCoordinates(latitude, longitude);
   }
 
   // Debounced reverse geocoding to update UI and inputs (Requirement: Debounce reverse geocoding when dragging marker)
-  const debouncedReverseGeocode = debounce(async function(lat, lon) {
+  var debouncedReverseGeocode = debounce(async function(lat, lon) {
       try {
           const parsedAddress = await reverseGeocode(lat, lon);
           populateAddressFields(parsedAddress);
-          showToast('Đã cập nhật', 'Đã tự động cập nhật địa chỉ theo toạ độ bản đồ!', 'success');
+          showAddressResolutionResult(parsedAddress, 'Đã cập nhật');
       } catch (err) {
           console.error('[Geocoding] Debounced geocoding error:', err);
           handleGeocodingError(err);
@@ -1721,21 +1543,31 @@ function checkAndApplyVariant(container) {
   // Populate UI inputs with geocoding results
   function populateAddressFields(addressObj) {
       const streetInput = document.getElementById('address-street');
-      const stateInput = document.getElementById('address-state');
-      const countryInput = document.getElementById('address-country');
 
-      if (addressObj.diaChiCuThe && streetInput) {
-          streetInput.value = addressObj.diaChiCuThe;
+      const addressDetail = addressObj.addressDetail || addressObj.diaChiCuThe;
+      if (addressDetail && streetInput) {
+          streetInput.value = addressDetail;
           streetInput.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      if (addressObj.tinhThanh && stateInput) {
-          stateInput.value = addressObj.tinhThanh;
-          stateInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      if (addressObj.quocGia && countryInput) {
-          countryInput.value = addressObj.quocGia;
-          countryInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
+  }
+
+  function addressResolutionLevel(addressObj) {
+      if (addressObj?.resolutionLevel) return addressObj.resolutionLevel;
+      if (addressObj?.wardCode) return 'WARD';
+      if (addressObj?.districtId) return 'DISTRICT';
+      if (addressObj?.provinceId) return 'PROVINCE';
+      return 'NONE';
+  }
+
+  function showAddressResolutionResult(addressObj, successTitle) {
+      const level = addressResolutionLevel(addressObj);
+      const completed = level === 'WARD';
+      const partial = level === 'PROVINCE' || level === 'DISTRICT';
+      showToast(completed ? successTitle : (partial ? 'Đã điền một phần' : 'Cần kiểm tra lại'),
+              addressObj?.message || (completed
+                      ? 'Đã tự động cập nhật khu vực theo vị trí.'
+                      : 'Không thể xác định chính xác khu vực. Vui lòng chọn địa chỉ bên dưới.'),
+              completed ? 'success' : (partial ? 'info' : 'warning'));
   }
 
   // Update map marker and inputs when getting location from GPS/IP button (Requirement 10)
@@ -1751,63 +1583,6 @@ function checkAndApplyVariant(container) {
           const lonInput = document.getElementById('address-lon');
           if (latInput) latInput.value = lat.toFixed(6);
           if (lonInput) lonInput.value = lon.toFixed(6);
-      }
-  }
-
-  // Fallback to IP Geolocation through backend proxy (Requirement 1 & 9)
-  async function triggerIpFallback(btn, originalText) {
-      if (!navigator.onLine) {
-          showToast('Lỗi kết nối', 'Không có kết nối mạng. Vui lòng thử lại.', 'error');
-          resetButton(btn, originalText);
-          return;
-      }
-
-      try {
-          // Fetch coordinates from backend IP proxy
-          const response = await fetchWithTimeout('/api/location/ip', { timeout: 6000 });
-          if (!response.ok) {
-              if (response.status === 429) {
-                  throw new Error("RATE_LIMITED");
-              }
-              throw new Error("BACKEND_PROXY_FAILED");
-          }
-
-          const data = await response.json();
-          const lat = data.latitude;
-          const lon = data.longitude;
-
-          if (!isValidCoordinates(lat, lon)) {
-              throw new Error("INVALID_COORDINATES");
-          }
-
-          console.log(`[Geocoding] IP coords retrieved via backend proxy: lat=${lat}, lon=${lon} (Source: ${data.source})`);
-
-          // Update Leaflet Map state
-          updateMapFromLocation(lat, lon);
-
-          // Reverse geocode IP coordinates
-          const parsedAddress = await reverseGeocode(lat, lon);
-
-          // Save success result to cache
-          try {
-              localStorage.setItem('location_geocode_cache', JSON.stringify({
-                  latitude: lat,
-                  longitude: lon,
-                  address: parsedAddress,
-                  timestamp: Date.now()
-              }));
-          } catch (cacheStoreErr) {
-              console.warn("[Geocoding] Failed to save to localStorage:", cacheStoreErr);
-          }
-
-          populateAddressFields(parsedAddress);
-          showToast('Định vị qua IP', 'Đã tự động xác định và điền địa chỉ của bạn thành công qua IP!', 'success');
-
-      } catch (err) {
-          console.error('[Geocoding] IP Fallback failed:', err);
-          handleGeocodingError(err);
-      } finally {
-          resetButton(btn, originalText);
       }
   }
 
@@ -1830,52 +1605,73 @@ function checkAndApplyVariant(container) {
       btn.disabled = false;
   }
 
+  function geolocationErrorName(code) {
+      if (code === 1) return 'PERMISSION_DENIED';
+      if (code === 2) return 'POSITION_UNAVAILABLE';
+      if (code === 3) return 'TIMEOUT';
+      return 'UNKNOWN';
+  }
+
+  async function inspectGeolocationPermission(btn) {
+      let permissionState = 'UNSUPPORTED';
+      try {
+          if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+              const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+              permissionState = String(permissionStatus.state || 'UNKNOWN').toUpperCase();
+          }
+      } catch (error) {
+          permissionState = 'QUERY_FAILED';
+          console.warn('[Geolocation] Permissions API query failed:', error.message);
+      }
+
+      btn.dataset.geolocationPermissionState = permissionState;
+      console.info('[Geolocation] permission.state =', permissionState);
+      return permissionState;
+  }
+
   // Geolocation main controller (Requirement 2, 4, 5, 6, 9)
   async function getCurrentLocation() {
       const btn = document.getElementById('btn-get-location');
       if (!btn || btn.disabled) return; // Prevent double trigger
 
       const originalText = btn.innerHTML;
+      delete btn.dataset.geolocationErrorCode;
+      delete btn.dataset.geolocationErrorName;
+      delete btn.dataset.geolocationErrorMessage;
+      delete btn.dataset.geolocationLatitude;
+      delete btn.dataset.geolocationLongitude;
+      btn.dataset.geolocationStage = 'PERMISSION_CHECK';
+      await inspectGeolocationPermission(btn);
 
       // 1. Protect user entered data (Requirement 6)
       const streetInput = document.getElementById('address-street');
-      const stateInput = document.getElementById('address-state');
       const hasUserData = (streetInput && streetInput.value.trim() !== '') || 
-                          (stateInput && stateInput.value.trim() !== '');
+                          Boolean(document.getElementById('ghnProvinceId')?.value);
 
       if (hasUserData) {
-          const confirmOverwrite = confirm("Địa chỉ hiện tại sẽ bị thay thế bởi vị trí mới. Bạn có muốn tiếp tục không?");
+          const confirmOverwrite = await SmashNotify.confirm({
+              title: 'Thay thế địa chỉ hiện tại?',
+              message: 'Địa chỉ hiện tại sẽ bị thay thế bởi vị trí mới. Bạn có muốn tiếp tục không?'
+          });
           if (!confirmOverwrite) {
               return; // Cancel
           }
       }
 
-      // 2. Check localStorage cache (Requirement 4)
+      // The old cache stored failed/partial responses and made later clicks
+      // replay stale data instead of requesting the current browser position.
       try {
-          const cachedData = localStorage.getItem('location_geocode_cache');
-          if (cachedData) {
-              const cache = JSON.parse(cachedData);
-              const now = Date.now();
-              // Cache valid for 10 minutes (600,000ms)
-              if (now - cache.timestamp < 600000 && cache.address && isValidCoordinates(cache.latitude, cache.longitude)) {
-                  console.log("[Geocoding] Using valid cached location coordinates:", cache.latitude, cache.longitude);
-                  
-                  // Update map marker and inputs
-                  updateMapFromLocation(cache.latitude, cache.longitude);
-                  populateAddressFields(cache.address);
-                  showToast('Bộ nhớ tạm', 'Đã tự động điền vị trí từ bộ nhớ tạm thời của bạn!', 'info');
-                  return;
-              }
-          }
+          localStorage.removeItem('location_geocode_cache_v2');
       } catch (cacheErr) {
-          console.warn("[Geocoding] Cache lookup error:", cacheErr);
+          console.warn("[Geocoding] Unable to clear legacy location cache:", cacheErr);
       }
 
-      // 3. Set loading state and request protection (Requirement 5)
+      // 2. Set loading state and request protection (Requirement 5)
       btn.innerHTML = '<i class="fas fa-spinner fa-spin u-s-m-r-8"></i> Đang lấy vị trí hiện tại...';
       btn.disabled = true;
+      btn.dataset.geolocationStage = 'REQUESTED';
 
-      // 4. Try browser GPS location first
+      // 3. Try browser GPS location first
       if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
               async function(position) {
@@ -1883,8 +1679,14 @@ function checkAndApplyVariant(container) {
                       const lat = position.coords.latitude;
                       const lon = position.coords.longitude;
                       const accuracy = position.coords.accuracy;
-
-                      console.log(`[Geocoding] GPS coords retrieved: lat=${lat}, lon=${lon}, accuracy=${accuracy}m`);
+                      btn.dataset.geolocationStage = 'SUCCESS';
+                      btn.dataset.geolocationLatitude = String(lat);
+                      btn.dataset.geolocationLongitude = String(lon);
+                      console.info('[Geolocation] getCurrentPosition succeeded:', {
+                          latitude: lat,
+                          longitude: lon,
+                          accuracy: accuracy
+                      });
 
                       // Validate coordinates (Requirement 5)
                       if (!isValidCoordinates(lat, lon)) {
@@ -1902,20 +1704,8 @@ function checkAndApplyVariant(container) {
                       // Call reverse geocoding abstraction
                       const parsedAddress = await reverseGeocode(lat, lon);
 
-                      // Save success result to cache (Requirement 4)
-                      try {
-                          localStorage.setItem('location_geocode_cache', JSON.stringify({
-                              latitude: lat,
-                              longitude: lon,
-                              address: parsedAddress,
-                              timestamp: Date.now()
-                          }));
-                      } catch (cacheStoreErr) {
-                          console.warn("[Geocoding] Failed to save to localStorage:", cacheStoreErr);
-                      }
-
                       populateAddressFields(parsedAddress);
-                      showToast('Thành công', 'Đã tự động định vị và điền vị trí của bạn thành công!', 'success');
+                      showAddressResolutionResult(parsedAddress, 'Thành công');
 
                   } catch (err) {
                       console.error('[Geocoding] GPS success branch error:', err);
@@ -1925,12 +1715,23 @@ function checkAndApplyVariant(container) {
                   }
               },
               function(error) {
-                  console.warn('[Geocoding] GPS lookup failed or denied. Transitioning to IP fallback...');
-                  // GPS failure: Trigger fallback automatically (Requirement 9)
-                  if (error.code === 1) { // PERMISSION_DENIED
-                      showToast('Chuyển hướng IP', 'Không thể truy cập GPS. Hệ thống sẽ thử xác định vị trí qua IP.', 'info', 4000);
-                  }
-                  triggerIpFallback(btn, originalText);
+                   const errorCode = Number(error && error.code);
+                   const errorName = geolocationErrorName(errorCode);
+                   const errorMessage = error && error.message ? String(error.message) : '';
+                   btn.dataset.geolocationStage = 'ERROR';
+                   btn.dataset.geolocationErrorCode = String(errorCode);
+                   btn.dataset.geolocationErrorName = errorName;
+                   btn.dataset.geolocationErrorMessage = errorMessage;
+                   console.warn('[Geolocation] getCurrentPosition failed:', {
+                       code: errorCode,
+                       name: errorName,
+                       message: errorMessage,
+                       permissionState: btn.dataset.geolocationPermissionState || 'UNKNOWN'
+                   });
+                   showToast('Không thể lấy vị trí',
+                           'Không thể truy cập vị trí hiện tại. Vui lòng chọn địa chỉ bên dưới.',
+                           'warning', 6000);
+                   resetButton(btn, originalText);
               },
               {
                   enableHighAccuracy: true,
@@ -1939,8 +1740,10 @@ function checkAndApplyVariant(container) {
               }
           );
       } else {
-          console.warn('[Geocoding] Browser does not support Geolocation. Transitioning to IP fallback...');
-          triggerIpFallback(btn, originalText);
+           console.warn('[Geocoding] Browser does not support Geolocation.');
+           showToast('Không hỗ trợ định vị',
+                   'Trình duyệt không hỗ trợ lấy vị trí. Vui lòng chọn địa chỉ bên dưới.', 'warning');
+           resetButton(btn, originalText);
       }
   }
 
@@ -1949,7 +1752,6 @@ function checkAndApplyVariant(container) {
       const latInput = document.getElementById('address-lat');
       const lonInput = document.getElementById('address-lon');
       const streetInput = document.getElementById('address-street');
-      const stateInput = document.getElementById('address-state');
 
       let initialLat = 21.0285;
       let initialLon = 105.8542;
@@ -2046,11 +1848,22 @@ function checkAndApplyVariant(container) {
           debouncedReverseGeocode(lat, lng);
       });
 
-      // If Edit form and NO coordinates are saved, geocode the text address via backend proxy
-      if (!hasCoordinates && streetInput && streetInput.value && stateInput && stateInput.value) {
-          const addressQuery = `${streetInput.value}, ${stateInput.value}`;
-          console.log("[Map] Edit Mode: Geocoding text address via backend proxy:", addressQuery);
+      // If Edit form has no saved coordinates, center it using the canonical
+      // option labels already loaded from the backend delivery-area catalog.
+      if (!hasCoordinates && streetInput && streetInput.value && window.SmashAddressBook?.ready) {
           try {
+              await window.SmashAddressBook.ready();
+              const selectedText = function (selectId) {
+                  const select = document.getElementById(selectId);
+                  const option = select?.options[select.selectedIndex];
+                  return option && option.value ? option.textContent.trim() : '';
+              };
+              const addressQuery = [streetInput.value,
+                  selectedText('ghnWardCode'),
+                  selectedText('ghnDistrictId'),
+                  selectedText('ghnProvinceId'),
+                  'Việt Nam'].filter(Boolean).join(', ');
+              if (!addressQuery) return;
               const response = await fetchWithTimeout(`/api/location/search?q=${encodeURIComponent(addressQuery)}`, { timeout: 5000 });
               if (response.ok) {
                   const data = await response.json();
@@ -2070,7 +1883,6 @@ function checkAndApplyVariant(container) {
 
       // If Add form and NO coordinates are saved, center map using silent IP lookup (no UI alerts)
       if (!hasCoordinates && (!streetInput || !streetInput.value)) {
-          console.log("[Map] Add Mode: Attempting silent IP geolocate to center map...");
           try {
               const response = await fetchWithTimeout('/api/location/ip', { timeout: 4000 });
               if (response.ok) {
@@ -2093,6 +1905,10 @@ function checkAndApplyVariant(container) {
       if (mapDiv) {
           initLocationMap(mapDiv);
       }
+      const locationButton = document.getElementById('btn-get-location');
+      if (locationButton) {
+          locationButton.addEventListener('click', getCurrentLocation);
+      }
   });
   /*==============================================================
     # CUSTOM JS: Xóa Sổ Địa Chỉ bằng AJAX
@@ -2102,7 +1918,13 @@ function checkAndApplyVariant(container) {
       var btn = $(this);
       var idDiaChi = btn.data('id');
 
-      if (confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
+      SmashNotify.confirm({
+          title: 'Xóa địa chỉ?',
+          message: 'Bạn có chắc chắn muốn xóa địa chỉ này?',
+          confirmText: 'Xóa',
+          danger: true
+      }).then(function(confirmed) {
+          if (!confirmed) return;
           // Làm mờ dòng đó đi để báo hiệu đang chờ máy chủ
           var tr = btn.closest('tr');
           tr.css('opacity', '0.5');
@@ -2128,7 +1950,6 @@ function checkAndApplyVariant(container) {
                           }
                       });
                   } else {
-                      // Báo lỗi (Ví dụ: Lỗi cố tình xóa địa chỉ mặc định)
                       showToast(response.message, "error");
                       tr.css('opacity', '1'); // Khôi phục lại hiển thị
                   }
@@ -2138,5 +1959,744 @@ function checkAndApplyVariant(container) {
                   tr.css('opacity', '1');
               }
           });
-      }
+      });
   });
+
+/* ==============================================================
+   # SMASH CART PAGE MANAGEMENT & SUMMARY LOGIC
+   ============================================================== */
+
+const cartQuantityStates = new Map();
+
+function getQuantityState(row) {
+    const itemId = row.getAttribute('data-item-id');
+    if (!cartQuantityStates.has(itemId)) {
+        const initialQty = parseInt(row.getAttribute('data-quantity')) || 1;
+        cartQuantityStates.set(itemId, {
+            desiredQuantity: initialQty,
+            confirmedQuantity: initialQty,
+            requestVersion: 0,
+            debounceTimer: null,
+            pendingPromise: null
+        });
+    }
+    return cartQuantityStates.get(itemId);
+}
+
+function formatVnd(amount) {
+    return new Intl.NumberFormat('vi-VN').format(amount || 0) + ' đ';
+}
+
+function recalculateSelectedCartSummary() {
+    const rows = Array.from(document.querySelectorAll('.js-cart-row'));
+    const validRows = rows.filter(row => {
+        const val = row.getAttribute('data-valid') || row.dataset.valid;
+        return val === 'true' || val === true;
+    });
+    const totalValidCount = validRows.length;
+
+    let selectedItemCount = 0;
+    let selectedSubtotal = 0;
+
+    validRows.forEach(row => {
+        const checkbox = row.querySelector('.js-cart-item-checkbox');
+        if (checkbox && checkbox.checked) {
+            selectedItemCount++;
+            const lineTotalAttr = row.getAttribute('data-line-total') || row.dataset.lineTotal;
+            const lineTotal = parseFloat(lineTotalAttr) || 0;
+            selectedSubtotal += lineTotal;
+        }
+    });
+
+    const formattedSubtotal = formatVnd(selectedSubtotal);
+
+    const subtotalEl = document.querySelector('.js-cart-summary-subtotal');
+    if (subtotalEl) subtotalEl.textContent = formattedSubtotal;
+
+    const totalEl = document.querySelector('.js-cart-summary-total');
+    if (totalEl) totalEl.textContent = formattedSubtotal;
+
+    const selectedCountEl = document.querySelector('#js-selected-count') || document.getElementById('js-selected-count');
+    if (selectedCountEl) selectedCountEl.textContent = selectedItemCount;
+
+    const summarySelectedCountEl = document.querySelector('#js-summary-selected-count') || document.getElementById('js-summary-selected-count');
+    if (summarySelectedCountEl) summarySelectedCountEl.textContent = selectedItemCount;
+
+    const totalValidCountEl = document.querySelector('#js-total-valid-count') || document.getElementById('js-total-valid-count');
+    if (totalValidCountEl) totalValidCountEl.textContent = totalValidCount;
+
+    const selectAllEl = document.querySelector('#js-cart-select-all') || document.querySelector('.js-cart-select-all');
+    if (selectAllEl) {
+        if (totalValidCount === 0) {
+            selectAllEl.checked = false;
+            selectAllEl.indeterminate = false;
+            selectAllEl.disabled = true;
+        } else if (selectedItemCount === 0) {
+            selectAllEl.checked = false;
+            selectAllEl.indeterminate = false;
+            selectAllEl.disabled = false;
+        } else if (selectedItemCount === totalValidCount) {
+            selectAllEl.checked = true;
+            selectAllEl.indeterminate = false;
+            selectAllEl.disabled = false;
+        } else {
+            selectAllEl.checked = false;
+            selectAllEl.indeterminate = true;
+            selectAllEl.disabled = false;
+        }
+    }
+
+    const checkoutBtn = document.querySelector('#js-start-checkout-btn') || document.getElementById('js-start-checkout-btn');
+    if (checkoutBtn) {
+        if (selectedItemCount > 0) {
+            checkoutBtn.disabled = false;
+            checkoutBtn.classList.remove('btn-disabled', 'opacity-50');
+            checkoutBtn.style.cursor = 'pointer';
+            checkoutBtn.style.pointerEvents = 'auto';
+        } else {
+            checkoutBtn.disabled = true;
+            checkoutBtn.classList.add('btn-disabled', 'opacity-50');
+            checkoutBtn.style.cursor = 'not-allowed';
+        }
+    }
+
+    const deleteSelectedBtn = document.querySelector('#js-delete-selected-cart-items') || document.querySelector('.js-delete-selected-cart-items');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = selectedItemCount === 0;
+    }
+}
+
+window.recalculateSelectedCartSummary = recalculateSelectedCartSummary;
+
+function getFriendlyErrorMessage(error, defaultMsg) {
+    const fallback = defaultMsg || 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối Internet và thử lại.';
+    if (!error) return fallback;
+    let msg = '';
+    if (typeof error === 'string') {
+        msg = error;
+    } else if (error.responseJSON && (error.responseJSON.message || error.responseJSON.thongBao)) {
+        msg = error.responseJSON.message || error.responseJSON.thongBao;
+    } else if (error.message) {
+        msg = error.message;
+    } else if (error.responseText && typeof error.responseText === 'string' && error.responseText.length < 300) {
+        msg = error.responseText;
+    }
+    if (!msg || typeof msg !== 'string') return fallback;
+
+    const technicalPatterns = [
+        'failed to fetch', 'networkerror', 'load failed', 'internal server error',
+        'maximum upload size exceeded', 'aborterror', 'typeerror: failed to fetch',
+        'unexpected end of json input', 'syntaxerror', 'cannot read properties',
+        'something went wrong', 'unexpected error', 'request failed'
+    ];
+    const lower = msg.toLowerCase();
+    for (let i = 0; i < technicalPatterns.length; i++) {
+        if (lower.includes(technicalPatterns[i])) {
+            return fallback;
+        }
+    }
+    return msg;
+}
+window.getFriendlyErrorMessage = getFriendlyErrorMessage;
+
+function updateQuantityUiImmediately(row, newQuantity) {
+    if (!row || !document.body.contains(row)) return;
+    const input = row.querySelector('.js-cart-qty-input');
+    if (input) {
+        input.value = newQuantity;
+    }
+
+    const unitPrice = parseFloat(row.getAttribute('data-unit-price')) || 0;
+    const tempLineTotal = unitPrice * newQuantity;
+
+    row.setAttribute('data-quantity', newQuantity);
+    row.setAttribute('data-line-total', tempLineTotal);
+    row.dataset.quantity = String(newQuantity);
+    row.dataset.lineTotal = String(tempLineTotal);
+
+    const lineTotalEl = row.querySelector('.js-cart-line-total');
+    if (lineTotalEl) {
+        lineTotalEl.textContent = formatVnd(tempLineTotal);
+    }
+
+    recalculateSelectedCartSummary();
+}
+
+function persistQuantity(row, quantityToSave, state) {
+    if (!row || !document.body.contains(row) || (state && state.deleted)) {
+        return Promise.resolve({ trangThai: 'ignored' });
+    }
+    const itemId = row.getAttribute('data-item-id');
+    const version = ++state.requestVersion;
+
+    const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: '/gio-hang/cap-nhat',
+            type: 'POST',
+            data: { idChiTiet: parseInt(itemId), soLuong: quantityToSave },
+            beforeSend: function(jqXHR) {
+                if (state) state.activeXhr = jqXHR;
+                if (token && header) jqXHR.setRequestHeader(header, token);
+            },
+            success: function(res) {
+                if (state) state.activeXhr = null;
+                // Latest-write-wins & deleted check & DOM check
+                if (version !== state.requestVersion || (state && state.deleted) || !document.body.contains(row)) {
+                    resolve(res);
+                    return;
+                }
+
+                if (res && res.trangThai === 'ok') {
+                    const serverQty = res.quantity != null ? res.quantity : quantityToSave;
+                    const unitPrice = res.unitPrice != null ? res.unitPrice : (parseFloat(row.getAttribute('data-unit-price')) || 0);
+                    const lineTotal = res.lineTotal != null ? res.lineTotal : (unitPrice * serverQty);
+
+                    state.confirmedQuantity = serverQty;
+                    state.desiredQuantity = serverQty;
+
+                    const input = row.querySelector('.js-cart-qty-input');
+                    if (input) input.value = serverQty;
+
+                    row.setAttribute('data-quantity', serverQty);
+                    row.setAttribute('data-unit-price', unitPrice);
+                    row.setAttribute('data-line-total', lineTotal);
+                    row.dataset.quantity = String(serverQty);
+                    row.dataset.unitPrice = String(unitPrice);
+                    row.dataset.lineTotal = String(lineTotal);
+
+                    const lineTotalEl = row.querySelector('.js-cart-line-total');
+                    if (lineTotalEl) lineTotalEl.textContent = formatVnd(lineTotal);
+
+                    recalculateSelectedCartSummary();
+                    resolve(res);
+                } else {
+                    if ((state && state.deleted) || !document.body.contains(row)) {
+                        resolve(res);
+                        return;
+                    }
+                    // Rollback to confirmedQuantity
+                    const rollbackQty = state.confirmedQuantity;
+                    state.desiredQuantity = rollbackQty;
+
+                    updateQuantityUiImmediately(row, rollbackQty);
+
+                    const rawMsg = (res && res.message) || 'Không thể cập nhật số lượng.';
+                    const msg = getFriendlyErrorMessage(rawMsg, 'Không thể cập nhật số lượng.');
+                    showToast('Cập nhật thất bại: ' + msg, 'error');
+                    reject(new Error(msg));
+                }
+            },
+            error: function(err) {
+                if (state) state.activeXhr = null;
+                if (version !== state.requestVersion || (state && state.deleted) || !document.body.contains(row)) {
+                    resolve({ trangThai: 'ignored' });
+                    return;
+                }
+
+                const rollbackQty = state.confirmedQuantity;
+                state.desiredQuantity = rollbackQty;
+
+                updateQuantityUiImmediately(row, rollbackQty);
+
+                const rawMsg = (err.responseJSON && err.responseJSON.message) || err.responseText || 'Đã xảy ra lỗi khi cập nhật số lượng.';
+                const msg = getFriendlyErrorMessage(rawMsg, 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+                showToast(msg, 'error');
+                reject(err);
+            }
+        });
+    });
+}
+
+function scheduleQuantityUpdate(row, quantity) {
+    const state = getQuantityState(row);
+
+    if (state.debounceTimer) {
+        clearTimeout(state.debounceTimer);
+        state.debounceTimer = null;
+    }
+
+    state.debounceTimer = setTimeout(() => {
+        state.debounceTimer = null;
+        state.pendingPromise = persistQuantity(row, quantity, state);
+    }, 800);
+}
+
+function changeDesiredQuantity(row, delta) {
+    const state = getQuantityState(row);
+    const min = 1;
+    const input = row.querySelector('.js-cart-qty-input');
+    const max = Number(row.getAttribute('data-max-quantity') || (input ? input.getAttribute('data-max') : 999) || 999);
+
+    const nextQuantity = Math.min(max, Math.max(min, state.desiredQuantity + delta));
+
+    if (nextQuantity === state.desiredQuantity) {
+        return;
+    }
+
+    state.desiredQuantity = nextQuantity;
+    updateQuantityUiImmediately(row, nextQuantity);
+    scheduleQuantityUpdate(row, nextQuantity);
+}
+
+function setDesiredQuantity(row, targetQuantity) {
+    const state = getQuantityState(row);
+    const min = 1;
+    const input = row.querySelector('.js-cart-qty-input');
+    const max = Number(row.getAttribute('data-max-quantity') || (input ? input.getAttribute('data-max') : 999) || 999);
+
+    let nextQuantity = parseInt(targetQuantity);
+    if (isNaN(nextQuantity) || nextQuantity < min) nextQuantity = min;
+    if (nextQuantity > max) nextQuantity = max;
+
+    if (nextQuantity === state.desiredQuantity) {
+        updateQuantityUiImmediately(row, nextQuantity);
+        return;
+    }
+
+    state.desiredQuantity = nextQuantity;
+    updateQuantityUiImmediately(row, nextQuantity);
+    scheduleQuantityUpdate(row, nextQuantity);
+}
+
+async function flushAllQuantityUpdates() {
+    const promises = [];
+
+    for (const [itemId, state] of cartQuantityStates) {
+        const row = document.querySelector(`.js-cart-row[data-item-id="${itemId}"]`);
+        if (state.debounceTimer) {
+            clearTimeout(state.debounceTimer);
+            state.debounceTimer = null;
+
+            if (row) {
+                const promise = persistQuantity(row, state.desiredQuantity, state);
+                state.pendingPromise = promise;
+                promises.push(promise);
+            }
+        } else if (state.pendingPromise) {
+            promises.push(state.pendingPromise);
+        }
+    }
+
+    if (promises.length > 0) {
+        await Promise.all(promises);
+    }
+}
+
+function initializeCartPage() {
+    if (window.__smashCartInitialized) {
+        return;
+    }
+
+    const selectAllBtn = document.querySelector('#js-cart-select-all') || document.querySelector('.js-cart-select-all');
+    const checkoutBtn = document.querySelector('#js-start-checkout-btn') || document.getElementById('js-start-checkout-btn');
+    const hasCartRows = document.querySelectorAll('.js-cart-row').length > 0;
+
+    if (!selectAllBtn && !checkoutBtn && !hasCartRows) {
+        return;
+    }
+
+    window.__smashCartInitialized = true;
+
+    // Disable template RESHOP.initInputCounter for cart items to prevent duplicate handlers
+    $('.js-cart-row .input-counter').find('.input-counter__plus, .input-counter__minus').off('click');
+    $('.js-cart-row .input-counter').find('input').off('change');
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('change', function() {
+            const checked = this.checked;
+            const validRows = Array.from(document.querySelectorAll('.js-cart-row')).filter(r => (r.getAttribute('data-valid') || r.dataset.valid) === 'true');
+            validRows.forEach(row => {
+                const cb = row.querySelector('.js-cart-item-checkbox');
+                if (cb && !cb.disabled) {
+                    cb.checked = checked;
+                }
+            });
+            recalculateSelectedCartSummary();
+        });
+    }
+
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('js-cart-item-checkbox')) {
+            recalculateSelectedCartSummary();
+        }
+    });
+
+    // Event delegation for Quantity Plus / Minus buttons
+    document.addEventListener('click', function(e) {
+        const plusBtn = e.target.closest('.js-cart-qty-plus') || (e.target.classList.contains('input-counter__plus') ? e.target : null);
+        const minusBtn = e.target.closest('.js-cart-qty-minus') || (e.target.classList.contains('input-counter__minus') ? e.target : null);
+
+        if (plusBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const row = plusBtn.closest('.js-cart-row');
+            if (row) changeDesiredQuantity(row, 1);
+        } else if (minusBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const row = minusBtn.closest('.js-cart-row');
+            if (row) changeDesiredQuantity(row, -1);
+        }
+    });
+
+    // Direct input typing change
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('js-cart-qty-input')) {
+            const row = e.target.closest('.js-cart-row');
+            if (row) setDesiredQuantity(row, e.target.value);
+        }
+    });
+
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+
+            checkoutBtn.disabled = true;
+            checkoutBtn.classList.add('btn-disabled', 'opacity-50');
+            const originalText = checkoutBtn.textContent;
+            checkoutBtn.textContent = 'ĐANG CẬP NHẬT...';
+
+            try {
+                await flushAllQuantityUpdates();
+            } catch (err) {
+                showToast('Vui lòng kiểm tra lại số lượng sản phẩm.', 'error');
+                checkoutBtn.textContent = originalText;
+                recalculateSelectedCartSummary();
+                return;
+            }
+
+            const validSelectedRows = Array.from(document.querySelectorAll('.js-cart-row'))
+                .filter(row => (row.getAttribute('data-valid') || row.dataset.valid) === 'true');
+
+            const selectedIds = [];
+            validSelectedRows.forEach(row => {
+                const cb = row.querySelector('.js-cart-item-checkbox');
+                if (cb && cb.checked && cb.value) {
+                    selectedIds.push(parseInt(cb.value));
+                }
+            });
+
+            if (selectedIds.length === 0) {
+                showToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán.', 'warning');
+                checkoutBtn.textContent = originalText;
+                recalculateSelectedCartSummary();
+                return;
+            }
+
+            checkoutBtn.textContent = 'ĐANG CHUYỂN HƯỚNG...';
+
+            const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+            const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+            $.ajax({
+                url: '/checkout/start',
+                type: 'POST',
+                data: { selectedItemIds: selectedIds.join(',') },
+                beforeSend: function(xhr) {
+                    if (token && header) xhr.setRequestHeader(header, token);
+                },
+                success: function(res) {
+                    if (res && res.trangThai === 'ok' && res.checkoutUrl) {
+                        window.location.href = res.checkoutUrl;
+                    } else {
+                        const rawMsg = (res && res.message) || 'Không thể khởi tạo thanh toán.';
+                        const msg = getFriendlyErrorMessage(rawMsg, 'Không thể khởi tạo thanh toán. Vui lòng thử lại sau.');
+                        showToast(msg, 'error');
+                        checkoutBtn.textContent = originalText;
+                        recalculateSelectedCartSummary();
+                    }
+                },
+                error: function(err) {
+                    const rawMsg = (err.responseJSON && err.responseJSON.message) || err.responseText || 'Có lỗi xảy ra, vui lòng thử lại.';
+                    const msg = getFriendlyErrorMessage(rawMsg, 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+                    showToast(msg, 'error');
+                    checkoutBtn.textContent = originalText;
+                    recalculateSelectedCartSummary();
+                }
+            });
+        });
+    }
+
+    const deleteSelectedBtn = document.querySelector('#js-delete-selected-cart-items') || document.querySelector('.js-delete-selected-cart-items');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (window.__bulkCartDeleteInFlight) return;
+
+            const validSelectedRows = Array.from(document.querySelectorAll('.js-cart-row'))
+                .filter(row => (row.getAttribute('data-valid') || row.dataset.valid) === 'true');
+
+            const selectedIds = [];
+            const selectedRows = [];
+            validSelectedRows.forEach(row => {
+                const cb = row.querySelector('.js-cart-item-checkbox');
+                if (cb && cb.checked && cb.value) {
+                    selectedIds.push(parseInt(cb.value));
+                    selectedRows.push(row);
+                }
+            });
+
+            if (selectedIds.length === 0) return;
+
+            const lineCount = selectedIds.length;
+            const confirmText = `${lineCount} sản phẩm sẽ được xóa khỏi giỏ hàng.`;
+
+            SmashNotify.confirm({
+                title: 'Xóa sản phẩm đã chọn?',
+                message: confirmText,
+                confirmText: 'Xóa',
+                danger: true
+            }).then((confirmed) => {
+                if (confirmed) {
+                    executeBulkDelete(selectedIds, selectedRows);
+                }
+            });
+        });
+    }
+
+    recalculateSelectedCartSummary();
+}
+
+window.__bulkCartDeleteInFlight = false;
+
+function executeBulkDelete(selectedIds, selectedRows) {
+    if (window.__bulkCartDeleteInFlight) return;
+    window.__bulkCartDeleteInFlight = true;
+
+    const deleteBtn = document.querySelector('#js-delete-selected-cart-items') || document.querySelector('.js-delete-selected-cart-items');
+    const checkoutBtn = document.querySelector('#js-start-checkout-btn') || document.getElementById('js-start-checkout-btn');
+    const selectAllBtn = document.querySelector('#js-cart-select-all') || document.querySelector('.js-cart-select-all');
+
+    if (deleteBtn) deleteBtn.disabled = true;
+    if (checkoutBtn) checkoutBtn.disabled = true;
+    if (selectAllBtn) selectAllBtn.disabled = true;
+
+    selectedRows.forEach(row => {
+        const itemId = row.getAttribute('data-item-id');
+        const state = typeof cartQuantityStates !== 'undefined' ? (cartQuantityStates.get(itemId) || cartQuantityStates.get(String(itemId)) || cartQuantityStates.get(Number(itemId))) : null;
+        if (state) {
+            state.deleted = true;
+            state.requestVersion = (state.requestVersion || 0) + 1;
+            if (state.debounceTimer) {
+                clearTimeout(state.debounceTimer);
+                state.debounceTimer = null;
+            }
+            if (state.activeXhr && typeof state.activeXhr.abort === 'function') {
+                try { state.activeXhr.abort(); } catch (e) {}
+                state.activeXhr = null;
+            }
+        }
+    });
+
+    const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const header = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+    $.ajax({
+        url: '/gio-hang/api/xoa-nhieu',
+        type: 'POST',
+        traditional: true,
+        data: { selectedItemIds: selectedIds },
+        beforeSend: function(xhr) {
+            if (token && header) xhr.setRequestHeader(header, token);
+        },
+        success: function(res) {
+            if (res && res.trangThai === 'ok') {
+                let removedCount = 0;
+                selectedRows.forEach(row => {
+                    const itemId = row.getAttribute('data-item-id');
+                    if (typeof cartQuantityStates !== 'undefined') {
+                        cartQuantityStates.delete(itemId);
+                        cartQuantityStates.delete(String(itemId));
+                        cartQuantityStates.delete(Number(itemId));
+                    }
+                    $(row).fadeOut(300, function() {
+                        $(this).remove();
+                        removedCount++;
+                        if (removedCount === selectedRows.length) {
+                            handlePostDeleteSync();
+                        }
+                    });
+                });
+                if (selectedRows.length === 0) {
+                    handlePostDeleteSync();
+                }
+            } else {
+                const rawMsg = (res && (res.thongBao || res.message)) || 'Không thể xóa các sản phẩm đã chọn.';
+                const msg = getFriendlyErrorMessage(rawMsg, 'Không thể xóa các sản phẩm đã chọn.');
+                showToast(msg, 'error');
+            }
+        },
+        error: function(err) {
+            const rawMsg = (err.responseJSON && (err.responseJSON.thongBao || err.responseJSON.message)) || 'Đã xảy ra lỗi khi xóa sản phẩm.';
+            const msg = getFriendlyErrorMessage(rawMsg, 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+            showToast(msg, 'error');
+        },
+        complete: function() {
+            window.__bulkCartDeleteInFlight = false;
+            recalculateSelectedCartSummary();
+        }
+    });
+}
+
+function handlePostDeleteSync() {
+    const remainingRows = document.querySelectorAll('.js-cart-row').length;
+    if (remainingRows === 0) {
+        const tbody = document.querySelector('table.table-p tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center u-s-p-y-30">Giỏ hàng của bạn đang trống. Hãy thêm sản phẩm vào giỏ nhé!</td></tr>';
+        }
+        $('.f-cart').fadeOut();
+        $('.cart-action-bar').fadeOut();
+    }
+    recalculateSelectedCartSummary();
+    if (typeof loadMiniCart === 'function') {
+        loadMiniCart();
+    }
+}
+
+window.flushAllCartQuantityUpdates = flushAllQuantityUpdates;
+window.__miniCartCheckoutInFlight = false;
+
+function getCsrfHeaders() {
+    let tokenElement = document.querySelector('meta[name="_csrf"]');
+    let headerElement = document.querySelector('meta[name="_csrf_header"]');
+
+    let token = tokenElement ? tokenElement.content : null;
+    let headerName = headerElement ? headerElement.content : null;
+
+    if (!token || !headerName) {
+        const holder = document.getElementById('csrf-token-holder');
+        if (holder) {
+            token = holder.getAttribute('data-csrf-token') || holder.dataset.csrfToken;
+            headerName = holder.getAttribute('data-csrf-header') || holder.dataset.csrfHeader;
+        }
+    }
+
+    const headers = {};
+    if (token && headerName && token.trim().length > 0 && headerName.trim().length > 0) {
+        headers[headerName] = token;
+    }
+    return headers;
+}
+
+function setMiniCartCheckoutLoading(loading) {
+    document.querySelectorAll('.js-mini-cart-checkout-btn').forEach(button => {
+        if (!button.dataset.originalText) {
+            button.dataset.originalText = button.textContent.trim();
+        }
+        button.disabled = loading;
+        button.textContent = loading ? 'ĐANG XỬ LÝ...' : button.dataset.originalText;
+    });
+}
+
+async function startAllCartCheckout(button) {
+    if (window.__miniCartCheckoutInFlight) {
+        return;
+    }
+
+    window.__miniCartCheckoutInFlight = true;
+    setMiniCartCheckoutLoading(true);
+
+    try {
+        if (typeof window.flushAllCartQuantityUpdates === 'function') {
+            await window.flushAllCartQuantityUpdates();
+        }
+    } catch (flushError) {
+        console.error("Flush quantity updates failed:", flushError);
+        window.__miniCartCheckoutInFlight = false;
+        setMiniCartCheckoutLoading(false);
+        showToast('Vui lòng kiểm tra lại số lượng sản phẩm.', 'error');
+        return;
+    }
+
+    try {
+        const csrfHeaders = getCsrfHeaders();
+        const response = await fetch('/checkout/start-all', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                ...csrfHeaders,
+                'Accept': 'application/json'
+            }
+        });
+
+        const rawBody = await response.text();
+
+        let data = {};
+        try {
+            data = rawBody ? JSON.parse(rawBody) : {};
+        } catch (parseError) {
+            console.error('start-all returned non-JSON:', response.status, response.headers.get('content-type'), rawBody);
+            throw new Error(`Máy chủ trả dữ liệu không hợp lệ (HTTP ${response.status})`);
+        }
+
+        if (!response.ok || data.trangThai !== 'ok') {
+            const invalidDetails = Array.isArray(data.invalidItems)
+                ? data.invalidItems
+                    .map(item => `${item.tenSanPham || 'Sản phẩm'}: ${item.reason || item.lyDo || 'Không hợp lệ'}`)
+                    .join('\n')
+                : '';
+
+            throw new Error(
+                invalidDetails ||
+                data.thongBao ||
+                data.message ||
+                `Không thể bắt đầu thanh toán (HTTP ${response.status})`
+            );
+        }
+
+        if (!data.checkoutUrl) {
+            throw new Error('Hệ thống không trả về đường dẫn thanh toán. Vui lòng thử lại sau.');
+        }
+
+        window.location.href = data.checkoutUrl;
+    } catch (error) {
+        console.error("startAllCartCheckout error:", error);
+        const userMsg = getFriendlyErrorMessage(error, 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối Internet và thử lại.');
+        showToast('Thanh toán thất bại: ' + userMsg, 'error');
+    } finally {
+        window.__miniCartCheckoutInFlight = false;
+        setMiniCartCheckoutLoading(false);
+    }
+}
+
+if (!window.__miniCartCheckoutInitialized) {
+    window.__miniCartCheckoutInitialized = true;
+
+    document.addEventListener('click', async function (event) {
+        const button = event.target.closest('.js-mini-cart-checkout-btn');
+        if (!button) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        await startAllCartCheckout(button);
+    });
+
+    document.addEventListener('click', function (event) {
+        const button = event.target.closest('.js-quick-add-checkout-btn');
+        if (!button) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const checkoutUrl = button.getAttribute('data-checkout-url') || $(button).data('checkout-url');
+        if (checkoutUrl && checkoutUrl.trim().length > 0) {
+            if (typeof $ !== 'undefined' && $('#add-to-cart').length) {
+                $('#add-to-cart').modal('hide');
+            }
+            window.location.href = checkoutUrl;
+        } else {
+            showToast('Chưa có thông tin thanh toán cho sản phẩm này.', 'error');
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeCartPage);
+} else {
+    initializeCartPage();
+}

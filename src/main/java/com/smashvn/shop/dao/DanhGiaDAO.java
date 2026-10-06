@@ -5,12 +5,44 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import com.smashvn.shop.entity.DanhGia;
 
 public interface DanhGiaDAO extends JpaRepository<DanhGia, Integer> {
     
     // Tìm các đánh giá chưa bị xóa của một sản phẩm, sắp xếp theo thời gian mới nhất (cho frontend)
     List<DanhGia> findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(Integer sanPhamId);
+
+    // Tìm các đánh giá chưa bị xóa và chưa bị ẩn của một sản phẩm
+    List<DanhGia> findBySanPham_IdAndDaXoaFalseAndBinhLuanAnFalseOrderByNgayDanhGiaDesc(Integer idSanPham);
+
+    // Tìm tất cả đánh giá chưa bị xóa và chưa bị ẩn trong toàn bộ hệ thống
+    List<DanhGia> findByDaXoaFalseAndBinhLuanAnFalse();
+
+    /**
+     * Danh sách đánh giá được phép xuất hiện ở các nội dung công khai.
+     * Một đánh giá đã có lịch sử vi phạm không được trả về, kể cả khi các cờ
+     * ẩn riêng lẻ của đánh giá đang ở trạng thái hiện.
+     */
+    @Query("""
+            select dg
+            from DanhGia dg
+            where dg.sanPham.id = :sanPhamId
+              and dg.daXoa = false
+              and not exists (
+                  select vp.id
+                  from CommentViolationLog vp
+                  where vp.danhGia = dg
+                     or (
+                         vp.danhGia is null
+                         and vp.sanPham = dg.sanPham
+                         and vp.taiKhoan = dg.khachHang.taiKhoan
+                     )
+              )
+            order by dg.ngayDanhGia desc
+            """)
+    List<DanhGia> findPublicBySanPhamId(@Param("sanPhamId") Integer sanPhamId);
     
     // Tìm tất cả đánh giá sắp xếp theo thời gian mới nhất (cho admin)
     List<DanhGia> findAllByOrderByNgayDanhGiaDesc();

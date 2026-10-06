@@ -1,146 +1,95 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-</head>
 <body>
 
-    <div th:fragment="header" class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom border-secondary border-opacity-10 admin-header">
+    <header th:fragment="header" class="admin-topbar">
+        <script th:src="@{/js/notifications.js(v='1.0.0')}"></script>
+        <div th:if="${globalNotificationMessage != null}"
+             data-smash-server-notification
+             th:data-type="${globalNotificationType}"
+             th:data-title="${globalNotificationTitle}"
+             th:data-message="${globalNotificationMessage}"
+             hidden></div>
+        <!-- CSRF Token Holder (CRITICAL BACKEND BINDING) -->
         <div id="csrf-token-holder" 
              th:data-csrf-token="${_csrf != null ? _csrf.token : ''}" 
              th:data-csrf-header="${_csrf != null ? _csrf.headerName : ''}" 
              style="display:none;"></div>
-        <h4 class="m-0 fw-bold d-flex align-items-center" style="font-family: 'Open Sans', sans-serif; color: #15171c;">
-            <span class="badge me-2" style="background-color: #ff4500;"><i class="fas fa-lock text-white"></i></span>
-            Hệ Thống Quản Trị <span class="text-brand-accent ms-2 fw-semibold opacity-75">/ Administration Panel</span>
-        </h4>
-        
-        <div class="d-flex align-items-center gap-3">
-            <a th:href="@{/}" class="btn btn-sm btn-outline-secondary d-none d-md-inline-block px-3 rounded-pill fw-semibold shadow-sm" style="font-size: 0.85rem;">
-                <i class="fas fa-eye me-1"></i> Xem Trang Chủ
-            </a>
-            
-            <div class="dropdown">
-                <button class="btn btn-dark px-3 py-2 dropdown-toggle rounded-pill shadow-sm" type="button" id="adminUserDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #15171c; border: none; font-size: 0.9rem; font-weight: 600;">
-                    <i class="fas fa-user-shield me-2" style="color: #ff4500;"></i>
-                    <span th:text="${session.tenHienThi != null ? session.tenHienThi + ' (' + (session.activeRole == 'QL' ? 'Quản lý' : 'Nhân viên') + ')' : 'Quản Trị Viên'}">Quản Trị Viên</span>
+
+        <div class="admin-topbar-inner">
+            <!-- CỤM BÊN TRÁI: Hamburger toggle + Thanh tìm kiếm -->
+            <div class="admin-topbar-left">
+                <button class="admin-sidebar-toggle" id="adminSidebarToggle" type="button"
+                        title="Thu gọn menu" aria-label="Thu gọn menu quản trị"
+                        aria-controls="adminSidebar" aria-expanded="true">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="adminUserDropdown" style="border-radius: 12px; margin-top: 8px; min-width: 200px;">
-                    <!-- Chuyển vai trò nếu có nhiều vai trò -->
-                    <th:block th:with="roleCount=${(session.laKhachHang ? 1 : 0) + (session.laNhanVien ? 1 : 0) + (session.laQuanLy ? 1 : 0)}">
-                        <th:block th:if="${roleCount > 1}">
-                            <li class="dropdown-header text-uppercase fw-bold pb-1" style="font-size: 0.75rem; color: #888;">Đăng nhập với vai trò:</li>
-                            <li th:if="${session.laKhachHang}">
-                                <a th:href="@{/switch-role(role='KH')}" class="dropdown-item py-2 d-flex justify-content-between align-items-center">
-                                    <span>Khách hàng</span>
-                                    <i th:if="${session.activeRole == 'KH'}" class="fas fa-check text-success"></i>
-                                </a>
-                            </li>
-                            <li th:if="${session.laNhanVien}">
-                                <a th:href="@{/switch-role(role='NV')}" class="dropdown-item py-2 d-flex justify-content-between align-items-center">
-                                    <span>Nhân viên</span>
-                                    <i th:if="${session.activeRole == 'NV'}" class="fas fa-check text-success"></i>
-                                </a>
-                            </li>
-                            <li th:if="${session.laQuanLy}">
-                                <a th:href="@{/switch-role(role='QL')}" class="dropdown-item py-2 d-flex justify-content-between align-items-center">
-                                    <span>Quản trị viên</span>
-                                    <i th:if="${session.activeRole == 'QL'}" class="fas fa-check text-success"></i>
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                        </th:block>
-                    </th:block>
-                    <li><a class="dropdown-item text-danger py-2" th:href="@{/admin/dang-xuat}"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
-                </ul>
+
+                <!-- Thanh tìm kiếm nhanh sản phẩm (Ẩn đối với vai trò Nhân viên, chỉ hiển thị cho Quản lý) -->
+                <th:block th:if="${session.activeRole != 'NV' and session.vaiTro != 'NV'}">
+                    <button class="admin-search-toggle" id="adminSearchToggle" type="button"
+                            title="Mở tìm kiếm sản phẩm" aria-label="Mở tìm kiếm sản phẩm"
+                            aria-controls="adminProductSearch" aria-expanded="false">
+                        <i class="fas fa-search"></i>
+                    </button>
+
+                    <div class="admin-search-bar" id="adminProductSearch" role="search">
+                        <input type="search" id="adminGlobalSearch" placeholder="Tìm sản phẩm..."
+                               aria-label="Tìm sản phẩm" autocomplete="off">
+                        <button class="search-clear-btn" id="adminSearchClear" type="button"
+                                title="Xóa từ khóa" aria-label="Xóa từ khóa tìm kiếm" hidden>
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="search-btn" type="button" title="Tìm sản phẩm" aria-label="Tìm sản phẩm">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="search-mobile-close" id="adminSearchMobileClose" type="button"
+                                title="Đóng tìm kiếm" aria-label="Đóng tìm kiếm sản phẩm">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </th:block>
+            </div>
+
+            <!-- CỤM BÊN PHẢI: Trang chủ / Tổng quan + Tài khoản User Dropdown -->
+            <div class="admin-topbar-right">
+                <a th:href="@{/admin/all}" class="admin-topbar-action nav-home-link" title="Tổng quan" aria-label="Về trang tổng quan">
+                    <i class="fas fa-home"></i>
+                </a>
+
+                <div class="dropdown admin-user-dropdown">
+                    <button class="admin-user-btn dropdown-toggle" id="adminUserDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="far fa-user-circle user-avatar"></i>
+                        <span class="admin-user-name d-none d-sm-inline" th:text="${session.tenHienThi != null ? session.tenHienThi : 'Quản trị'}">Admin</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="adminUserDropdown">
+                        <li class="dropdown-header text-uppercase fw-bold pb-2" style="font-size: 0.72rem; color: #888;">
+                            <i class="fas fa-user-shield me-1"></i> <span th:text="${session.tenHienThi != null ? session.tenHienThi : 'Quản trị'}"></span>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger py-2" th:href="@{/admin/dang-xuat}">
+                                <i class="fas fa-sign-out-alt me-2"></i> Đăng xuất
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
 
-        <style>
-            .admin-header h4 {
-                color: #15171c !important;
-            }
-            .text-brand-accent {
-                color: #ff4500 !important;
-            }
-            .dropdown-menu .dropdown-item:hover {
-                background-color: rgba(255, 69, 0, 0.05);
-                color: #ff4500 !important;
-            }
-        </style>
-        
-        <script>
-            // Global Toast Notification for Admin Panel
-            function showToast(message, type) {
-                type = type || 'info'; // 'success', 'error', 'warning', 'info'
-                
-                // Prevent duplicate container creation
-                var container = document.getElementById('custom-toast-container');
-                if (!container) {
-                    container = document.createElement('div');
-                    container.id = 'custom-toast-container';
-                    document.body.appendChild(container);
-                }
-                
-                var iconClass = 'fa-check-circle';
-                if (type === 'error' || type === 'danger') {
-                    iconClass = 'fa-times-circle';
-                    type = 'error'; // normalize to error
-                } else if (type === 'warning') {
-                    iconClass = 'fa-exclamation-triangle';
-                } else if (type === 'info') {
-                    iconClass = 'fa-info-circle';
-                }
-                
-                var toast = document.createElement('div');
-                toast.className = 'custom-toast toast-' + type;
-                
-                toast.innerHTML = `
-                    <div class="custom-toast-content">
-                        <i class="fas ${iconClass}"></i>
-                        <span class="custom-toast__message">${message}</span>
-                    </div>
-                    <button class="toast-close" type="button"><i class="fas fa-times"></i></button>
-                `;
-                
-                container.appendChild(toast);
-                
-                // Trigger reflow to start transition
-                toast.offsetHeight;
-                toast.classList.add('show');
-                
-                // Auto dismiss timer
-                var dismissTimer = setTimeout(function() {
-                    dismissToast(toast);
-                }, 4000);
-                
-                // Close button handler
-                var closeBtn = toast.querySelector('.toast-close');
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', function() {
-                        clearTimeout(dismissTimer);
-                        dismissToast(toast);
-                    });
-                }
-            }
+        <!-- Dynamic Admin Footer Relocation Placeholder -->
+        <div class="admin-footer-placeholder" style="display: none;">
+            <div class="container-fluid d-flex justify-content-between align-items-center py-3 flex-wrap gap-2 text-muted small border-top mt-4" style="border-color: #e5e7eb !important;">
+                <span>© 2026 <strong>SmashVN Shop</strong> - Hệ thống quản lý bán vợt cầu lông</span>
+                <span>Phiên bản 2.0 Admin Panel</span>
+            </div>
+        </div>
 
-            function dismissToast(toast) {
-                toast.classList.remove('show');
-                // Wait for CSS transition to finish before removing element
-                setTimeout(function() {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 400);
-            }
-
-            // Override standard browser alert after showToast is defined
-            window.alert = function(message) {
-                showToast(message, 'warning');
-            };
-        </script>
-    </div>
-
+        <!-- Scroll to Top Button (CRITICAL BINDING: id="topScroll") -->
+        <button id="topScroll" type="button" title="Cuộn lên đầu" aria-label="Cuộn lên đầu trang">
+            <i class="fas fa-long-arrow-alt-up"></i>
+        </button>
+    </header>
 
 </body>
 </html>

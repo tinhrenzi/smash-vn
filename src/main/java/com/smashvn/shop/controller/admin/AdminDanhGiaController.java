@@ -1,5 +1,6 @@
 package com.smashvn.shop.controller.admin;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -138,6 +139,10 @@ public class AdminDanhGiaController {
         }
 
         List<CommentViolationLog> listViPham = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
+        if (listViPham == null) {
+            listViPham = Collections.emptyList();
+        }
+
         model.addAttribute("listViPham", listViPham);
         return "admin/vipham-list"; // Trỏ đến vipham-list.html
     }
@@ -165,7 +170,7 @@ public class AdminDanhGiaController {
             auditService.log(adminId, "TaiKhoan", tk.getId().longValue(), "UPDATE", 
                     oldVal, "null", request.getRemoteAddr(), "Gỡ khóa bình luận thủ công bởi admin.", vaiTro);
 
-            redirectAttributes.addFlashAttribute("successMsg", "Đã gỡ khóa bình luận thành công cho tài khoản " + tk.getEmail());
+            redirectAttributes.addFlashAttribute("successMsg", "Đã gỡ khóa bình luận thành công cho tài khoản " + tk.getUsername());
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMsg", "Lỗi: " + e.getMessage());
         }
@@ -187,15 +192,17 @@ public class AdminDanhGiaController {
         try {
             TaiKhoan tk = taiKhoanRepository.findById(taiKhoanId)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản!"));
-            String oldVal = tk.getSoLanNhacNhoViPham().toString();
+            int soLanViPhamHienTai = tk.getSoLanNhacNhoViPham() != null ? tk.getSoLanNhacNhoViPham() : 0;
+            String oldVal = String.valueOf(soLanViPhamHienTai);
             tk.setSoLanNhacNhoViPham(0);
+            tk.setNgayViPhamGanNhat(null);
             taiKhoanRepository.save(tk);
 
             // Ghi log audit
             auditService.log(adminId, "TaiKhoan", tk.getId().longValue(), "UPDATE", 
                     oldVal, "0", request.getRemoteAddr(), "Reset bộ đếm vi phạm thủ công bởi admin.", vaiTro);
 
-            redirectAttributes.addFlashAttribute("successMsg", "Đã reset bộ đếm vi phạm thành công cho tài khoản " + tk.getEmail());
+            redirectAttributes.addFlashAttribute("successMsg", "Đã reset bộ đếm vi phạm thành công cho tài khoản " + tk.getUsername());
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMsg", "Lỗi: " + e.getMessage());
         }

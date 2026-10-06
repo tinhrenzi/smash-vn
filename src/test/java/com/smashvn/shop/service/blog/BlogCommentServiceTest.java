@@ -70,20 +70,20 @@ public class BlogCommentServiceTest {
 
         // Create a unique standard user
         testUser = new TaiKhoan();
-        testUser.setEmail("user-" + uuid + "@test.com");
+        testUser.setUsername("user-" + uuid + "@test.com");
         testUser.setMatKhau("password");
         testUser.setVaiTro("KH");
         testUser.setTrangThai("hoat_dong");
-        testUser.setLaKhachHang(true);
+
         testUser = taiKhoanRepository.save(testUser);
 
         // Create a unique admin user
         adminUser = new TaiKhoan();
-        adminUser.setEmail("admin-" + uuid + "@test.com");
+        adminUser.setUsername("admin-" + uuid + "@test.com");
         adminUser.setMatKhau("password");
         adminUser.setVaiTro("QL");
         adminUser.setTrangThai("hoat_dong");
-        adminUser.setLaQuanLy(true);
+
         adminUser = taiKhoanRepository.save(adminUser);
     }
 
@@ -91,28 +91,28 @@ public class BlogCommentServiceTest {
     void testAddValidComment() {
         String content = "Đây là một bình luận hoàn toàn hợp lệ!";
         assertDoesNotThrow(() -> {
-            blogService.addComment(testBlog.getSlug(), content, testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), content, testUser.getUsername());
         });
 
         List<BlogCommentDTO> comments = blogService.getCommentsForBlog(testBlog.getId());
         assertEquals(1, comments.size());
         assertEquals(content, comments.get(0).getContent());
-        assertEquals(testUser.getEmail(), comments.get(0).getEmailTaiKhoan());
+        assertEquals(testUser.getUsername(), comments.get(0).getEmailTaiKhoan());
         assertFalse(comments.get(0).getDeleted());
     }
 
     @Test
     void testAddEmptyComment() {
         assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "", testUser.getUsername());
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "   ", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "   ", testUser.getUsername());
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), null, testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), null, testUser.getUsername());
         });
     }
 
@@ -120,11 +120,11 @@ public class BlogCommentServiceTest {
     void testAddInvalidHtmlComment() {
         // Comment containing only HTML should be sanitized to empty, causing validation to fail
         assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "<script>alert('hack')</script>", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "<script>alert('hack')</script>", testUser.getUsername());
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "   <div></div>   ", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "   <div></div>   ", testUser.getUsername());
         });
     }
 
@@ -138,7 +138,7 @@ public class BlogCommentServiceTest {
         String longContent = sb.toString();
 
         assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), longContent, testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), longContent, testUser.getUsername());
         });
     }
 
@@ -148,12 +148,12 @@ public class BlogCommentServiceTest {
         String content2 = "Bình luận thứ hai";
 
         assertDoesNotThrow(() -> {
-            blogService.addComment(testBlog.getSlug(), content1, testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), content1, testUser.getUsername());
         });
 
         // The second comment should violate the 10-second limit
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), content2, testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), content2, testUser.getUsername());
         });
 
         assertTrue(exception.getMessage().contains("quá nhanh") || exception.getMessage().contains("10 giây"));
@@ -166,7 +166,7 @@ public class BlogCommentServiceTest {
         testUser = taiKhoanRepository.save(testUser);
 
         assertThrows(AccessDeniedException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "Xin chào", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "Xin chào", testUser.getUsername());
         });
     }
 
@@ -177,7 +177,7 @@ public class BlogCommentServiceTest {
         testUser = taiKhoanRepository.save(testUser);
 
         assertDoesNotThrow(() -> {
-            blogService.addComment(testBlog.getSlug(), "Chào ngày mới!", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "Chào ngày mới!", testUser.getUsername());
         });
 
         List<BlogCommentDTO> comments = blogService.getCommentsForBlog(testBlog.getId());
@@ -198,7 +198,7 @@ public class BlogCommentServiceTest {
 
         // Try adding comment containing the profanity
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "Đây là comment chứa " + profanityWord + " vô văn hóa", testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "Đây là comment chứa " + profanityWord + " vô văn hóa", testUser.getUsername());
         });
 
         assertTrue(exception.getMessage().contains("từ ngữ không phù hợp"));
@@ -226,7 +226,7 @@ public class BlogCommentServiceTest {
         }
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            blogService.addComment(testBlog.getSlug(), "Tránh né từ cấm: " + obfuscated.toString(), testUser.getEmail());
+            blogService.addComment(testBlog.getSlug(), "Tránh né từ cấm: " + obfuscated.toString(), testUser.getUsername());
         });
 
         assertTrue(exception.getMessage().contains("từ ngữ không phù hợp"));
@@ -236,7 +236,7 @@ public class BlogCommentServiceTest {
     void testDeleteCommentAuthorization() {
         // First add a comment
         String content = "Bình luận cần xóa";
-        blogService.addComment(testBlog.getSlug(), content, testUser.getEmail());
+        blogService.addComment(testBlog.getSlug(), content, testUser.getUsername());
         
         List<BlogCommentDTO> comments = blogService.getCommentsForBlog(testBlog.getId());
         assertEquals(1, comments.size());
@@ -244,12 +244,12 @@ public class BlogCommentServiceTest {
 
         // 1. Regular user tries to delete -> should fail
         assertThrows(AccessDeniedException.class, () -> {
-            blogService.deleteComment(commentId, testUser.getEmail(), "Tự ý xóa");
+            blogService.deleteComment(commentId, testUser.getUsername(), "Tự ý xóa");
         });
 
         // 2. Admin tries to delete -> should succeed
         assertDoesNotThrow(() -> {
-            blogService.deleteComment(commentId, adminUser.getEmail(), "Spam link quảng cáo");
+            blogService.deleteComment(commentId, adminUser.getUsername(), "Spam link quảng cáo");
         });
 
         // Comment should be soft-deleted and not visible in getCommentsForBlog

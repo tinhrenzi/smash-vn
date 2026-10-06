@@ -53,7 +53,7 @@ public class AdminThongKeController {
             @RequestParam(value = "endDate", required = false) String endDate) {
         
         Map<String, LocalDateTime> range = adminThongKeService.getDateRange(preset, startDate, endDate);
-        Map<String, Object> statsData = adminThongKeService.getStatisticsData(range.get("start"), range.get("end"));
+        Map<String, Object> statsData = adminThongKeService.getStatisticsData(preset, range.get("start"), range.get("end"));
         return ResponseEntity.ok(statsData);
     }
 

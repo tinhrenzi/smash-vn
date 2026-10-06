@@ -25,7 +25,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== Ứng dụng chính ======-->
@@ -83,10 +83,10 @@
                                             <ul class="dash__f-list">
                                                 <li>
 
-                                                    <a class="dash-active" th:href="@{/user/dashboard}">Quản lý tài khoản</a></li>
+                                                    <a th:href="@{/user/dashboard}">Quản lý tài khoản</a></li>
                                                 <li>
 
-                                                    <a th:href="@{/user/profile}">Thông tin cá nhân</a></li>
+                                                    <a class="dash-active" th:href="@{/user/profile}">Thông tin cá nhân</a></li>
                                                 <li>
 
                                                     <a th:href="@{/user/address}">Địa chỉ</a></li>
@@ -151,7 +151,7 @@
 									            </div>
 									            <div class="col-lg-4 u-s-m-b-30">
 									                <span class="dash__text-2">Email đăng nhập</span>
-									                <span class="dash__text" th:text="${kh.taiKhoan.email}">johndoe@domain.com</span>
+									                <span class="dash__text" th:text="${kh.taiKhoan?.username ?: 'Không có tài khoản'}">johndoe@domain.com</span>
 									            </div>
 									            <div class="col-lg-4 u-s-m-b-30">
 									                <span class="dash__text-2">Số điện thoại</span>

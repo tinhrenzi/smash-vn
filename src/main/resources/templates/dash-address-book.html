@@ -25,7 +25,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== Ứng dụng chính ======-->
@@ -160,13 +160,18 @@
                                                     <tr th:each="dc : ${danhSachDiaChi}">
 													    <td>
 													        <a class="address-book-edit btn--e-transparent-platinum-b-2" th:href="@{/user/address/edit/{id}(id=${dc.id})}">Sửa</a>
-													    	<a class="address-book-edit btn--e-transparent-platinum-b-2 js-delete-address" 
-													           href="javascript:void(0)" 
-													           th:attr="data-id=${dc.id}">Xóa</a>
-													    </td>
+											        <a th:if="${!dc.defaultShipping}"
+											           class="address-book-edit btn--e-transparent-platinum-b-2 js-delete-address"
+											           href="javascript:void(0)"
+											           th:attr="data-id=${dc.id}">Xóa</a>
+											        <span th:if="${dc.defaultShipping}"
+											              class="address-book-edit btn--e-transparent-platinum-b-2"
+											              style="cursor: not-allowed; opacity: 0.55;"
+											              title="Hãy chọn một địa chỉ khác làm mặc định trước khi xóa">Không thể xóa</span>
+											    </td>
 													    <td th:text="${dc.hoNguoiNhan + ' ' + dc.tenNguoiNhan}">Tên người nhận</td>
 													    <td th:text="${dc.sdtNguoiNhan}">SĐT</td>
-													    <td th:text="${dc.diaChiCuThe}">Địa chỉ nhà</td>
+													    <td th:text="${dc.diaChiCuThe + (dc.wardName != null and !dc.wardName.isEmpty() ? ', ' + dc.wardName : '') + (dc.districtName != null and !dc.districtName.isEmpty() ? ', ' + dc.districtName : '')}">Địa chỉ nhà</td>
 													    <td th:text="${dc.tinhThanh + ', ' + dc.quocGia}">Tỉnh/Thành phố</td>
 													    <td>
 													        <div class="radio-box">

@@ -21,5 +21,4 @@ public class BlogCommentDTO {
     private String deletedAt;
     private String deletedReason;
     private String deletedByEmail;
-    private Integer parentCommentId;
 }

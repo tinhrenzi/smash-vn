@@ -10,6 +10,12 @@ import java.math.BigDecimal;
 public class ProductSuggestionDto {
     private Integer id;
     private String tenSanPham;
-    private String imageUrl;
+    private String thuongHieu;
+    private String mauSac;
+    private String trongLuong;
+    private String phanLoai;
     private BigDecimal giaBan;
+    private Integer soLuongTon;
+    private String hinhAnh;
+    private String duongDan;
 }

@@ -25,7 +25,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== Ứng dụng chính ======-->
@@ -80,30 +80,30 @@
                                         <div class="dash__pad-1">
 
                                             <span class="dash__text u-s-m-b-16" th:text="'Hello, ' + ${kh.hoKh} + ' ' + ${kh.tenKh}"></span>
-                                            <ul class="dash__f-list">
-                                                <li>
+                                             <ul class="dash__f-list">
+                                                 <li>
 
-                                                    <a class="dash-active" th:href="@{/user/dashboard}">Quản lý tài khoản</a></li>
-                                                <li>
+                                                     <a th:href="@{/user/dashboard}">Quản lý tài khoản</a></li>
+                                                 <li>
 
-                                                    <a th:href="@{/user/profile}">Thông tin cá nhân</a></li>
-                                                <li>
+                                                     <a th:href="@{/user/profile}">Thông tin cá nhân</a></li>
+                                                 <li>
 
-                                                    <a th:href="@{/user/address}">Địa chỉ</a></li>
-                                                <li>
+                                                     <a th:href="@{/user/address}">Địa chỉ</a></li>
+                                                 <li>
 
-                                                    <a th:href="@{/user/track-order}">Theo dõi đơn hàng</a></li>
-                                                <li>
+                                                     <a th:href="@{/user/track-order}">Theo dõi đơn hàng</a></li>
+                                                 <li>
 
-                                                    <a th:href="@{/user/my-order}">Đơn hàng</a></li>
-                                                <li>
+                                                     <a th:href="@{/user/my-order}">Đơn hàng</a></li>
+                                                 <li>
 
-                                                    <a th:href="@{/user/payment-option}">Các tùy chọn thanh toán</a></li>
-                                                <li>
+                                                     <a th:href="@{/user/payment-option}">Các tùy chọn thanh toán</a></li>
+                                                 <li>
 
-                                                    <a th:href="@{/user/cancellation}">Chính sách hoàn trả hàng</a></li>
-                                                <li>
-                                                    <a th:href="@{/user/notifications}">Thông báo</a></li>
+                                                     <a class="dash-active" th:href="@{/user/cancellation}">Chính sách hoàn trả hàng</a></li>
+                                                 <li>
+                                                     <a th:href="@{/user/notifications}">Thông báo</a></li>
                                             </ul>
                                         </div>
                                     </div>

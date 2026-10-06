@@ -34,6 +34,9 @@ public class SepaySimulationControllerTest {
     private SepayGatewayService sepayGatewayService;
 
     @Mock
+    private com.smashvn.shop.service.payment.SepayPaymentOrchestratorService sepayPaymentOrchestratorService;
+
+    @Mock
     private com.smashvn.shop.config.SepayConfig sepayConfig;
 
     @InjectMocks
@@ -48,6 +51,7 @@ public class SepaySimulationControllerTest {
         when(sepayConfig.isDebug()).thenReturn(true);
         mockMvc = MockMvcBuilders.standaloneSetup(sepaySimulationController).build();
     }
+
 
     @Test
     void testShowSimulationPage_OrderNotFound() throws Exception {
@@ -95,12 +99,11 @@ public class SepaySimulationControllerTest {
 
     @Test
     void testSimulateSuccess_OrderAlreadyPaid_ReturnsSuccessWithoutProcessing() throws Exception {
-        HoaDon hd = new HoaDon();
-        hd.setMaDonHang("DH123");
-        hd.setTrangThaiThanhToan("DA_THANH_TOAN");
-        hd.setPaymentStatus("paid");
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "Đơn hàng đã được thanh toán trước đó.");
+        when(sepayPaymentOrchestratorService.orchestrateSimulatedPayment(eq("DH123"), any(), any(), any(), any())).thenReturn(res);
 
-        when(hoaDonRepository.findByMaDonHang("DH123")).thenReturn(Optional.of(hd));
 
         mockMvc.perform(post("/payment/sepay/simulate/success")
                         .param("maDonHang", "DH123")
@@ -108,19 +111,14 @@ public class SepaySimulationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Đơn hàng đã được thanh toán trước đó."));
-
-        verify(sepayGatewayService, never()).handleIpn(any(), anyString());
     }
 
     @Test
     void testSimulateSuccess_OrderNotPaid_ProcessesSuccessfully() throws Exception {
-        HoaDon hd = new HoaDon();
-        hd.setMaDonHang("DH123");
-        hd.setTrangThaiThanhToan("CHO_THANH_TOAN");
-        hd.setPaymentStatus("pending");
-
-        when(hoaDonRepository.findByMaDonHang("DH123")).thenReturn(Optional.of(hd));
-        when(sepayGatewayService.handleIpn(any(), anyString())).thenReturn(new HashMap<>());
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "Simulated successfully!");
+        when(sepayPaymentOrchestratorService.orchestrateSimulatedPayment(anyString(), any(), any(), any(), any())).thenReturn(res);
 
         mockMvc.perform(post("/payment/sepay/simulate/success")
                         .param("maDonHang", "DH123")
@@ -128,7 +126,6 @@ public class SepaySimulationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Simulated successfully!"));
-
-        verify(sepayGatewayService, times(1)).handleIpn(any(), anyString());
     }
 }
+

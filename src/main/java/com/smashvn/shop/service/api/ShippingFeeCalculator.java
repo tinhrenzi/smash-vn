@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 public class ShippingFeeCalculator {
 
     private final ShippingZoneResolver zoneResolver;
+    private final GhnService ghnService;
 
     @Value("${shipping.ghtk.local:22000}")
     private BigDecimal ghtkLocal;
@@ -42,9 +43,21 @@ public class ShippingFeeCalculator {
     public static final BigDecimal DEFAULT_LOCAL_FALLBACK = BigDecimal.valueOf(30000);
     public static final BigDecimal DEFAULT_NATIONWIDE_FALLBACK = BigDecimal.valueOf(30000);
 
-    public BigDecimal calculateFee(DonViVanChuyen carrier, Integer districtId, String address) {
+    public BigDecimal calculateFee(DonViVanChuyen carrier, Integer districtId, String wardCode, String address) {
+        String carrierCode = getCarrierCode(carrier);
+        if ("GHN".equals(carrierCode) && districtId != null && wardCode != null && !wardCode.trim().isEmpty()) {
+            BigDecimal fee = ghnService.calculateShipFee(districtId, wardCode.trim(), 1000000);
+            if (fee != null) {
+                log.debug("Calculated real-time GHN shipping fee using API: {}", fee);
+                return fee;
+            }
+        }
         ShippingZone zone = zoneResolver.resolveZone(districtId, address);
         return calculateFee(carrier, zone);
+    }
+
+    public BigDecimal calculateFee(DonViVanChuyen carrier, Integer districtId, String address) {
+        return calculateFee(carrier, districtId, null, address);
     }
 
     public BigDecimal calculateFee(DonViVanChuyen carrier, String address) {
@@ -89,17 +102,23 @@ public class ShippingFeeCalculator {
     }
 
     public String getCarrierCode(DonViVanChuyen carrier) {
-        if (carrier == null || carrier.getTenDonVi() == null) {
+        if (carrier == null) {
             return "DEFAULT";
         }
 
-        // Normalize carrier name to lowercase, accentless, and without spaces
-        String name = zoneResolver.normalizeAddress(carrier.getTenDonVi()).replace(" ", "");
-
-        if (name.contains("ghtk") || name.contains("tietkiem")) {
-            return "GHTK";
-        } else if (name.contains("ghn") || name.contains("nhanh")) {
+        if (DonViVanChuyen.isGhnCarrier(carrier)) {
             return "GHN";
+        }
+
+        if (carrier.getMaDonVi() != null && carrier.getMaDonVi().trim().equalsIgnoreCase("GHTK")) {
+            return "GHTK";
+        }
+
+        if (carrier.getTenDonVi() != null) {
+            String name = zoneResolver.normalizeAddress(carrier.getTenDonVi()).replace(" ", "");
+            if (name.contains("ghtk") || name.contains("tietkiem")) {
+                return "GHTK";
+            }
         }
 
         return "DEFAULT";

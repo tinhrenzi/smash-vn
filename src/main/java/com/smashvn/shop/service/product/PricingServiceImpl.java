@@ -20,9 +20,10 @@ import java.util.Optional;
  * <p><b>Lưu ý quan trọng:</b> Class này KHÔNG xử lý PHIẾU GIẢM GIÁ (Voucher).
  * Voucher chỉ áp dụng tại bước thanh toán và được tính bởi {@code VoucherCalculator}.</p>
  */
-@Service
+@Service("pricingService")
 @RequiredArgsConstructor
 public class PricingServiceImpl implements PricingService {
+
 
     /**
      * Tính giá bán hiện tại của một biến thể sản phẩm ({@link SanPhamChiTiet}).

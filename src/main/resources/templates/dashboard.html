@@ -25,7 +25,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== Ứng dụng chính ======-->
@@ -152,9 +152,10 @@
                                                                 <a th:href="@{/user/profile/edit}">Sửa</a>
                                                             </div>
                                                             <span class="dash__text fw-bold" th:text="${kh.hoKh} + ' ' + ${kh.tenKh}"></span>
-                                                            <span class="dash__text" th:text="${kh.taiKhoan.email}"></span>
-                                                            <div class="dash__link dash__link--secondary u-s-m-t-8">
-                                                                <a data-modal="modal" data-modal-id="#dash-newsletter">Đăng ký nhận tin tức mới</a>
+                                                            <span id="user-email" class="dash__text" th:text="${kh.taiKhoan?.username ?: ''}"></span>
+                                                            <div class="dash__link dash__link--secondary u-s-m-t-8" id="newsletter-btn-container">
+                                                                <a th:if="${!nhanBanTin}" data-modal="modal" data-modal-id="#dash-newsletter" id="btn-newsletter-subscribe">Đăng ký nhận tin tức mới</a>
+                                                                <a th:if="${nhanBanTin}" href="javascript:void(0)" id="btn-newsletter-unsubscribe" style="color: #ff4500;">Hủy đăng ký nhận tin tức</a>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -170,7 +171,7 @@
                                                             </div>
                                                             <div th:if="${defaultShipping != null}">
                                                                 <span class="dash__text" th:text="${defaultShipping.hoNguoiNhan} + ' ' + ${defaultShipping.tenNguoiNhan}"></span>
-                                                                <span class="dash__text" th:text="${defaultShipping.diaChiCuThe} + ', ' + ${defaultShipping.thanhPho} + ', ' + ${defaultShipping.tinhThanh}"></span>
+                                                                 <span class="dash__text" th:text="${defaultShipping.diaChiCuThe} + (${defaultShipping.wardName != null and !defaultShipping.wardName.isEmpty()} ? ', ' + ${defaultShipping.wardName} : '') + (${defaultShipping.districtName != null and !defaultShipping.districtName.isEmpty()} ? ', ' + ${defaultShipping.districtName} : '') + ', ' + ${defaultShipping.provinceName}"></span>
                                                                 <span class="dash__text" th:text="${defaultShipping.sdtNguoiNhan}"></span>
                                                             </div>
                                                             <div th:if="${defaultShipping == null}">
@@ -190,7 +191,7 @@
                                                             </div>
                                                             <div th:if="${defaultBilling != null}">
                                                                 <span class="dash__text" th:text="${defaultBilling.hoNguoiNhan} + ' ' + ${defaultBilling.tenNguoiNhan}"></span>
-                                                                <span class="dash__text" th:text="${defaultBilling.diaChiCuThe} + ', ' + ${defaultBilling.thanhPho} + ', ' + ${defaultBilling.tinhThanh}"></span>
+                                                                 <span class="dash__text" th:text="${defaultBilling.diaChiCuThe} + (${defaultBilling.wardName != null and !defaultBilling.wardName.isEmpty()} ? ', ' + ${defaultBilling.wardName} : '') + (${defaultBilling.districtName != null and !defaultBilling.districtName.isEmpty()} ? ', ' + ${defaultBilling.districtName} : '') + ', ' + ${defaultBilling.provinceName}"></span>
                                                                 <span class="dash__text" th:text="${defaultBilling.sdtNguoiNhan}"></span>
                                                             </div>
                                                             <div th:if="${defaultBilling == null}">
@@ -266,7 +267,7 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal--shadow">
                     <div class="modal-body">
-                        <form class="d-modal__form">
+                        <form class="d-modal__form" id="newsletter-modal-form">
                             <div class="u-s-m-b-15">
                                 <h1 class="gl-modal-h1">Đăng ký Nhận Bản tin</h1>
 
@@ -328,5 +329,103 @@
             </div>
         </div>
     </noscript>
+    <script>
+        $(document).ready(function() {
+            function notify(title, message, type) {
+                if (typeof showToast === 'function') {
+                    showToast(title, message, type);
+                } else {
+                    showToast(title + ": " + message, type || 'info');
+                }
+            }
+
+            $(document).on('submit', '#newsletter-modal-form', function(e) {
+                e.preventDefault();
+                var email = $('#user-email').text().trim();
+                if (!email) {
+                    notify("Lỗi", "Không tìm thấy email tài khoản của bạn!", "error");
+                    return;
+                }
+
+                var submitBtn = $(this).find('button[type="submit"]');
+                var originalText = submitBtn.text();
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> ĐANG GỬI...');
+
+                fetch('/api/newsletter/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ email: email, gioiTinh: null })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    submitBtn.prop('disabled', false).text(originalText);
+                    if (data.success) {
+                        notify("Thành công", data.message || "Đăng ký nhận bản tin thành công!", "success");
+                        $('#dash-newsletter').modal('hide');
+                        $('#newsletter-btn-container').html(
+                            '<a href="javascript:void(0)" id="btn-newsletter-unsubscribe" style="color: #ff4500;">Hủy đăng ký nhận tin tức</a>'
+                        );
+                    } else {
+                        notify("Thông báo", data.message || "Có lỗi xảy ra, vui lòng thử lại.", "warning");
+                    }
+                })
+                .catch(function(err) {
+                    submitBtn.prop('disabled', false).text(originalText);
+                    notify("Lỗi", "Không thể kết nối đến máy chủ.", "error");
+                    console.error(err);
+                });
+            });
+
+            $(document).on('click', '#btn-newsletter-unsubscribe', async function(e) {
+                e.preventDefault();
+                if (!(await SmashNotify.confirm({
+                    title: 'Hủy đăng ký nhận tin?',
+                    message: 'Bạn có chắc chắn muốn hủy đăng ký nhận tin tức mới từ Smash VN?'
+                }))) {
+                    return;
+                }
+
+                var email = $('#user-email').text().trim();
+                if (!email) {
+                    notify("Lỗi", "Không tìm thấy email tài khoản của bạn!", "error");
+                    return;
+                }
+
+                var unsubscribeBtn = $(this);
+                unsubscribeBtn.css('pointer-events', 'none').css('opacity', '0.6');
+
+                fetch('/api/newsletter/unsubscribe-ajax', {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ email: email })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    unsubscribeBtn.css('pointer-events', 'auto').css('opacity', '1');
+                    if (data.success) {
+                        notify("Thành công", data.message || "Hủy đăng ký nhận bản tin thành công!", "success");
+                        $('#newsletter-btn-container').html(
+                            '<a data-modal="modal" data-modal-id="#dash-newsletter" id="btn-newsletter-subscribe">Đăng ký nhận tin tức mới</a>'
+                        );
+                    } else {
+                        notify("Thông báo", data.message || "Có lỗi xảy ra, vui lòng thử lại.", "warning");
+                    }
+                })
+                .catch(function(err) {
+                    unsubscribeBtn.css('pointer-events', 'auto').css('opacity', '1');
+                    notify("Lỗi", "Không thể kết nối đến máy chủ.", "error");
+                    console.error(err);
+                });
+            });
+        });
+    </script>
 </body>
 </html>

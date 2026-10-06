@@ -13,4 +13,7 @@ public interface GioHangChiTietRepository extends JpaRepository<GioHangChiTiet, 
     // Lấy danh sách sản phẩm trong giỏ hàng dựa vào ID Giỏ hàng
 
     List<GioHangChiTiet> findByGioHang_Id(Integer idGioHang);
+
+    List<GioHangChiTiet> findAllByIdInAndGioHang_KhachHang_Id(List<Integer> ids, Integer idKhachHang);
 }
+

@@ -14,6 +14,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class DanhGia {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -32,6 +33,7 @@ public class DanhGia {
     @Column(name = "noi_dung", columnDefinition = "NVARCHAR(MAX)")
     private String binhLuan;
 
+    @Builder.Default
     @Column(name = "ngay_tao", nullable = false)
     private LocalDateTime ngayDanhGia = LocalDateTime.now();
 
@@ -39,13 +41,16 @@ public class DanhGia {
     private LocalDateTime ngayCapNhat;
 
     // Cờ kiểm duyệt ẩn/hiện độc lập
-    @Column(name = "an_binh_luan", nullable = false)
-    private Boolean anBinhLuan = false;
+    @Builder.Default
+    @Column(name = "binh_luan_an", nullable = false)
+    private Boolean binhLuanAn = false;
 
-    @Column(name = "an_hinh_anh", nullable = false)
-    private Boolean anHinhAnh = false;
+    @Builder.Default
+    @Column(name = "hinh_anh_an", nullable = false)
+    private Boolean hinhAnhAn = false;
 
     // Cờ xóa mềm
+    @Builder.Default
     @Column(name = "da_xoa", nullable = false)
     private Boolean daXoa = false;
 
@@ -58,31 +63,17 @@ public class DanhGia {
 
     // Audit kiểm duyệt bình luận
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_nguoi_an_binh_luan")
-    private TaiKhoan nguoiAnBinhLuan;
+    @JoinColumn(name = "id_nhan_vien")
+    private TaiKhoan nhanVien;
 
     @Column(name = "ngay_an_binh_luan")
     private LocalDateTime ngayAnBinhLuan;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_nguoi_hien_binh_luan")
-    private TaiKhoan nguoiHienBinhLuan;
-
     @Column(name = "ngay_hien_binh_luan")
     private LocalDateTime ngayHienBinhLuan;
 
-    // Audit kiểm duyệt hình ảnh
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_nguoi_an_hinh_anh")
-    private TaiKhoan nguoiAnHinhAnh;
-
     @Column(name = "ngay_an_hinh_anh")
     private LocalDateTime ngayAnHinhAnh;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_nguoi_hien_hinh_anh")
-    private TaiKhoan nguoiHienHinhAnh;
-
     @Column(name = "ngay_hien_hinh_anh")
     private LocalDateTime ngayHienHinhAnh;
 
@@ -91,5 +82,53 @@ public class DanhGia {
     @Builder.Default
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private List<DanhGiaAnh> danhSachAnh = new ArrayList<>();
+    private List<HinhAnhDanhGia> danhSachAnh = new ArrayList<>();
+
+    public Boolean getAnBinhLuan() {
+        return binhLuanAn;
+    }
+
+    public void setAnBinhLuan(Boolean anBinhLuan) {
+        this.binhLuanAn = anBinhLuan;
+    }
+
+    public Boolean getAnHinhAnh() {
+        return hinhAnhAn;
+    }
+
+    public void setAnHinhAnh(Boolean anHinhAnh) {
+        this.hinhAnhAn = anHinhAnh;
+    }
+
+    public void setNguoiAnBinhLuan(TaiKhoan nguoiAnBinhLuan) {
+        this.nhanVien = nguoiAnBinhLuan;
+    }
+
+    public void setNguoiHienBinhLuan(TaiKhoan nguoiHienBinhLuan) {
+        this.nhanVien = nguoiHienBinhLuan;
+    }
+
+    public void setNguoiAnHinhAnh(TaiKhoan nguoiAnHinhAnh) {
+        this.nhanVien = nguoiAnHinhAnh;
+    }
+
+    public void setNguoiHienHinhAnh(TaiKhoan nguoiHienHinhAnh) {
+        this.nhanVien = nguoiHienHinhAnh;
+    }
+
+    public TaiKhoan getNguoiAnBinhLuan() {
+        return Boolean.TRUE.equals(binhLuanAn) ? nhanVien : null;
+    }
+
+    public TaiKhoan getNguoiHienBinhLuan() {
+        return Boolean.FALSE.equals(binhLuanAn) && ngayHienBinhLuan != null ? nhanVien : null;
+    }
+
+    public TaiKhoan getNguoiAnHinhAnh() {
+        return Boolean.TRUE.equals(hinhAnhAn) ? nhanVien : null;
+    }
+
+    public TaiKhoan getNguoiHienHinhAnh() {
+        return Boolean.FALSE.equals(hinhAnhAn) && ngayHienHinhAnh != null ? nhanVien : null;
+    }
 }

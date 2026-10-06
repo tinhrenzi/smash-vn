@@ -1,145 +1,216 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-</head>
 <body>
 
-    <nav th:fragment="sidebar(activeTab)" class="col-md-2 d-none d-md-block sidebar">
-        <!-- Logo khu vực quản trị thiết kế theo style trang chủ -->
-        <div class="sidebar-logo text-center py-4 mb-3" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-left: 15px; padding-right: 15px;">
-            <a th:href="@{/admin/all}">
-                <img th:src="@{/images/logo/logo-footer.png}" alt="SMASH VN Logo" style="max-height: 80px; display: block; margin: 0 auto 12px auto; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+    <aside th:fragment="sidebar(activeTab)" class="admin-sidebar" id="adminSidebar">
+        <!-- Sidebar Brand / Header -->
+        <div class="admin-sidebar-header">
+            <a class="admin-sidebar-brand" th:href="@{/admin/all}">
+                <img th:src="@{/images/logo/logo-white.png}" alt="SMASH-VN Logo">
+                <span>SMASH-VN</span>
             </a>
-            <span class="text-uppercase tracking-widest" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em; color: #ff4500; opacity: 0.85; display: block;">Khu Vực Admin</span>
-        </div>
-        
-        <div class="sidebar-links d-flex flex-column">
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/all}" th:class="${activeTab == 'tongquan' ? 'active' : ''}">
-                <i class="fas fa-tachometer-alt"></i> Tổng Quan
-            </a>
-
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/thong-ke}" th:class="${activeTab == 'thongke' ? 'active' : ''}">
-                <i class="fas fa-chart-line"></i> Thống Kê Doanh Thu
-            </a>
-            
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/san-pham}" th:class="${activeTab == 'sanpham' ? 'active' : ''}">
-                <i class="fas fa-box"></i> Sản Phẩm
-            </a>
-
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/danh-muc}" th:class="${activeTab == 'danhmuc' ? 'active' : ''}">
-                <i class="fas fa-folder-open"></i> Danh Mục & Hãng
-            </a>
-            <a th:href="@{/admin/pos}" th:class="${activeTab == 'pos' ? 'active' : ''}">
-                <i class="fas fa-cash-register"></i> Bán Tại Quầy (POS)
-            </a>
-            
-            <a th:href="@{/admin/don-hang}" th:class="${activeTab == 'donhang' ? 'active' : ''}">
-                <i class="fas fa-shopping-cart"></i> Đơn Hàng
-            </a>
-            
-            <a th:href="@{/admin/danh-gia}" th:class="${activeTab == 'danhgia' ? 'active' : ''}">
-                <i class="fas fa-star"></i> Đánh Giá
-            </a>
-            
-            <a th:href="@{/admin/danh-gia/vi-pham}" th:class="${activeTab == 'viphambinhluan' ? 'active' : ''}">
-                <i class="fas fa-exclamation-triangle"></i> Vi Phạm Bình Luận
-            </a>
-
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/moderation/keywords}" th:class="${activeTab == 'moderationKeywords' ? 'active' : ''}">
-                <i class="fas fa-filter"></i> Từ Khóa Cấm Blog
-            </a>
-            
-            <a th:href="@{/admin/khach-hang}" th:class="${activeTab == 'khachhang' ? 'active' : ''}">
-                <i class="fas fa-users"></i> Khách Hàng
-            </a>
-            
-            <a th:href="@{/admin/blog}" th:class="${activeTab == 'blog' ? 'active' : ''}">
-                <i class="fas fa-newspaper"></i> Bài Viết & Blogs
-            </a>
-            
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/khuyen-mai}" th:class="${activeTab == 'khuyenmai' ? 'active' : ''}">
-                <i class="fas fa-percent"></i> Khuyến Mãi
-            </a>
-
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/nhan-vien}" th:class="${activeTab == 'nhanvien' ? 'active' : ''}">
-                <i class="fas fa-user-shield"></i> Nhân Viên
-            </a>
-            
-            <a th:if="${session.vaiTro == 'QL'}" th:href="@{/admin/shipping-config}" th:class="${activeTab == 'shippingconfig' ? 'active' : ''}">
-                <i class="fas fa-truck"></i> Cấu Hình GHN
-            </a>
+            <button class="admin-sidebar-close" id="adminSidebarClose" type="button"
+                    title="Đóng menu" aria-label="Đóng menu quản trị" aria-controls="adminSidebar">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
-        <style>
-            .sidebar {
-                position: sticky;
-                top: 0;
-                height: 100vh;
-                overflow-y: auto;
-                -ms-overflow-style: none;  /* IE and Edge */
-                scrollbar-width: none;  /* Firefox */
-                min-height: 100vh;
-                background-color: #15171c !important; /* Deep dark slate from home page theme */
-                color: #ffffff;
-                padding-top: 10px;
-                box-shadow: 4px 0 10px rgba(0,0,0,0.15);
-                font-family: 'Outfit', 'Plus Jakarta Sans', 'Open Sans', sans-serif;
-                align-self: flex-start;
-                z-index: 1000;
-            }
-            @media (min-width: 768px) {
-                .sidebar {
-                    position: fixed !important;
-                    top: 0;
-                    left: 0;
-                    width: 16.666667% !important;
-                    height: 100vh !important;
-                }
-            }
-            .sidebar::-webkit-scrollbar {
-                display: none; /* Hide scrollbar for Chrome/Safari/Opera */
-            }
-            .sidebar a {
-                color: rgba(255, 255, 255, 0.65);
-                text-decoration: none;
-                padding: 12px 18px;
-                display: flex;
-                align-items: center;
-                border-radius: 10px;
-                margin: 4px 14px;
-                font-weight: 500;
-                font-size: 0.9rem;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .sidebar a i {
-                width: 24px;
-                text-align: center;
-                margin-right: 12px;
-                font-size: 1.05rem;
-                color: rgba(255, 255, 255, 0.45);
-                display: inline-block;
-                transition: all 0.2s ease;
-            }
-            .sidebar a:hover {
-                background-color: rgba(255, 255, 255, 0.05);
-                color: #ffffff;
-                transform: translateX(4px);
-            }
-            .sidebar a:hover i {
-                color: #ffffff;
-            }
-            .sidebar a.active {
-                background-color: rgba(255, 69, 0, 0.12) !important;
-                color: #ff4500 !important; /* Premium brand orange-red highlight */
-                font-weight: 600;
-                box-shadow: inset 0 0 10px rgba(255, 69, 0, 0.03);
-            }
-            .sidebar a.active i {
-                color: #ff4500 !important;
-            }
-        </style>
-    </nav>
+        <!-- Navigation Links List -->
+        <div class="admin-sidebar-nav">
+
+            <!-- MANAGER ROLE MENU (activeRole == 'QL') -->
+            <th:block th:if="${session.activeRole == 'QL'}">
+                <!-- Group 1: TỔNG QUAN -->
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Tổng quan</div>
+                    <a th:href="@{/admin/all}" class="admin-nav-link" th:classappend="${activeTab == 'tongquan' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-chart-pie nav-icon"></i>
+                            <span>Tổng quan</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/thong-ke}" class="admin-nav-link" th:classappend="${activeTab == 'thongke' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-chart-bar nav-icon"></i>
+                            <span>Thống kê</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Group 2: BÁN HÀNG -->
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Bán hàng</div>
+                    <a th:href="@{/admin/don-hang}" class="admin-nav-link" th:classappend="${activeTab == 'donhang' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-shopping-cart nav-icon"></i>
+                            <span>Đơn hàng</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/pos}" class="admin-nav-link" th:classappend="${activeTab == 'pos' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-cash-register nav-icon"></i>
+                            <span>Bán hàng tại quầy</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Group 3: SẢN PHẨM -->
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Sản phẩm</div>
+                    <a th:href="@{/admin/san-pham}" class="admin-nav-link" th:classappend="${activeTab == 'sanpham' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-box nav-icon"></i>
+                            <span>Sản phẩm</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/danh-muc}" class="admin-nav-link" th:classappend="${activeTab == 'danhmuc' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-folder-open nav-icon"></i>
+                            <span>Danh mục & hãng</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/kho-san-pham-loi}" class="admin-nav-link" th:classappend="${activeTab == 'khoSpLoi' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-triangle-exclamation nav-icon"></i>
+                            <span>Kho sản phẩm lỗi</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Group 4: NGƯỜI DÙNG -->
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Người dùng</div>
+                    <a th:href="@{/admin/khach-hang}" class="admin-nav-link" th:classappend="${activeTab == 'khachhang' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-users nav-icon"></i>
+                            <span>Khách hàng</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/nhan-vien}" class="admin-nav-link" th:classappend="${activeTab == 'nhanvien' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-user-shield nav-icon"></i>
+                            <span>Nhân viên</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Group 5: NỘI DUNG & TƯƠNG TÁC -->
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Nội dung & Tương tác</div>
+                    
+                    <!-- Submenu Parent: Bình luận & đánh giá -->
+                    <div class="admin-nav-item">
+                        <button type="button" class="admin-nav-link" data-submenu-target="submenuCommentReview"
+                           aria-controls="submenuCommentReview"
+                           th:classappend="${activeTab == 'danhgia' or activeTab == 'viphambinhluan' or activeTab == 'moderationKeywords' ? 'active' : ''}"
+                           th:aria-expanded="${activeTab == 'danhgia' or activeTab == 'viphambinhluan' or activeTab == 'moderationKeywords' ? 'true' : 'false'}">
+                            <div class="admin-nav-link-content">
+                                <i class="fas fa-comments nav-icon"></i>
+                                <span>Bình luận & đánh giá</span>
+                            </div>
+                            <i class="fas fa-chevron-right arrow-icon"></i>
+                        </button>
+                        <div class="admin-nav-submenu" id="submenuCommentReview" 
+                             th:classappend="${activeTab == 'danhgia' or activeTab == 'viphambinhluan' or activeTab == 'moderationKeywords' ? 'show' : ''}">
+                            <a th:href="@{/admin/danh-gia}" class="admin-nav-link" th:classappend="${activeTab == 'danhgia' ? 'active' : ''}">
+                                <div class="admin-nav-link-content">
+                                    <i class="fas fa-star nav-icon"></i>
+                                    <span>Đánh giá</span>
+                                </div>
+                            </a>
+                            <a th:href="@{/admin/danh-gia/vi-pham}" class="admin-nav-link" th:classappend="${activeTab == 'viphambinhluan' ? 'active' : ''}">
+                                <div class="admin-nav-link-content">
+                                    <i class="fas fa-exclamation-triangle nav-icon"></i>
+                                    <span>Bình luận vi phạm</span>
+                                </div>
+                            </a>
+                            <a th:href="@{/admin/moderation/keywords}" class="admin-nav-link" th:classappend="${activeTab == 'moderationKeywords' ? 'active' : ''}">
+                                <div class="admin-nav-link-content">
+                                    <i class="fas fa-filter nav-icon"></i>
+                                    <span>Từ khóa cấm</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <a th:href="@{/admin/blog}" class="admin-nav-link" th:classappend="${activeTab == 'blog' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-newspaper nav-icon"></i>
+                            <span>Bài viết</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Group 6: MARKETING -->
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Marketing</div>
+                    <a th:href="@{/admin/khuyen-mai}" class="admin-nav-link" th:classappend="${activeTab == 'khuyenmai' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-percent nav-icon"></i>
+                            <span>Khuyến mãi</span>
+                        </div>
+                    </a>
+                </div>
+            </th:block>
+
+            <!-- EMPLOYEE ROLE MENU (activeRole == 'NV') -->
+            <th:block th:if="${session.activeRole == 'NV'}">
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Nghiệp vụ nhân viên</div>
+                    <a th:href="@{/admin/pos}" class="admin-nav-link" th:classappend="${activeTab == 'pos' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-cash-register nav-icon"></i>
+                            <span>Bán tại quầy</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/khach-hang}" class="admin-nav-link" th:classappend="${activeTab == 'khachhang' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-users nav-icon"></i>
+                            <span>Khách hàng</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/don-hang}" class="admin-nav-link" th:classappend="${activeTab == 'donhang' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-shopping-cart nav-icon"></i>
+                            <span>Đơn hàng</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/kho-san-pham-loi}" class="admin-nav-link" th:classappend="${activeTab == 'khoSpLoi' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-triangle-exclamation nav-icon"></i>
+                            <span>Kho sản phẩm lỗi</span>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="admin-nav-section">
+                    <div class="admin-nav-section-title">Tương tác & Bài viết</div>
+                    <a th:href="@{/admin/danh-gia}" class="admin-nav-link" th:classappend="${activeTab == 'danhgia' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-star nav-icon"></i>
+                            <span>Đánh giá</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/danh-gia/vi-pham}" class="admin-nav-link" th:classappend="${activeTab == 'viphambinhluan' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-exclamation-triangle nav-icon"></i>
+                            <span>Bình luận</span>
+                        </div>
+                    </a>
+                    <a th:href="@{/admin/blog}" class="admin-nav-link" th:classappend="${activeTab == 'blog' ? 'active' : ''}">
+                        <div class="admin-nav-link-content">
+                            <i class="fas fa-newspaper nav-icon"></i>
+                            <span>Bài viết & blog</span>
+                        </div>
+                    </a>
+                </div>
+            </th:block>
+
+        </div>
+    </aside>
+
+    <!-- Backdrop overlay for mobile sidebar -->
+    <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
 
 </body>
 </html>

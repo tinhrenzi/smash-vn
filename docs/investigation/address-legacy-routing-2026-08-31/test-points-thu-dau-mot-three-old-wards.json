@@ -1,0 +1,83 @@
+[
+  {
+    "case": "thu-dau-mot-old-phu-cuong",
+    "newWard": "Phường Thủ Dầu Một",
+    "oldProvince": "Bình Dương",
+    "oldDistrict": "Thủ Dầu Một",
+    "oldWard": "Phú Cường",
+    "lat": 10.981675625786304,
+    "lng": 106.6537083252443,
+    "gadm": {
+      "GID_3": "VNM.9.8.7_1",
+      "GID_0": "VNM",
+      "COUNTRY": "Vietnam",
+      "GID_1": "VNM.9_1",
+      "NAME_1": "BìnhDương",
+      "NL_NAME_1": "NA",
+      "GID_2": "VNM.9.8_1",
+      "NAME_2": "ThủDầuMột",
+      "NL_NAME_2": "NA",
+      "NAME_3": "PhúCường",
+      "VARNAME_3": "PhuCuong",
+      "NL_NAME_3": "NA",
+      "TYPE_3": "Phường",
+      "ENGTYPE_3": "Ward",
+      "CC_3": "NA",
+      "HASC_3": "NA"
+    }
+  },
+  {
+    "case": "thu-dau-mot-old-phu-tho",
+    "newWard": "Phường Thủ Dầu Một",
+    "oldProvince": "Bình Dương",
+    "oldDistrict": "Thủ Dầu Một",
+    "oldWard": "Phú Thọ",
+    "lat": 10.956520981364745,
+    "lng": 106.66794785792388,
+    "gadm": {
+      "GID_3": "VNM.9.8.12_1",
+      "GID_0": "VNM",
+      "COUNTRY": "Vietnam",
+      "GID_1": "VNM.9_1",
+      "NAME_1": "BìnhDương",
+      "NL_NAME_1": "NA",
+      "GID_2": "VNM.9.8_1",
+      "NAME_2": "ThủDầuMột",
+      "NL_NAME_2": "NA",
+      "NAME_3": "PhúThọ",
+      "VARNAME_3": "PhuTho",
+      "NL_NAME_3": "NA",
+      "TYPE_3": "Phường",
+      "ENGTYPE_3": "Ward",
+      "CC_3": "NA",
+      "HASC_3": "NA"
+    }
+  },
+  {
+    "case": "thu-dau-mot-old-chanh-nghia",
+    "newWard": "Phường Thủ Dầu Một",
+    "oldProvince": "Bình Dương",
+    "oldDistrict": "Thủ Dầu Một",
+    "oldWard": "Chánh Nghĩa",
+    "lat": 10.966334053145522,
+    "lng": 106.6592203873957,
+    "gadm": {
+      "GID_3": "VNM.9.8.2_1",
+      "GID_0": "VNM",
+      "COUNTRY": "Vietnam",
+      "GID_1": "VNM.9_1",
+      "NAME_1": "BìnhDương",
+      "NL_NAME_1": "NA",
+      "GID_2": "VNM.9.8_1",
+      "NAME_2": "ThủDầuMột",
+      "NL_NAME_2": "NA",
+      "NAME_3": "ChánhNghĩa",
+      "VARNAME_3": "ChanhNghia",
+      "NL_NAME_3": "NA",
+      "TYPE_3": "Phường",
+      "ENGTYPE_3": "Ward",
+      "CC_3": "NA",
+      "HASC_3": "NA"
+    }
+  }
+]

@@ -1,34 +1,64 @@
 package com.smashvn.shop.controller.product;
 
-import com.smashvn.shop.entity.*;
-import com.smashvn.shop.repository.*;
-import com.smashvn.shop.dao.*;
-import com.smashvn.shop.service.product.DanhGiaService;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.ArrayList;
-import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.any;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.smashvn.shop.dao.DanhGiaDAO;
+import com.smashvn.shop.dao.DonViVanChuyenDAO;
+import com.smashvn.shop.dao.PhuongThucThanhToanDAO;
+import com.smashvn.shop.entity.CommentModerationKeyword;
+import com.smashvn.shop.entity.CommentViolationLog;
+import com.smashvn.shop.entity.DanhGia;
+import com.smashvn.shop.entity.DanhMuc;
+import com.smashvn.shop.entity.DonViVanChuyen;
+import com.smashvn.shop.entity.HoaDon;
+import com.smashvn.shop.entity.HoaDonChiTiet;
+import com.smashvn.shop.entity.KhachHang;
+import com.smashvn.shop.entity.NhanVien;
+import com.smashvn.shop.entity.PhuongThucThanhToan;
+import com.smashvn.shop.entity.SanPham;
+import com.smashvn.shop.entity.SanPhamChiTiet;
+import com.smashvn.shop.entity.TaiKhoan;
+import com.smashvn.shop.entity.ThongBao;
+import com.smashvn.shop.entity.ThuongHieu;
+import com.smashvn.shop.repository.CommentModerationKeywordRepository;
+import com.smashvn.shop.repository.CommentViolationLogRepository;
+import com.smashvn.shop.repository.DanhMucRepository;
+import com.smashvn.shop.repository.HoaDonChiTietRepository;
+import com.smashvn.shop.repository.HoaDonRepository;
+import com.smashvn.shop.repository.KhachHangRepository;
+import com.smashvn.shop.repository.NhanVienRepository;
+import com.smashvn.shop.repository.SanPhamChiTietRepository;
+import com.smashvn.shop.repository.SanPhamRepository;
+import com.smashvn.shop.repository.TaiKhoanRepository;
+import com.smashvn.shop.repository.ThongBaoRepository;
+import com.smashvn.shop.repository.ThuongHieuRepository;
+import com.smashvn.shop.service.product.DanhGiaService;
 
 @SpringBootTest
 @Transactional
@@ -82,6 +112,12 @@ public class DanhGiaIntegrationTest {
     @Autowired
     private CommentViolationLogRepository commentViolationLogRepository;
 
+    @Autowired
+    private CommentModerationKeywordRepository commentModerationKeywordRepository;
+
+    @Autowired
+    private com.smashvn.shop.service.blog.CommentModerationService commentModerationService;
+
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     private org.springframework.mail.javamail.JavaMailSender mailSender;
 
@@ -101,7 +137,7 @@ public class DanhGiaIntegrationTest {
     private final List<Integer> orderIdsToClean = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     // A valid 1x1 transparent PNG byte array
-    private static final byte[] TINY_PNG = new byte[] {
+    private static final byte[] TINY_PNG = new byte[]{
         (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
         0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, (byte) 0xC4,
         (byte) 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, (byte) 0x9C, 0x63, 0x00, 0x01,
@@ -112,22 +148,24 @@ public class DanhGiaIntegrationTest {
     @BeforeEach
     void setUp() {
         orderIdsToClean.clear();
-        
+
         // 1. Delete all CommentViolationLog records linked to any TaiKhoan whose email starts with buyer_ or admin_
         try {
             List<CommentViolationLog> logs = commentViolationLogRepository.findAll();
             for (CommentViolationLog log : logs) {
                 try {
                     if (log.getTaiKhoan() != null) {
-                        String email = log.getTaiKhoan().getEmail();
+                        String email = log.getTaiKhoan().getUsername();
                         if (email != null && (email.startsWith("buyer_") || email.startsWith("admin_"))) {
                             commentViolationLogRepository.delete(log);
                         }
                     }
-                } catch (Exception inner) {}
+                } catch (Exception inner) {
+                }
             }
             commentViolationLogRepository.flush();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // 2. Delete reviews created by buyer_ or admin_
         try {
@@ -135,20 +173,22 @@ public class DanhGiaIntegrationTest {
             for (DanhGia dg : reviews) {
                 try {
                     if (dg.getKhachHang() != null && dg.getKhachHang().getTaiKhoan() != null) {
-                        String email = dg.getKhachHang().getTaiKhoan().getEmail();
+                        String email = dg.getKhachHang().getTaiKhoan().getUsername();
                         if (email != null && (email.startsWith("buyer_") || email.startsWith("admin_"))) {
                             danhGiaDAO.delete(dg);
                         }
                     }
-                } catch (Exception inner) {}
+                } catch (Exception inner) {
+                }
             }
             danhGiaDAO.flush();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // 3. Delete customers and users
         try {
             List<TaiKhoan> strayUsers = taiKhoanRepository.findAll().stream()
-                    .filter(tk -> tk.getEmail() != null && (tk.getEmail().startsWith("buyer_") || tk.getEmail().startsWith("admin_")))
+                    .filter(tk -> tk.getUsername() != null && (tk.getUsername().startsWith("buyer_") || tk.getUsername().startsWith("admin_")))
                     .toList();
             for (TaiKhoan tk : strayUsers) {
                 try {
@@ -160,21 +200,24 @@ public class DanhGiaIntegrationTest {
                             try {
                                 hoaDonChiTietRepository.deleteAll(hoaDonChiTietRepository.findByHoaDon_Id(hd.getId()));
                                 hoaDonRepository.delete(hd);
-                            } catch (Exception inner) {}
+                            } catch (Exception inner) {
+                            }
                         }
                         khachHangRepository.delete(kh);
                     }
                     taiKhoanRepository.delete(tk);
-                } catch (Exception inner) {}
+                } catch (Exception inner) {
+                }
             }
             taiKhoanRepository.flush();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // 4. Delete stray products
         try {
             List<SanPham> strayProducts = sanPhamRepository.findAll().stream()
-                    .filter(sp -> sp.getTenSanPham() != null && 
-                            (sp.getTenSanPham().equals("Yonex Astrox 88D Pro TEST") || sp.getTenSanPham().equals("Yonex Nanoflare 800 (Ngừng bán) TEST")))
+                    .filter(sp -> sp.getTenSanPham() != null
+                    && (sp.getTenSanPham().equals("Yonex Astrox 88D Pro TEST") || sp.getTenSanPham().equals("Yonex Nanoflare 800 (Ngừng bán) TEST")))
                     .toList();
             for (SanPham sp : strayProducts) {
                 try {
@@ -201,14 +244,17 @@ public class DanhGiaIntegrationTest {
                                     .toList();
                             hoaDonChiTietRepository.deleteAll(orderDetails);
                             sanPhamChiTietRepository.delete(spct);
-                        } catch (Exception inner) {}
+                        } catch (Exception inner) {
+                        }
                     }
                     sanPhamChiTietRepository.flush();
                     sanPhamRepository.delete(sp);
-                } catch (Exception inner) {}
+                } catch (Exception inner) {
+                }
             }
             sanPhamRepository.flush();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilters(new org.springframework.web.filter.CharacterEncodingFilter("UTF-8", true))
@@ -216,11 +262,11 @@ public class DanhGiaIntegrationTest {
 
         // Seed customer user
         testUser = new TaiKhoan();
-        testUser.setEmail("buyer_" + java.util.UUID.randomUUID().toString().substring(0, 5) + "@gmail.com");
+        testUser.setUsername("buyer_" + java.util.UUID.randomUUID().toString().substring(0, 5) + "@gmail.com");
         testUser.setMatKhau("testpass123");
         testUser.setVaiTro("KH");
         testUser.setTrangThai("hoat_dong");
-        testUser.setLaKhachHang(true);
+
         testUser = taiKhoanRepository.save(testUser);
 
         testKhachHang = new KhachHang();
@@ -232,11 +278,11 @@ public class DanhGiaIntegrationTest {
 
         // Seed admin user
         testAdmin = new TaiKhoan();
-        testAdmin.setEmail("admin_" + java.util.UUID.randomUUID().toString().substring(0, 5) + "@gmail.com");
+        testAdmin.setUsername("admin_" + java.util.UUID.randomUUID().toString().substring(0, 5) + "@gmail.com");
         testAdmin.setMatKhau("adminpass");
         testAdmin.setVaiTro("QL");
         testAdmin.setTrangThai("hoat_dong");
-        testAdmin.setLaQuanLy(true);
+
         testAdmin = taiKhoanRepository.save(testAdmin);
 
         // Seed Catalog & Brand
@@ -255,11 +301,11 @@ public class DanhGiaIntegrationTest {
         // Seed Staff
         NhanVien nv = nhanVienRepository.findAll().stream().findFirst().orElseGet(() -> {
             TaiKhoan nvUser = new TaiKhoan();
-            nvUser.setEmail("staff_" + java.util.UUID.randomUUID().toString().substring(0, 5) + "@gmail.com");
+            nvUser.setUsername("staff_" + java.util.UUID.randomUUID().toString().substring(0, 5) + "@gmail.com");
             nvUser.setMatKhau("pass123");
             nvUser.setVaiTro("NV");
             nvUser.setTrangThai("hoat_dong");
-            nvUser.setLaNhanVien(true);
+
             nvUser = taiKhoanRepository.save(nvUser);
 
             NhanVien newNv = new NhanVien();
@@ -351,9 +397,9 @@ public class DanhGiaIntegrationTest {
     @Test
     void testReviewInactiveProduct_ShouldFail() throws Exception {
         mockMvc.perform(multipart("/san-pham/" + inactiveProduct.getId() + "/danh-gia")
-                        .param("rating", "5")
-                        .param("comment", "Sản phẩm tệ quá!")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "5")
+                .param("comment", "Sản phẩm tệ quá!")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("errorMsg", "Sản phẩm này hiện không còn hỗ trợ đánh giá."));
     }
@@ -361,9 +407,9 @@ public class DanhGiaIntegrationTest {
     @Test
     void testReviewWithoutPurchase_ShouldFail() throws Exception {
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "5")
-                        .param("comment", "Vợt ngon nha!")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "5")
+                .param("comment", "Vợt ngon nha!")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("errorMsg", "Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua và nhận hàng thành công."));
     }
@@ -374,9 +420,9 @@ public class DanhGiaIntegrationTest {
         createOrder("cho_xac_nhan");
 
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "5")
-                        .param("comment", "Vợt ngon nha!")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "5")
+                .param("comment", "Vợt ngon nha!")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("errorMsg", "Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua và nhận hàng thành công."));
     }
@@ -390,10 +436,10 @@ public class DanhGiaIntegrationTest {
         MockMultipartFile image1 = new MockMultipartFile("fileAnh", "img1.png", "image/png", TINY_PNG);
 
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .file(image1)
-                        .param("rating", "5")
-                        .param("comment", "Vợt đánh rất đầm tay!")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .file(image1)
+                .param("rating", "5")
+                .param("comment", "Vợt đánh rất đầm tay!")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", "Gửi đánh giá sản phẩm thành công!"));
 
@@ -420,10 +466,10 @@ public class DanhGiaIntegrationTest {
         MockMultipartFile image2 = new MockMultipartFile("fileAnh", "img2.png", "image/png", TINY_PNG);
 
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .file(image2)
-                        .param("rating", "4")
-                        .param("comment", "Cập nhật: Dùng lâu thấy hơi mỏi vai.")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .file(image2)
+                .param("rating", "4")
+                .param("comment", "Cập nhật: Dùng lâu thấy hơi mỏi vai.")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", "Gửi đánh giá sản phẩm thành công!"));
 
@@ -449,17 +495,17 @@ public class DanhGiaIntegrationTest {
 
         // Submit first review
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "5")
-                        .param("comment", "Review 1")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "5")
+                .param("comment", "Review 1")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", "Gửi đánh giá sản phẩm thành công!"));
 
         // Submit second review immediately (should fail because seconds < 30)
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "4")
-                        .param("comment", "Review 2")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "4")
+                .param("comment", "Review 2")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("errorMsg", "Bạn gửi yêu cầu quá nhanh! Vui lòng đợi ít nhất 30 giây giữa các lần đánh giá."));
     }
@@ -470,9 +516,9 @@ public class DanhGiaIntegrationTest {
 
         // Submit a review
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "5")
-                        .param("comment", "Đánh giá tốt")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "5")
+                .param("comment", "Đánh giá tốt")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection());
 
         List<DanhGia> activeReviews = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId());
@@ -481,7 +527,7 @@ public class DanhGiaIntegrationTest {
 
         // Perform Soft Delete by Admin
         mockMvc.perform(post("/admin/danh-gia/xoa/" + dg.getId())
-                        .sessionAttr("idNguoiDung", testAdmin.getId()))
+                .sessionAttr("idNguoiDung", testAdmin.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", "Đã xóa mềm đánh giá thành công."));
 
@@ -508,41 +554,41 @@ public class DanhGiaIntegrationTest {
         // Submit review with images
         MockMultipartFile image = new MockMultipartFile("fileAnh", "img.jpg", "image/jpeg", TINY_PNG);
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .file(image)
-                        .param("rating", "5")
-                        .param("comment", "Bình luận bậy bạ...")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .file(image)
+                .param("rating", "5")
+                .param("comment", "Bình luận bậy bạ...")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection());
 
         DanhGia dg = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
 
         // 1. Hide Comment Only
         mockMvc.perform(post("/admin/danh-gia/an-binh-luan/" + dg.getId())
-                        .sessionAttr("idNguoiDung", testAdmin.getId()))
+                .sessionAttr("idNguoiDung", testAdmin.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", "Đã ẩn nội dung bình luận thành công."));
 
         DanhGia updatedDg = danhGiaDAO.findById(dg.getId()).orElseThrow();
-        assertTrue(updatedDg.getAnBinhLuan());
-        assertFalse(updatedDg.getAnHinhAnh()); // Independent image is still visible
-        assertEquals(testAdmin.getId(), updatedDg.getNguoiAnBinhLuan().getId());
+        assertTrue(updatedDg.getBinhLuanAn());
+        assertFalse(updatedDg.getHinhAnhAn()); // Independent image is still visible
+        assertEquals(testAdmin.getId(), updatedDg.getNhanVien().getId());
         assertNotNull(updatedDg.getNgayAnBinhLuan());
 
-        // Rating Stats cache should NOT be updated by moderation action
+        // Rating Stats cache should be updated by moderation action (excluding the hidden comment)
         SanPham updatedSp = sanPhamRepository.findById(activeProduct.getId()).orElseThrow();
-        assertEquals(1, updatedSp.getSoDanhGia());
-        assertEquals(5.0, updatedSp.getDiemTrungBinh());
+        assertEquals(0, updatedSp.getSoDanhGia());
+        assertEquals(0.0, updatedSp.getDiemTrungBinh());
 
         // 2. Hide Image Only
         mockMvc.perform(post("/admin/danh-gia/an-hinh-anh/" + dg.getId())
-                        .sessionAttr("idNguoiDung", testAdmin.getId()))
+                .sessionAttr("idNguoiDung", testAdmin.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", "Đã ẩn hình ảnh đánh giá thành công."));
 
         updatedDg = danhGiaDAO.findById(dg.getId()).orElseThrow();
-        assertTrue(updatedDg.getAnBinhLuan());
-        assertTrue(updatedDg.getAnHinhAnh());
-        assertEquals(testAdmin.getId(), updatedDg.getNguoiAnHinhAnh().getId());
+        assertTrue(updatedDg.getBinhLuanAn());
+        assertTrue(updatedDg.getHinhAnhAn());
+        assertEquals(testAdmin.getId(), updatedDg.getNhanVien().getId());
         assertNotNull(updatedDg.getNgayAnHinhAnh());
     }
 
@@ -552,9 +598,9 @@ public class DanhGiaIntegrationTest {
 
         // 1. LOW severity violation: "vcl"
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "4")
-                        .param("comment", "S\u1ea3n ph\u1ea9m d\u00f9ng vcl nh\u00e9")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "4")
+                .param("comment", "S\u1ea3n ph\u1ea9m d\u00f9ng vcl nh\u00e9")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection());
 
         // Check TaiKhoan violation count and ban time
@@ -574,8 +620,21 @@ public class DanhGiaIntegrationTest {
         List<CommentViolationLog> logs = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
         assertFalse(logs.isEmpty());
         assertEquals("LOW", logs.get(0).getMucDoViPham());
-        assertEquals("S\u1ea3n ph\u1ea9m d\u00f9ng vcl nh\u00e9", logs.get(0).getNoiDungGoc());
+        assertEquals("S\u1ea3n ph\u1ea9m d\u00f9ng *** nh\u00e9", logs.get(0).getNoiDungGoc());
         assertEquals("S\u1ea3n ph\u1ea9m d\u00f9ng *** nh\u00e9", logs.get(0).getNoiDungDaLoc());
+
+        // Bản ghi vẫn còn cho admin nhưng bị loại hoàn toàn khỏi dữ liệu public
+        assertEquals(1, danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).size());
+        assertTrue(danhGiaService.layDanhSachDanhGiaTheoSanPham(activeProduct.getId()).isEmpty());
+        SanPham productWithPublicStats = sanPhamRepository.findById(activeProduct.getId()).orElseThrow();
+        assertEquals(0, productWithPublicStats.getSoDanhGia());
+        assertEquals(0.0, productWithPublicStats.getDiemTrungBinh());
+
+        // Log cũ có thể chưa lưu id_danh_gia; vẫn xác định được bằng tài khoản + sản phẩm.
+        CommentViolationLog legacyLog = logs.get(0);
+        legacyLog.setDanhGia(null);
+        commentViolationLogRepository.saveAndFlush(legacyLog);
+        assertTrue(danhGiaService.layDanhSachDanhGiaTheoSanPham(activeProduct.getId()).isEmpty());
 
         // Check mailSender was NOT called for LOW severity
         verify(mailSender, times(0)).send(any(org.springframework.mail.SimpleMailMessage.class));
@@ -591,9 +650,9 @@ public class DanhGiaIntegrationTest {
         taiKhoanRepository.save(updatedUser);
 
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "3")
-                        .param("comment", "V\u1ee3t \u0111m qu\u00e1 t\u1ec7")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "3")
+                .param("comment", "V\u1ee3t \u0111m qu\u00e1 t\u1ec7")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection());
 
         updatedUser = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
@@ -615,9 +674,9 @@ public class DanhGiaIntegrationTest {
 
         // Submit another violation (should reset count to 0 and act as 1st violation)
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "2")
-                        .param("comment", "\u0111m ch\u00e1n th\u1ebf")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "2")
+                .param("comment", "\u0111m ch\u00e1n th\u1ebf")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection());
 
         updatedUser = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
@@ -630,9 +689,9 @@ public class DanhGiaIntegrationTest {
 
         // Submit CRITICAL severity violation: "lừa đảo"
         mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
-                        .param("rating", "1")
-                        .param("comment", "B\u1ecdn l\u1eeba \u0111\u1ea3o \u0103n c\u01b0\u1edbp!")
-                        .sessionAttr("idNguoiDung", testUser.getId()))
+                .param("rating", "1")
+                .param("comment", "B\u1ecdn l\u1eeba \u0111\u1ea3o \u0103n c\u01b0\u1edbp!")
+                .sessionAttr("idNguoiDung", testUser.getId()))
                 .andExpect(status().is3xxRedirection());
 
         // Review should be automatically hidden (anBinhLuan = true)
@@ -654,7 +713,7 @@ public class DanhGiaIntegrationTest {
 
         // 1. Admin removes ban early
         mockMvc.perform(post("/admin/danh-gia/vi-pham/go-khoa/" + testUser.getId())
-                        .sessionAttr("idNguoiDung", testAdmin.getId()))
+                .sessionAttr("idNguoiDung", testAdmin.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", org.hamcrest.Matchers.containsString("gỡ khóa bình luận thành công")));
 
@@ -663,7 +722,7 @@ public class DanhGiaIntegrationTest {
 
         // 2. Admin resets violation count
         mockMvc.perform(post("/admin/danh-gia/vi-pham/reset-vi-pham/" + testUser.getId())
-                        .sessionAttr("idNguoiDung", testAdmin.getId()))
+                .sessionAttr("idNguoiDung", testAdmin.getId()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("successMsg", org.hamcrest.Matchers.containsString("reset bộ đếm vi phạm thành công")));
 
@@ -699,19 +758,214 @@ public class DanhGiaIntegrationTest {
         assertNotNull(updatedUser.getNgayKhoaBinhLuanDen());
     }
 
+    @Test
+    public void testCommentViolation_CustomModerationKeywords() throws Exception {
+        createOrder("da_giao");
+
+        // Clean up any conflicting pre-existing database keywords (to avoid unique constraint violations)
+        java.util.List<String> keywordsToClean = java.util.Arrays.asList("spamkeyword", "tệ hại", "c++", "dm", "x");
+        for (com.smashvn.shop.entity.CommentModerationKeyword kw : commentModerationKeywordRepository.findAll()) {
+            if (keywordsToClean.contains(kw.getKeyword())) {
+                commentModerationKeywordRepository.delete(kw);
+            }
+        }
+        commentModerationKeywordRepository.flush();
+
+        // 1. Inactive keyword check
+        CommentModerationKeyword kw1 = CommentModerationKeyword.builder()
+                .keyword("spamkeyword")
+                .active(false)
+                .build();
+        commentModerationKeywordRepository.save(kw1);
+        commentModerationService.clearKeywordCache();
+
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "5")
+                .param("comment", "Bình luận chứa spamkeyword bình thường")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        // Verify violation count did not increase (still 0)
+        TaiKhoan user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(0, user.getSoLanNhacNhoViPham());
+
+        // Backdate the review to bypass 30s check
+        DanhGia dg = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
+        dg.setNgayDanhGia(LocalDateTime.now().minusSeconds(35));
+        dg.setNgayCapNhat(LocalDateTime.now().minusSeconds(35));
+        danhGiaDAO.saveAndFlush(dg);
+
+        // 2. Active custom keyword check (triggers MEDIUM severity)
+        CommentModerationKeyword kw2 = CommentModerationKeyword.builder()
+                .keyword("tệ hại")
+                .active(true)
+                .build();
+        commentModerationKeywordRepository.save(kw2);
+        commentModerationService.clearKeywordCache();
+
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "3")
+                .param("comment", "Sản phẩm tệ hại lắm nha")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        // Verify violation count increased to 1, and log created with MEDIUM severity
+        user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(1, user.getSoLanNhacNhoViPham());
+
+        List<CommentViolationLog> logs = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
+        assertFalse(logs.isEmpty());
+        assertEquals("MEDIUM", logs.get(0).getMucDoViPham());
+        assertEquals("Sản phẩm *** lắm nha", logs.get(0).getNoiDungGoc());
+        assertEquals("Sản phẩm *** lắm nha", logs.get(0).getNoiDungDaLoc());
+
+        // Reset ban/violation count and backdate for next test
+        user.setNgayKhoaBinhLuanDen(null);
+        taiKhoanRepository.saveAndFlush(user);
+        DanhGia dg2 = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
+        dg2.setNgayDanhGia(LocalDateTime.now().minusSeconds(35));
+        dg2.setNgayCapNhat(LocalDateTime.now().minusSeconds(35));
+        danhGiaDAO.saveAndFlush(dg2);
+
+        // 3. Regex special characters check (c++, a+b, test.com)
+        CommentModerationKeyword kw3 = CommentModerationKeyword.builder()
+                .keyword("c++")
+                .active(true)
+                .build();
+        commentModerationKeywordRepository.save(kw3);
+        commentModerationService.clearKeywordCache();
+
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "4")
+                .param("comment", "Học lập trình c++ rất tốt")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(2, user.getSoLanNhacNhoViPham()); // Incremented to 2
+
+        logs = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
+        assertEquals("MEDIUM", logs.get(0).getMucDoViPham());
+        assertEquals("Học lập trình *** rất tốt", logs.get(0).getNoiDungGoc());
+        assertEquals("Học lập trình *** rất tốt", logs.get(0).getNoiDungDaLoc());
+
+        user.setNgayKhoaBinhLuanDen(null);
+        taiKhoanRepository.saveAndFlush(user);
+        DanhGia dg3 = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
+        dg3.setNgayDanhGia(LocalDateTime.now().minusSeconds(35));
+        dg3.setNgayCapNhat(LocalDateTime.now().minusSeconds(35));
+        danhGiaDAO.saveAndFlush(dg3);
+
+        // 4. Obfuscation boundary check (đ.m, Đ.M, đ m)
+        CommentModerationKeyword kw4 = CommentModerationKeyword.builder()
+                .keyword("dm")
+                .active(true)
+                .build();
+        commentModerationKeywordRepository.save(kw4);
+        commentModerationService.clearKeywordCache();
+
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "2")
+                .param("comment", "Cái đồ đ.m này")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(3, user.getSoLanNhacNhoViPham()); // Incremented to 3
+
+        logs = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
+        assertEquals("HIGH", logs.get(0).getMucDoViPham()); // HIGH because 'đ.m' is a hardcoded HIGH pattern
+        assertEquals("Cái đồ *** này", logs.get(0).getNoiDungGoc());
+
+        user.setNgayKhoaBinhLuanDen(null);
+        taiKhoanRepository.saveAndFlush(user);
+        DanhGia dg4 = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
+        dg4.setNgayDanhGia(LocalDateTime.now().minusSeconds(35));
+        dg4.setNgayCapNhat(LocalDateTime.now().minusSeconds(35));
+        danhGiaDAO.saveAndFlush(dg4);
+
+        // 4b. Non-hardcoded custom keyword obfuscation check
+        // "tệ hại" matches "tệ.hại"
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "2")
+                .param("comment", "Thật là tệ.hại")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(4, user.getSoLanNhacNhoViPham()); // Incremented to 4
+
+        logs = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
+        assertEquals("MEDIUM", logs.get(0).getMucDoViPham()); // MEDIUM because it is custom keyword only
+        assertEquals("Thật là ***", logs.get(0).getNoiDungGoc());
+        assertEquals("Thật là ***", logs.get(0).getNoiDungDaLoc()); // Obfuscated keyword replaced
+
+        user.setNgayKhoaBinhLuanDen(null);
+        taiKhoanRepository.saveAndFlush(user);
+        DanhGia dg4b = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
+        dg4b.setNgayDanhGia(LocalDateTime.now().minusSeconds(35));
+        dg4b.setNgayCapNhat(LocalDateTime.now().minusSeconds(35));
+        danhGiaDAO.saveAndFlush(dg4b);
+
+        // 5. Short keyword check (should ignore length < 2)
+        CommentModerationKeyword kw5 = CommentModerationKeyword.builder()
+                .keyword("x")
+                .active(true)
+                .build();
+        commentModerationKeywordRepository.save(kw5);
+        commentModerationService.clearKeywordCache();
+
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "5")
+                .param("comment", "Bình luận chứa chữ x bình thường")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(4, user.getSoLanNhacNhoViPham()); // Still 4, ignored keyword 'x'
+
+        // 6. Conflict check: match both hardcoded HIGH and custom MEDIUM -> HIGH wins
+        user.setSoLanNhacNhoViPham(0);
+        taiKhoanRepository.saveAndFlush(user);
+        DanhGia dg5 = danhGiaDAO.findBySanPham_IdAndDaXoaFalseOrderByNgayDanhGiaDesc(activeProduct.getId()).get(0);
+        dg5.setNgayDanhGia(LocalDateTime.now().minusSeconds(35));
+        dg5.setNgayCapNhat(LocalDateTime.now().minusSeconds(35));
+        danhGiaDAO.saveAndFlush(dg5);
+
+        mockMvc.perform(multipart("/san-pham/" + activeProduct.getId() + "/danh-gia")
+                .param("rating", "1")
+                .param("comment", "đm tệ hại")
+                .sessionAttr("idNguoiDung", testUser.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        user = taiKhoanRepository.findById(testUser.getId()).orElseThrow();
+        assertEquals(1, user.getSoLanNhacNhoViPham());
+
+        logs = commentViolationLogRepository.findAllByOrderByNgayViPhamDesc();
+        assertEquals("HIGH", logs.get(0).getMucDoViPham()); // HIGH severity wins over MEDIUM
+
+        // Clean up keywords we created to avoid affecting other tests
+        commentModerationKeywordRepository.delete(kw1);
+        commentModerationKeywordRepository.delete(kw2);
+        commentModerationKeywordRepository.delete(kw3);
+        commentModerationKeywordRepository.delete(kw4);
+        commentModerationKeywordRepository.delete(kw5);
+        commentModerationService.clearKeywordCache();
+    }
+
     @org.junit.jupiter.api.AfterEach
     void tearDown() {
         System.out.println("DEBUG: activeProduct=" + (activeProduct != null ? activeProduct.getId() : "null") + ", inactiveProduct=" + (inactiveProduct != null ? inactiveProduct.getId() : "null"));
-        
+
         // 1. Delete comment violation logs
         try {
             List<CommentViolationLog> logs = commentViolationLogRepository.findAll();
             for (CommentViolationLog log : logs) {
                 Integer logSpId = log.getSanPham() != null ? log.getSanPham().getId() : null;
                 System.out.println("DEBUG: Found CommentViolationLog id=" + log.getId() + " with sanPhamId=" + logSpId);
-                if (log.getSanPham() != null && 
-                    ((activeProduct != null && log.getSanPham().getId().equals(activeProduct.getId())) || 
-                     (inactiveProduct != null && log.getSanPham().getId().equals(inactiveProduct.getId())))) {
+                if (log.getSanPham() != null
+                        && ((activeProduct != null && log.getSanPham().getId().equals(activeProduct.getId()))
+                        || (inactiveProduct != null && log.getSanPham().getId().equals(inactiveProduct.getId())))) {
                     System.out.println("DEBUG: Deleting CommentViolationLog id=" + log.getId());
                     commentViolationLogRepository.delete(log);
                 }
@@ -728,9 +982,9 @@ public class DanhGiaIntegrationTest {
             for (DanhGia dg : reviews) {
                 Integer dgSpId = dg.getSanPham() != null ? dg.getSanPham().getId() : null;
                 System.out.println("DEBUG: Found DanhGia id=" + dg.getId() + " with sanPhamId=" + dgSpId);
-                if (dg.getSanPham() != null && 
-                    ((activeProduct != null && dg.getSanPham().getId().equals(activeProduct.getId())) || 
-                     (inactiveProduct != null && dg.getSanPham().getId().equals(inactiveProduct.getId())))) {
+                if (dg.getSanPham() != null
+                        && ((activeProduct != null && dg.getSanPham().getId().equals(activeProduct.getId()))
+                        || (inactiveProduct != null && dg.getSanPham().getId().equals(inactiveProduct.getId())))) {
                     System.out.println("DEBUG: Deleting DanhGia id=" + dg.getId());
                     danhGiaDAO.delete(dg);
                 }
@@ -746,11 +1000,13 @@ public class DanhGiaIntegrationTest {
             try {
                 hoaDonChiTietRepository.deleteAll(hoaDonChiTietRepository.findByHoaDon_Id(orderId));
                 hoaDonChiTietRepository.flush();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
             try {
                 hoaDonRepository.deleteById(orderId);
                 hoaDonRepository.flush();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
 
         // 4. Delete variants (SanPhamChiTiet)
@@ -759,13 +1015,15 @@ public class DanhGiaIntegrationTest {
                 sanPhamChiTietRepository.delete(activeSpct);
                 sanPhamChiTietRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             if (inactiveSpct != null) {
                 sanPhamChiTietRepository.delete(inactiveSpct);
                 sanPhamChiTietRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // 5. Delete products (SanPham)
         try {
@@ -773,13 +1031,15 @@ public class DanhGiaIntegrationTest {
                 sanPhamRepository.delete(activeProduct);
                 sanPhamRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             if (inactiveProduct != null) {
                 sanPhamRepository.delete(inactiveProduct);
                 sanPhamRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // 6. Delete customers and users
         try {
@@ -787,24 +1047,27 @@ public class DanhGiaIntegrationTest {
                 khachHangRepository.delete(testKhachHang);
                 khachHangRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             if (testUser != null) {
                 taiKhoanRepository.delete(testUser);
                 taiKhoanRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         try {
             if (testAdmin != null) {
                 taiKhoanRepository.delete(testAdmin);
                 taiKhoanRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // 7. Delete stray staff
         try {
             List<TaiKhoan> strayStaff = taiKhoanRepository.findAll().stream()
-                    .filter(tk -> tk.getEmail() != null && tk.getEmail().startsWith("staff_"))
+                    .filter(tk -> tk.getUsername() != null && tk.getUsername().startsWith("staff_"))
                     .toList();
             for (TaiKhoan tk : strayStaff) {
                 NhanVien nv = nhanVienRepository.findByTaiKhoanId(tk.getId());
@@ -815,6 +1078,7 @@ public class DanhGiaIntegrationTest {
                 taiKhoanRepository.delete(tk);
                 taiKhoanRepository.flush();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 }

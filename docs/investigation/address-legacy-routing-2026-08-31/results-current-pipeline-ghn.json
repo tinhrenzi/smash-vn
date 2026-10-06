@@ -1,0 +1,102 @@
+{
+  "testedAt": "2026-08-31T12:11:20.335Z",
+  "baseHost": "dev-online-gateway.ghn.vn",
+  "algorithm": "Equivalent to current AddressResolutionService + GhnService exact normalized matching",
+  "results": [
+    {
+      "slug": "thu-dau-mot",
+      "expectedLegacy": {
+        "province": "Bình Dương",
+        "district": "Thủ Dầu Một",
+        "ward": "Phú Cường"
+      },
+      "resolutionLevel": "PROVINCE",
+      "fullyResolved": false,
+      "inferredFromWard": false,
+      "matched": {
+        "provinceId": 202,
+        "provinceName": "Hồ Chí Minh",
+        "districtId": null,
+        "districtName": null,
+        "wardCode": null,
+        "wardName": null
+      }
+    },
+    {
+      "slug": "vung-tau",
+      "expectedLegacy": {
+        "province": "Bà Rịa - Vũng Tàu",
+        "district": "Vũng Tàu",
+        "ward": "Thắng Tam"
+      },
+      "resolutionLevel": "PROVINCE",
+      "fullyResolved": false,
+      "inferredFromWard": false,
+      "matched": {
+        "provinceId": 202,
+        "provinceName": "Hồ Chí Minh",
+        "districtId": null,
+        "districtName": null,
+        "wardCode": null,
+        "wardName": null
+      }
+    },
+    {
+      "slug": "bac-giang",
+      "expectedLegacy": {
+        "province": "Bắc Giang",
+        "district": "Bắc Giang",
+        "ward": "Ngô Quyền"
+      },
+      "resolutionLevel": "PROVINCE",
+      "fullyResolved": false,
+      "inferredFromWard": false,
+      "matched": {
+        "provinceId": 249,
+        "provinceName": "Bắc Ninh",
+        "districtId": null,
+        "districtName": null,
+        "wardCode": null,
+        "wardName": null
+      }
+    },
+    {
+      "slug": "phan-thiet",
+      "expectedLegacy": {
+        "province": "Bình Thuận",
+        "district": "Phan Thiết",
+        "ward": "Bình Hưng"
+      },
+      "resolutionLevel": "PROVINCE",
+      "fullyResolved": false,
+      "inferredFromWard": false,
+      "matched": {
+        "provinceId": 209,
+        "provinceName": "Lâm Đồng",
+        "districtId": null,
+        "districtName": null,
+        "wardCode": null,
+        "wardName": null
+      }
+    },
+    {
+      "slug": "vi-thanh",
+      "expectedLegacy": {
+        "province": "Hậu Giang",
+        "district": "Vị Thanh",
+        "ward": "Vị Tân"
+      },
+      "resolutionLevel": "PROVINCE",
+      "fullyResolved": false,
+      "inferredFromWard": false,
+      "matched": {
+        "provinceId": 220,
+        "provinceName": "Cần Thơ",
+        "districtId": null,
+        "districtName": null,
+        "wardCode": null,
+        "wardName": null
+      }
+    }
+  ]
+}

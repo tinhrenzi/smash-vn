@@ -18,10 +18,10 @@ public class GioHangChiTiet {
     @JoinColumn(name = "id_san_pham_chi_tiet", nullable = false)
     private SanPhamChiTiet sanPhamChiTiet;
 	
-	@ManyToOne
-    @JoinColumn(name = "id_trang_thai", nullable = false)
-    private TrangThaiGioHang trangThai;
-	
 	@Column(name = "so_luong", nullable = false)
-	Integer soLuong;
+	private Integer soLuong;
+
+	@Column(name = "ngay_tao")
+	private java.time.LocalDateTime ngayTao = java.time.LocalDateTime.now();
 }
+

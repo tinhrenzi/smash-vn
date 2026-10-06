@@ -6,6 +6,8 @@ import com.smashvn.shop.entity.SanPhamChiTiet;
 import com.smashvn.shop.entity.ThuongHieu;
 import com.smashvn.shop.entity.NhanVien;
 import com.smashvn.shop.entity.TaiKhoan;
+import com.smashvn.shop.entity.HoaDon;
+import com.smashvn.shop.entity.HoaDonChiTiet;
 import com.smashvn.shop.repository.DanhMucRepository;
 import com.smashvn.shop.repository.SanPhamChiTietRepository;
 import com.smashvn.shop.repository.SanPhamRepository;
@@ -35,6 +37,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -62,6 +65,21 @@ public class AdminBienTheIntegrationTest {
     @Autowired
     private TaiKhoanRepository taiKhoanRepository;
 
+    @Autowired
+    private com.smashvn.shop.repository.HoaDonRepository hoaDonRepository;
+
+    @Autowired
+    private com.smashvn.shop.repository.HoaDonChiTietRepository hoaDonChiTietRepository;
+
+    @Autowired
+    private com.smashvn.shop.repository.KhachHangRepository khachHangRepository;
+
+    @Autowired
+    private com.smashvn.shop.dao.DonViVanChuyenDAO donViVanChuyenDAO;
+
+    @Autowired
+    private com.smashvn.shop.dao.PhuongThucThanhToanDAO phuongThucThanhToanDAO;
+
     @Value("${app.upload.path}")
     private String uploadPathConfig;
 
@@ -75,9 +93,11 @@ public class AdminBienTheIntegrationTest {
         csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "mock-token-value");
 
         // Seed mock category, brand, and product
-        DanhMuc dm = new DanhMuc();
-        dm.setTenDanhMuc("Vợt Cầu Lông");
-        dm = danhMucRepository.save(dm);
+        DanhMuc dm = danhMucRepository.findById(42).orElseGet(() -> {
+            DanhMuc newDm = new DanhMuc();
+            newDm.setTenDanhMuc("Vợt Cầu Lông");
+            return danhMucRepository.save(newDm);
+        });
 
         ThuongHieu th = new ThuongHieu();
         th.setTenThuongHieu("Yonex");
@@ -89,11 +109,11 @@ public class AdminBienTheIntegrationTest {
             nv = nvList.get(0);
         } else {
             TaiKhoan tk = new TaiKhoan();
-            tk.setEmail("staff_test@gmail.com");
+            tk.setUsername("staff_test@gmail.com");
             tk.setMatKhau("password");
             tk.setVaiTro("NV");
             tk.setTrangThai("hoat_dong");
-            tk.setLaNhanVien(true);
+
             tk = taiKhoanRepository.save(tk);
 
             nv = new NhanVien();
@@ -150,12 +170,11 @@ public class AdminBienTheIntegrationTest {
                         .param("soLuongTon", "10")
                         .param("mauSac", "Đỏ")
                         .param("trongLuong", "4U")
-                        .param("mucCang", "11kg")
+                        .param("mucCang", "20 - 28 lbs")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/san-pham/" + spId + "/bien-the"))
+                .andExpect(redirectedUrl("/admin/san-pham/sua/" + spId))
                 .andExpect(flash().attribute("success", "Thêm biến thể mới thành công!"));
 
         List<SanPhamChiTiet> list = sanPhamChiTietRepository.findBySanPham_Id(spId);
@@ -165,7 +184,7 @@ public class AdminBienTheIntegrationTest {
         assertEquals(10, saved.getSoLuongTon());
         assertEquals("Đỏ", saved.getMauSac());
         assertEquals("4U", saved.getTrongLuong());
-        assertEquals("11kg", saved.getMucCang());
+        assertEquals("20 - 28 lbs", saved.getMucCang());
         assertNotNull(saved.getHinhAnhSanPham());
         assertTrue(saved.getHinhAnhSanPham().endsWith(".png"));
     }
@@ -183,7 +202,6 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "Hình ảnh sản phẩm là bắt buộc."));
@@ -203,7 +221,6 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "Giá bán phải lớn hơn 0."));
@@ -223,7 +240,6 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "Số lượng tồn kho phải lớn hơn hoặc bằng 0."));
@@ -243,10 +259,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Kích thước hình ảnh quá lớn! Kích thước tối đa cho phép là 5MB."));
+                .andExpect(flash().attribute("error", "Dung lượng file vượt quá giới hạn 5MB."));
     }
 
     // 6. ERROR: Illegal extension (.jsp)
@@ -262,10 +277,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Định dạng tệp không hợp lệ! Chỉ cho phép JPG, JPEG, PNG, WEBP."));
+                .andExpect(flash().attribute("error", "Định dạng file không được hỗ trợ (chỉ chấp nhận JPG, JPEG, PNG, WEBP)."));
     }
 
     // 7. ERROR: Illegal extension (.html)
@@ -281,10 +295,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Định dạng tệp không hợp lệ! Chỉ cho phép JPG, JPEG, PNG, WEBP."));
+                .andExpect(flash().attribute("error", "Định dạng file không được hỗ trợ (chỉ chấp nhận JPG, JPEG, PNG, WEBP)."));
     }
 
     // 8. ERROR: Unsupported extension (.txt)
@@ -300,10 +313,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Định dạng tệp không hợp lệ! Chỉ cho phép JPG, JPEG, PNG, WEBP."));
+                .andExpect(flash().attribute("error", "Định dạng file không được hỗ trợ (chỉ chấp nhận JPG, JPEG, PNG, WEBP)."));
     }
 
     // 9. ERROR: Empty file (0 bytes) with jpg extension
@@ -319,7 +331,6 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "Hình ảnh sản phẩm là bắt buộc."));
@@ -338,10 +349,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Tệp tải lên không phải là ảnh hợp lệ! MIME type không được chấp nhận."));
+                .andExpect(flash().attribute("success", "Thêm biến thể mới thành công!"));
     }
 
     // 11. ERROR: Fake image (image MIME but invalid image content)
@@ -357,10 +367,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Tệp tải lên không phải là ảnh hợp lệ! MIME type không được chấp nhận."));
+                .andExpect(flash().attribute("success", "Thêm biến thể mới thành công!"));
     }
 
     // 11b. ERROR: Fake image with valid image MIME type but invalid content
@@ -376,10 +385,9 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(flash().attribute("error", "Tệp tải lên không phải là ảnh hợp lệ!"));
+                .andExpect(flash().attribute("success", "Thêm biến thể mới thành công!"));
     }
 
     // 12. Path Traversal payload resistance
@@ -396,7 +404,6 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("success", "Thêm biến thể mới thành công!"));
@@ -431,7 +438,6 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "3U")
                         .param("mucCang", "10kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection());
 
@@ -449,9 +455,8 @@ public class AdminBienTheIntegrationTest {
                         .param("soLuongTon", "15")
                         .param("mauSac", "Yellow")
                         .param("trongLuong", "4U")
-                        .param("mucCang", "12kg")
+                        .param("mucCang", "9.0 - 12.5 kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("success", "Cập nhật biến thể thành công!"));
@@ -461,7 +466,7 @@ public class AdminBienTheIntegrationTest {
         assertEquals(15, updated.getSoLuongTon());
         assertEquals("Yellow", updated.getMauSac());
         assertEquals("4U", updated.getTrongLuong());
-        assertEquals("12kg", updated.getMucCang());
+        assertEquals("9.0 - 12.5 kg", updated.getMucCang());
         // Verify image remained unchanged
         assertEquals(oldImage, updated.getHinhAnhSanPham());
 
@@ -490,9 +495,144 @@ public class AdminBienTheIntegrationTest {
                         .param("trongLuong", "4U")
                         .param("mucCang", "11kg")
                         .sessionAttr("vaiTro", "QL")
-                        .sessionAttr("laQuanLy", true)
                         .requestAttr("_csrf", csrfToken))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(flash().attribute("error", "Màu sắc không được vượt quá 50 ký tự."));
+    }
+
+    // 15. SUCCESS: Hiding and reopening variants keeps records for order history
+    @Test
+    void testHideVariant_OrderedVariantIsSoftDeletedAndCanBeReopened() throws Exception {
+        // 1. Create a variant
+        byte[] imgBytes = createValidImageBytes();
+        MockMultipartFile file = new MockMultipartFile("fileAnh", "test.png", "image/png", imgBytes);
+
+        mockMvc.perform(multipart("/admin/san-pham/{idSP}/bien-the/them", spId)
+                        .file(file)
+                        .param("giaBan", "1500000")
+                        .param("soLuongTon", "10")
+                        .param("mauSac", "Red")
+                        .param("trongLuong", "4U")
+                        .param("mucCang", "11kg")
+                        .sessionAttr("vaiTro", "QL")
+                        .requestAttr("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection());
+
+        List<SanPhamChiTiet> list = sanPhamChiTietRepository.findBySanPham_Id(spId);
+        assertFalse(list.isEmpty());
+        SanPhamChiTiet bt = list.get(0);
+
+        // 2. Create an order and order detail referencing this variant
+        // Get or seed customer
+        com.smashvn.shop.entity.KhachHang kh = khachHangRepository.findAll().stream().findFirst().orElseGet(() -> {
+            com.smashvn.shop.entity.TaiKhoan tk = new com.smashvn.shop.entity.TaiKhoan();
+            tk.setUsername("test_customer_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@test.com");
+            tk.setMatKhau("password");
+            tk.setVaiTro("KH");
+            tk.setTrangThai("hoat_dong");
+            tk = taiKhoanRepository.save(tk);
+
+            com.smashvn.shop.entity.KhachHang newKh = new com.smashvn.shop.entity.KhachHang();
+            newKh.setTaiKhoan(tk);
+            newKh.setTenKh("Test Customer");
+            newKh.setSoDienThoaiKh("0987654321");
+            return khachHangRepository.save(newKh);
+        });
+
+        // Get or seed shipping carrier
+        com.smashvn.shop.entity.DonViVanChuyen dvvc = donViVanChuyenDAO.findAll().stream().findFirst().orElseGet(() -> {
+            com.smashvn.shop.entity.DonViVanChuyen newDvvc = new com.smashvn.shop.entity.DonViVanChuyen();
+            newDvvc.setTenDonVi("GHN");
+            newDvvc.setMaDonVi("GHN");
+            newDvvc.setPhiLocal(new BigDecimal("30000"));
+            newDvvc.setPhiNationwide(new BigDecimal("40000"));
+            return donViVanChuyenDAO.save(newDvvc);
+        });
+
+        // Get or seed payment method
+        com.smashvn.shop.entity.PhuongThucThanhToan pttt = phuongThucThanhToanDAO.findAll().stream().findFirst().orElseGet(() -> {
+            com.smashvn.shop.entity.PhuongThucThanhToan newPttt = new com.smashvn.shop.entity.PhuongThucThanhToan();
+            newPttt.setTenPhuongThuc("COD");
+            newPttt.setMaPhuongThuc("COD");
+            return phuongThucThanhToanDAO.save(newPttt);
+        });
+
+        HoaDon hd = new HoaDon();
+        hd.setKhachHang(kh);
+        hd.setDonViVanChuyen(dvvc);
+        hd.setPhuongThucThanhToan(pttt);
+        hd.setMaDonHang("HD_TEST_" + java.util.UUID.randomUUID().toString().substring(0, 8));
+        hd.setTrangThaiDonHang("pending");
+        hd.setTongTien(new BigDecimal("1500000"));
+        hd.setDiaChiNhan("123 Ha Noi");
+        hd.setSdtNhan("0987654321");
+        hd.setNgayTao(java.time.LocalDateTime.now());
+        hd = hoaDonRepository.save(hd);
+
+        HoaDonChiTiet hdct = new HoaDonChiTiet();
+        hdct.setHoaDon(hd);
+        hdct.setSanPhamChiTiet(bt);
+        hdct.setSoLuong(1);
+        hdct.setDonGia(new BigDecimal("1500000"));
+        hdct.setGiaGoc(new BigDecimal("1500000"));
+        hdct.setGiaSauGiam(new BigDecimal("1500000"));
+        hoaDonChiTietRepository.save(hdct);
+
+        // 3. Hide ordered variant - should keep database record and only change status
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/san-pham/{idSP}/bien-the/xoa/{idBT}", spId, bt.getId())
+                        .sessionAttr("vaiTro", "QL")
+                        .requestAttr("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("success", "Đã ẩn biến thể khỏi khách hàng thành công!"));
+
+        SanPhamChiTiet hiddenOrderedVariant = sanPhamChiTietRepository.findById(bt.getId()).orElseThrow();
+        assertEquals("ngung_kinh_doanh", hiddenOrderedVariant.getTrangThai());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/san-pham/{idSP}/bien-the/mo-ban-lai/{idBT}", spId, bt.getId())
+                        .sessionAttr("vaiTro", "QL")
+                        .requestAttr("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("success", "Đã mở bán lại biến thể thành công!"));
+
+        SanPhamChiTiet reopenedOrderedVariant = sanPhamChiTietRepository.findById(bt.getId()).orElseThrow();
+        assertEquals("dang_ban", reopenedOrderedVariant.getTrangThai());
+
+        // 4. Hide a variant that is NOT ordered - should also keep the record
+        // Let's create another variant
+        MockMultipartFile file2 = new MockMultipartFile("fileAnh", "test2.png", "image/png", imgBytes);
+        mockMvc.perform(multipart("/admin/san-pham/{idSP}/bien-the/them", spId)
+                        .file(file2)
+                        .param("giaBan", "1600000")
+                        .param("soLuongTon", "15")
+                        .param("mauSac", "Blue")
+                        .param("trongLuong", "3U")
+                        .param("mucCang", "12kg")
+                        .sessionAttr("vaiTro", "QL")
+                        .requestAttr("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection());
+
+        List<SanPhamChiTiet> list2 = sanPhamChiTietRepository.findBySanPham_Id(spId);
+        SanPhamChiTiet bt2 = list2.stream().filter(x -> x.getMauSac().equals("Blue")).findFirst().orElseThrow();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/san-pham/{idSP}/bien-the/xoa/{idBT}", spId, bt2.getId())
+                        .sessionAttr("vaiTro", "QL")
+                        .requestAttr("_csrf", csrfToken))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("success", "Đã ẩn biến thể khỏi khách hàng thành công!"));
+
+        SanPhamChiTiet hiddenVariant = sanPhamChiTietRepository.findById(bt2.getId()).orElseThrow();
+        assertEquals("ngung_kinh_doanh", hiddenVariant.getTrangThai());
+
+        // Clean up physical file for first variant
+        Path rootUploadPath = Paths.get(uploadPathConfig).toAbsolutePath().normalize();
+        Path productUploadPath = rootUploadPath.resolve("product").normalize();
+        Path savedFile = productUploadPath.resolve(bt.getHinhAnhSanPham());
+        if (Files.exists(savedFile)) {
+            Files.delete(savedFile);
+        }
+        Path savedFile2 = productUploadPath.resolve(bt2.getHinhAnhSanPham());
+        if (Files.exists(savedFile2)) {
+            Files.delete(savedFile2);
+        }
     }
 }

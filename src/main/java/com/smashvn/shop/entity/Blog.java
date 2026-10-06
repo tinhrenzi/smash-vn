@@ -33,7 +33,7 @@ public class Blog {
     @Column(name = "ngay_dang")
     private LocalDate publishDate;
 
-    @org.hibernate.annotations.Formula("COALESCE((SELECT nv.ho_ten FROM NhanVien nv WHERE nv.id_tai_khoan = id_tai_khoan), (SELECT kh.ho_kh + ' ' + kh.ten_kh FROM KhachHang kh WHERE kh.id_tai_khoan = id_tai_khoan))")
+    @org.hibernate.annotations.Formula("COALESCE((SELECT nv.ho_ten FROM NhanVien nv WHERE nv.id_tai_khoan = id_tai_khoan), (SELECT kh.ho_ten_kh FROM KhachHang kh WHERE kh.id_tai_khoan = id_tai_khoan))")
     private String author;
 
     @Column(name = "danh_muc")

@@ -20,31 +20,199 @@
 
     <!--====== Ứng dụng ======-->
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    
+    <style>
+        .iframe-mode header,
+        .iframe-mode footer,
+        .iframe-mode .header--style-1,
+        .iframe-mode .outer-footer,
+        .iframe-mode .lower-footer,
+        .iframe-mode .footer,
+        .iframe-mode #smashvn-chatbot-container,
+        .iframe-mode #chatbot-trigger,
+        .iframe-mode #chatbot-window,
+        .iframe-mode #floating-cart,
+        .iframe-mode .floating-cart,
+        .iframe-mode .floating-cart-dropdown,
+        .iframe-mode #topScroll,
+        .iframe-mode .app-setting,
+        .iframe-mode .pd-breadcrumb,
+        .iframe-mode .btn-floating-cart,
+        .iframe-mode .btn-back-to-top,
+        .iframe-mode .preloader,
+        .iframe-mode #preloader,
+        .iframe-mode .sticky-header {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        body.iframe-mode {
+            background-color: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        body.iframe-mode .app-content {
+            padding-top: 0 !important;
+            padding-bottom: 20px !important;
+        }
+    </style>
+
+    <style th:if="${previewMode == true or isPreview == true}">
+        header,
+        footer,
+        .header--style-1,
+        .outer-footer,
+        .lower-footer,
+        .footer,
+        #smashvn-chatbot-container,
+        #chatbot-trigger,
+        #chatbot-window,
+        #floating-cart,
+        .floating-cart,
+        .floating-cart-dropdown,
+        #topScroll,
+        .app-setting,
+        .pd-breadcrumb,
+        .btn-floating-cart,
+        .btn-back-to-top,
+        .preloader,
+        #preloader,
+        .sticky-header {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        body {
+            background-color: #ffffff !important;
+            overflow-x: hidden;
+        }
+        .app-content {
+            padding-top: 0 !important;
+            padding-bottom: 20px !important;
+        }
+    </style>
+    
+    <style>
+        .product-rich-description {
+            font-size: 14.5px;
+            line-height: 1.8;
+            color: #333333;
+            word-break: break-word;
+        }
+        .product-rich-description p {
+            margin-bottom: 14px;
+            line-height: 1.8;
+        }
+        .product-rich-description h1,
+        .product-rich-description h2,
+        .product-rich-description h3,
+        .product-rich-description h4 {
+            color: #111827;
+            font-weight: 700;
+            margin-top: 18px;
+            margin-bottom: 10px;
+        }
+        .product-rich-description ul, 
+        .product-rich-description ol {
+            margin-bottom: 16px;
+            padding-left: 24px;
+        }
+        .product-rich-description li {
+            margin-bottom: 6px;
+            line-height: 1.7;
+        }
+        .product-rich-description blockquote {
+            border-left: 4px solid #ff4500;
+            padding: 8px 16px;
+            margin: 14px 0;
+            background-color: #f8fafc;
+            color: #475569;
+            font-style: italic;
+        }
+        .product-rich-description table {
+            width: 100% !important;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        .product-rich-description table th,
+        .product-rich-description table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        .product-rich-description table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+    </style>
+
+    <script>
+        if (window.self !== window.top) {
+            document.documentElement.classList.add('iframe-mode');
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.classList.add('iframe-mode');
+                // Force remove any remaining floating widgets in preview iframe
+                ['smashvn-chatbot-container', 'topScroll', 'floating-cart'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.remove();
+                });
+                document.querySelectorAll('footer, .outer-footer, .lower-footer').forEach(f => f.remove());
+            });
+        }
+    </script>
 </head>
 
-<body class="config">
-    <div class="preloader is-active">
-        <div class="preloader__wrap">
-
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
-    </div>
+<body class="config" th:classappend="${previewMode == true or isPreview == true} ? 'iframe-mode' : ''">
+    <th:block th:unless="${previewMode == true or isPreview == true}">
+        <div class="preloader is-active">
+            <div class="preloader__wrap">
+                <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64">
+            </div>
+        </div>
+    </th:block>
 
     <!--====== Ứng dụng chính ======-->
     <div id="app">
 
-        <!--====== Tiêu đề chính ======-->
-        <header class="header--style-1">
-            <div th:replace="~{layout/header :: header}"></div>
-        </header>
+        <!--====== Tiêu đề chính (Ẩn trong chế độ xem trước) ======-->
+        <th:block th:unless="${previewMode}">
+            <header class="header--style-1">
+                <div th:replace="~{layout/header :: header}"></div>
+            </header>
+        </th:block>
         <!--====== End - Main Header ======-->
-
 
         <!--====== App Content ======-->
         <div class="app-content">
 
             <!--====== Section 1 ======-->
-            <div class="u-s-p-t-90">
+            <div th:class="${previewMode} ? 'u-s-p-t-20' : 'u-s-p-t-90'">
                 <div class="container">
+
+                    <!--====== Preview Mode Alert Banner ======-->
+                    <div th:if="${previewMode}" class="u-s-m-b-20">
+                        <div class="alert alert-warning py-2 px-3 rounded-3 border-start border-warning border-4 shadow-sm" style="background-color: #fff3cd; color: #664d03; border-color: #ffecb5;" role="alert">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div style="font-size: 13.5px;">
+                                    <i class="fas fa-eye me-2 text-warning"></i>
+                                    <strong>Chế độ xem trước:</strong>
+                                    <span th:if="${sp.trangThai == 'ngung_kinh_doanh' or sp.trangThaiValue == false}">Sản phẩm hiện chưa đăng bán cho khách hàng. Mọi thao tác mua hàng / đánh giá đã bị vô hiệu hóa.</span>
+                                    <span th:if="${sp.trangThai == 'dang_ban' and sp.trangThaiValue != false}">Sản phẩm hiện đang được hiển thị công khai trên cửa hàng.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-lg-5">
 
@@ -52,11 +220,17 @@
                              <div class="pd-breadcrumb u-s-m-b-30">
                                  <ul class="pd-breadcrumb__list">
                                      <li class="has-separator">
-                                         <a th:href="@{/index.html}">Trang chủ</a></li>
-                                     <li class="has-separator">
-                                         <a th:href="@{/index.html}">Vợt Cầu Lông</a></li>
+                                         <a th:href="@{/}">Trang chủ</a>
+                                     </li>
+                                     <li class="has-separator" th:if="${sp.danhMuc != null}">
+                                         <a th:href="@{/shop(categoryId=${sp.danhMuc.id})}" th:text="${sp.danhMuc.tenDanhMuc}">Danh mục</a>
+                                     </li>
+                                     <li class="has-separator" th:if="${sp.thuongHieu != null}">
+                                         <a th:href="@{/shop(brandId=${sp.thuongHieu.id})}" th:text="${sp.thuongHieu.tenThuongHieu}">Thương hiệu</a>
+                                     </li>
                                      <li class="is-marked">
-                                         <a href="javascript:void(0)" th:text="${sp.tenSanPham}">Chi tiết sản phẩm</a></li>
+                                         <a href="javascript:void(0)" th:text="${sp.tenSanPham}">Chi tiết sản phẩm</a>
+                                     </li>
                                  </ul>
                              </div>
                              <!--====== End - Product Breadcrumb ======-->
@@ -66,8 +240,8 @@
                             <div class="pd u-s-m-b-30">
 							    <div class="slider-fouc pd-wrap">
 							        <div id="pd-o-initiate">
-							            <div class="pd-o-img-wrap" th:each="chitiet : ${listChiTiet}" th:data-src="@{'/uploads/product/' + ${chitiet.hinhAnhSanPham}}">
-							                <img class="u-img-fluid" th:src="@{'/uploads/product/' + ${chitiet.hinhAnhSanPham}}" th:data-zoom-image="@{'/uploads/product/' + ${chitiet.hinhAnhSanPham}}" alt="Ảnh sản phẩm">
+							            <div class="pd-o-img-wrap" th:each="chitiet : ${listChiTiet}" th:data-src="@{${chitiet.hinhAnhUrl}}">
+							                <img class="u-img-fluid" th:src="@{${chitiet.hinhAnhUrl}}" onerror="this.onerror=null; this.src='/images/placeholder.png';" th:data-zoom-image="@{${chitiet.hinhAnhUrl}}" alt="Ảnh sản phẩm">
 							            </div>
 							        </div>
 							        <span class="pd-text">Di chuột để phóng to</span>
@@ -76,7 +250,7 @@
 							        <div class="slider-fouc">
 							            <div id="pd-o-thumbnail">
 							                <div th:each="chitiet : ${listChiTiet}">
-							                    <img class="u-img-fluid" th:src="@{'/uploads/product/' + ${chitiet.hinhAnhSanPham}}" alt="Thumbnail">
+							                    <img class="u-img-fluid" th:src="@{${chitiet.hinhAnhUrl}}" onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh thu nhỏ sản phẩm">
 							                </div>
 							            </div>
 							        </div>
@@ -123,7 +297,7 @@
 								    </div>
 								    
 								    <div class="u-s-m-b-15">
-								        <span class="pd-detail__preview-desc" th:text="${sp.moTa}">Mô tả ngắn...</span>
+								        <div class="pd-detail__preview-desc" th:utext="${sp.moTa}">Mô tả ngắn...</div>
 								    </div>
 								    
 								    <div class="u-s-m-b-15">
@@ -143,32 +317,22 @@
 								    <div class="u-s-m-b-15">
 								        <form class="pd-detail__form" th:action="@{/gio-hang/them}" method="post">
 								
-								            <div class="u-s-m-b-15" th:if="${listMauSac != null and !listMauSac.isEmpty()}">
-								                <span class="pd-detail__label u-s-m-b-8">1. Màu sắc:</span>
+								            <!-- Chọn thuộc tính động -->
+								            <div class="u-s-m-b-15" th:each="entry, iterStat : ${dynamicAttributes}">
+								                <span class="pd-detail__label u-s-m-b-8" th:text="${iterStat.count} + '. ' + ${entry.key} + ':'">Thuộc tính:</span>
 								                <div class="d-flex flex-wrap">
-								                    <div th:each="mau : ${listMauSac}" 
-								                         class="variant-btn color-btn u-s-m-r-8 u-s-m-b-8"
-								                         th:attr="data-color=${mau}"
-								                         onclick="selectColor(this)">
-								                        <span th:text="${mau}"></span>
-								                    </div>
-								                </div>
-								            </div>
-								        
-								            <div class="u-s-m-b-15" th:if="${listKichThuoc != null and !listKichThuoc.isEmpty()}">
-								                <span class="pd-detail__label u-s-m-b-8">2. Trọng lượng / Size:</span>
-								                <div class="d-flex flex-wrap">
-								                    <div th:each="size : ${listKichThuoc}" 
-								                         class="variant-btn size-btn u-s-m-r-8 u-s-m-b-8"
-								                         th:attr="data-size=${size}"
-								                         onclick="selectSize(this)">
-								                        <span th:text="${size}"></span>
+								                    <div th:each="val : ${entry.value}" 
+								                         class="variant-btn u-s-m-r-8 u-s-m-b-8 dynamic-attr-btn"
+								                         th:classappend="'attr-btn-' + ${#strings.replace(entry.key, ' ', '_')}"
+								                         th:attr="data-attr-name=${entry.key}, data-attr-value=${val}"
+								                         onclick="selectDynamicAttribute(this)">
+								                        <span th:text="${val}"></span>
 								                    </div>
 								                </div>
 								            </div>
 								        
 								            <div class="js-stock-status u-s-m-b-15 text-danger fw-bold" style="display:none;">
-								                <i class="fas fa-info-circle"></i> Vui lòng chọn đầy đủ Màu sắc và Kích thước
+								                <i class="fas fa-info-circle"></i> Vui lòng chọn đầy đủ các thuộc tính phân loại.
 								            </div>
 
 								            <!-- Hiển thị số lượng tồn kho của biến thể được chọn -->
@@ -178,7 +342,7 @@
 								                <span id="js-variant-stock-badge" class="js-variant-stock-badge pd-detail__stock" style="margin-left:8px;"></span>
 								            </div>
 								        
-								            <input type="hidden" name="idSanPhamChiTiet" class="js-variant-id" required>
+								            <input type="hidden" name="idSanPhamChiTiet" class="js-variant-id" th:value="${listChiTiet != null and listChiTiet.size() == 1 ? listChiTiet[0].id : ''}">
 								        
 								            <div class="pd-detail-action-row u-s-m-b-15">
 								                <div class="pd-detail-action-row__counter">
@@ -188,12 +352,17 @@
 								                        <span class="input-counter__plus fas fa-plus"></span>
 								                    </div>
 								                </div>
-								                <div class="pd-detail-action-row__btn">
-								                    <button class="js-btn-add-cart btn btn--e-brand-b-2" type="submit">THÊM VÀO GIỎ</button>
+								                <div th:if="${previewMode}" class="alert alert-info py-2 px-3 mb-0" style="background-color: #e7f3fe; color: #0c5460; font-size: 13px; border-radius: 4px; border: 1px solid #bee5eb;">
+								                    <i class="fas fa-info-circle me-1"></i> Chế độ xem trước: Chức năng thêm vào giỏ và mua hàng bị vô hiệu hóa.
+								                </div>
+								                <div th:unless="${previewMode}" class="pd-detail-action-row__btn" style="display: flex; gap: 8px;">
+								                    <button class="js-btn-add-cart btn btn--e-brand-b-2" type="submit">Thêm vào giỏ</button>
+								                    <button class="js-btn-buy-now btn btn--e-brand-b-2" type="button" style="background-color: #e65100; border-color: #e65100;">Mua ngay</button>
 								                </div>
 								            </div>
 								        </form>
 								    </div>
+
 								    
 								    <div class="u-s-m-b-15">
 								        <span class="pd-detail__label u-s-m-b-8">Chính sách mua hàng:</span>
@@ -229,8 +398,8 @@
                                      <!--====== Tab 1 ======-->
                                     <div class="tab-pane fade show active" id="pd-desc">
                                         <div class="pd-tab__desc">
-                                            <div class="u-s-m-b-15">
-                                                <p th:text="${sp.moTa}">Đây là thông tin mô tả chi tiết của sản phẩm. Sản phẩm vợt cầu lông SmashVN chất lượng cao, độ bền tốt, hỗ trợ tối đa cho người chơi.</p>
+                                            <div class="u-s-m-b-15 product-rich-description" th:utext="${(sp.moTa != null and !#strings.isEmpty(sp.moTa)) ? sp.moTa : '<p>Sản phẩm ' + sp.tenSanPham + ' chính hãng chất lượng cao, nhập khẩu phân phối trực tiếp bởi SMASH-VN.</p>'}">
+                                                <p>Đây là thông tin mô tả chi tiết của sản phẩm. Sản phẩm vợt cầu lông SmashVN chất lượng cao, độ bền tốt, hỗ trợ tối đa cho người chơi.</p>
                                             </div>
                                             <div class="u-s-m-b-30">
                                                 <ul>
@@ -248,39 +417,30 @@
                                             <div class="u-s-m-b-15">
                                                 <div class="pd-table gl-scroll">
                                                     <table>
-                                                        <tbody>
-                                                            <tr>
-                                                                <td>Thương hiệu</td>
-                                                                <td th:text="${sp.thuongHieu.tenThuongHieu}">Yonex</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>Danh mục sản phẩm</td>
-                                                                <td th:text="${sp.danhMuc.tenDanhMuc}">Vợt Cầu Lông</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>Màu sắc hiện có</td>
-                                                                <td>
-                                                                    <th:block th:if="${listMauSac != null and !listMauSac.isEmpty()}">
-                                                                        <span th:each="mau, iterStat : ${listMauSac}"><span th:text="${mau}"></span><span th:if="${!iterStat.last}">, </span></span>
-                                                                    </th:block>
-                                                                    <span th:if="${listMauSac == null or listMauSac.isEmpty()}">Chưa có thông tin</span>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>Size / Trọng lượng</td>
-                                                                <td>
-                                                                    <th:block th:if="${listKichThuoc != null and !listKichThuoc.isEmpty()}">
-                                                                        <span th:each="size, iterStat : ${listKichThuoc}"><span th:text="${size}"></span><span th:if="${!iterStat.last}">, </span></span>
-                                                                    </th:block>
-                                                                    <span th:if="${listKichThuoc == null or listKichThuoc.isEmpty()}">Chưa có thông tin</span>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td>Đối tượng sử dụng</td>
-                                                                <td>Người chơi phong trào, bán chuyên và chuyên nghiệp</td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
+                                                         <tbody>
+                                                             <tr>
+                                                                 <td>Thương hiệu</td>
+                                                                 <td th:text="${sp.thuongHieu.tenThuongHieu}">Yonex</td>
+                                                             </tr>
+                                                             <tr>
+                                                                 <td>Danh mục sản phẩm</td>
+                                                                 <td th:text="${sp.danhMuc.tenDanhMuc}">Vợt Cầu Lông</td>
+                                                             </tr>
+                                                             <!-- Hiển thị tất cả thuộc tính của sản phẩm -->
+                                                             <tr th:each="entry : ${allAttributes ?: dynamicAttributes}">
+                                                                 <td th:text="${entry.key}">Thuộc tính</td>
+                                                                 <td>
+                                                                     <span th:each="val, iterStat : ${entry.value}">
+                                                                         <span th:text="${val}"></span><span th:if="${!iterStat.last}">, </span>
+                                                                     </span>
+                                                                 </td>
+                                                             </tr>
+                                                             <tr>
+                                                                 <td>Đối tượng sử dụng</td>
+                                                                 <td>Người chơi phong trào, bán chuyên và chuyên nghiệp</td>
+                                                             </tr>
+                                                         </tbody>
+                                                     </table>
                                                 </div>
                                             </div>
                                         </div>
@@ -337,41 +497,48 @@
                                                             </p>
 
                                                             <!-- Gallery Ảnh đính kèm (Tối đa 5 ảnh, có cờ ẩn ảnh) -->
-                                                             <div th:if="${!dg.anHinhAnh and dg.danhSachAnh != null and !dg.danhSachAnh.isEmpty()}" class="review-o__gallery u-s-m-t-8 d-flex flex-wrap gap-2">
-                                                                 <div th:each="img : ${dg.danhSachAnh}" style="display: inline-block;">
-                                                                     <a class="review-image-link" th:href="@{'/uploads/reviews/' + ${img.duongDan}}">
-                                                                         <img th:src="@{'/uploads/reviews/' + ${img.duongDan}}" class="review-thumb-img" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); margin-right: 6px; cursor: pointer; transition: all 0.2s;" alt="Review Image">
-                                                                     </a>
-                                                                 </div>
-                                                             </div>
+                                                            <div th:if="${!dg.anHinhAnh and dg.danhSachAnh != null and !dg.danhSachAnh.isEmpty()}" class="review-o__gallery u-s-m-t-8 d-flex flex-wrap gap-2">
+                                                                <div th:each="img : ${dg.danhSachAnh}" style="display: inline-block;">
+                                                                    <a class="review-image-link" th:href="@{'/uploads/reviews/' + ${img.duongDan}}">
+                                                                        <img th:src="@{'/uploads/reviews/' + ${img.duongDan}}" class="review-thumb-img" loading="lazy" decoding="async" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); margin-right: 6px; cursor: pointer; transition: all 0.2s;" alt="Ảnh đánh giá của khách hàng">
+                                                                    </a>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div th:if="${listDanhGia.isEmpty()}" class="text-center text-muted py-4">
                                                             Chưa có đánh giá nào cho sản phẩm này.
                                                         </div>
                                                     </div>
                                                 </div>
-                                            <div class="u-s-m-b-30">
-                                                <!-- Trường hợp 1: Sản phẩm ngừng kinh doanh -->
-                                                <div th:if="${!sanPhamKhaDung}" class="alert alert-warning text-center p-4" style="border-left: 5px solid #ffc107; background-color: #fff3cd; color: #856404; border-radius: 8px;">
+                                            </div>
+                                             <div class="u-s-m-b-30">
+                                                <!-- Trường hợp 0: Đang ở chế độ xem trước -->
+                                                <div th:if="${previewMode}" class="alert alert-info text-center p-4" style="border-left: 5px solid #17a2b8; background-color: #d1ecf1; color: #0c5460; border-radius: 8px;">
+                                                    <i class="fas fa-eye fa-2x mb-2" style="margin-bottom: 8px;"></i>
+                                                    <p class="mb-0">Bạn đang ở chế độ xem trước sản phẩm. Tính năng gửi đánh giá tạm thời bị vô hiệu hóa.</p>
+                                                </div>
+
+                                                <!-- Trường hợp 1: Sản phẩm ngưng hiển thị -->
+                                                <div th:if="${previewMode != true and !sanPhamKhaDung}" class="alert alert-warning text-center p-4" style="border-left: 5px solid #ffc107; background-color: #fff3cd; color: #856404; border-radius: 8px;">
                                                     <i class="fas fa-exclamation-triangle fa-2x mb-2" style="margin-bottom: 8px;"></i>
-                                                    <p class="font-weight-bold mb-0" style="font-weight: bold; margin-bottom: 0;">Sản phẩm này hiện đã ngừng kinh doanh. Không thể thực hiện đánh giá.</p>
+                                                    <p class="font-weight-bold mb-0" style="font-weight: bold; margin-bottom: 0;">Sản phẩm này hiện đã ngưng hiển thị. Không thể thực hiện đánh giá.</p>
                                                 </div>
 
                                                 <!-- Trường hợp 2: Chưa đăng nhập -->
-                                                <div th:if="${sanPhamKhaDung and session.idNguoiDung == null}" class="alert alert-info text-center p-4" style="border-left: 5px solid #17a2b8; background-color: #d1ecf1; color: #0c5460; border-radius: 8px;">
+                                                <div th:if="${previewMode != true and sanPhamKhaDung and session.idNguoiDung == null}" class="alert alert-info text-center p-4" style="border-left: 5px solid #17a2b8; background-color: #d1ecf1; color: #0c5460; border-radius: 8px;">
                                                     <i class="fas fa-info-circle fa-2x mb-2" style="margin-bottom: 8px;"></i>
                                                     <p style="margin-bottom: 10px;">Bạn cần đăng nhập để đánh giá sản phẩm này.</p>
                                                     <a th:href="@{/user/dang-nhap}" class="btn btn-primary btn-sm" style="background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; display: inline-block;">Đăng nhập ngay</a>
                                                 </div>
 
                                                 <!-- Trường hợp 3: Đã đăng nhập nhưng chưa mua hàng -->
-                                                <div th:if="${sanPhamKhaDung and session.idNguoiDung != null and !daMuaHang}" class="alert alert-danger text-center p-4" style="border-left: 5px solid #dc3545; background-color: #f8d7da; color: #721c24; border-radius: 8px;">
+                                                <div th:if="${previewMode != true and sanPhamKhaDung and session.idNguoiDung != null and !daMuaHang}" class="alert alert-danger text-center p-4" style="border-left: 5px solid #dc3545; background-color: #f8d7da; color: #721c24; border-radius: 8px;">
                                                     <i class="fas fa-shopping-cart fa-2x mb-2" style="margin-bottom: 8px;"></i>
                                                     <p class="mb-0" style="margin-bottom: 0;">Bạn chỉ có thể đánh giá sản phẩm này sau khi mua hàng thành công và đơn hàng ở trạng thái đã giao hoặc hoàn thành.</p>
                                                 </div>
 
                                                 <!-- Trường hợp 5: Tài khoản bị khóa bình luận do vi phạm -->
-                                                <div th:if="${sanPhamKhaDung and session.idNguoiDung != null and daMuaHang and biKhoaBinhLuan}" class="alert alert-danger text-center p-4" style="border-left: 5px solid #dc3545; background-color: #f8d7da; color: #721c24; border-radius: 8px;">
+                                                <div th:if="${previewMode != true and sanPhamKhaDung and session.idNguoiDung != null and daMuaHang and biKhoaBinhLuan}" class="alert alert-danger text-center p-4" style="border-left: 5px solid #dc3545; background-color: #f8d7da; color: #721c24; border-radius: 8px;">
                                                     <i class="fas fa-ban fa-2x mb-2" style="margin-bottom: 8px;"></i>
                                                     <p class="font-weight-bold mb-1" style="font-weight: bold; margin-bottom: 4px;">Tài khoản của bạn đang bị khóa tính năng bình luận/đánh giá do vi phạm tiêu chuẩn cộng đồng (spam từ tục tĩu).</p>
                                                     <p class="mb-0" style="margin-bottom: 0;" th:if="${ngayKhoaDen != null && ngayKhoaDen.year < 9999}">
@@ -383,7 +550,7 @@
                                                 </div>
 
                                                 <!-- Trường hợp 4: Đủ điều kiện đánh giá -->
-                                                <form th:if="${sanPhamKhaDung and session.idNguoiDung != null and daMuaHang and !biKhoaBinhLuan}" 
+                                                <form th:if="${previewMode != true and sanPhamKhaDung and session.idNguoiDung != null and daMuaHang and !biKhoaBinhLuan}" 
                                                       class="pd-tab__rev-f2" 
                                                       th:action="@{'/san-pham/' + ${sp.id} + '/danh-gia'}" 
                                                       method="POST" 
@@ -537,7 +704,7 @@
                                                             <p class="gl-label" style="font-weight: 600; margin-bottom: 8px;">Ảnh đánh giá hiện tại của bạn:</p>
                                                             <div class="d-flex flex-wrap gap-2 mb-2">
                                                                 <div th:each="img : ${oldDanhGia.danhSachAnh}" style="display: inline-block; margin-right: 8px;">
-                                                                    <img th:src="@{'/uploads/reviews/' + ${img.duongDan}}" style="max-height: 60px; border-radius: 4px; border: 1px solid #dee2e6;" alt="Current Review Image">
+                                                                    <img th:src="@{'/uploads/reviews/' + ${img.duongDan}}" loading="lazy" decoding="async" style="max-height: 60px; border-radius: 4px; border: 1px solid #dee2e6;" alt="Ảnh đánh giá hiện tại của khách hàng">
                                                                 </div>
                                                             </div>
                                                             <span class="text-muted" style="font-size: 0.85em; font-style: italic; color: #6c757d; display: block; margin-top: 5px;">
@@ -599,7 +766,7 @@
                 </div>
             </div>
             <!--====== End - Product Detail Tab ======-->
-            <div class="u-s-p-b-90">
+            <div class="u-s-p-b-90" th:unless="${previewMode}">
 
                 <!--====== Section Intro ======-->
                 <div class="section__intro u-s-m-b-46">
@@ -626,10 +793,12 @@
                                 <div class="u-s-m-b-30" th:each="related : ${relatedProducts}">
                                     <div class="product-o product-o--hover-on">
                                         <div class="product-o__wrap">
-                                            <a class="aspect aspect--bg-grey aspect--square u-d-block" th:href="@{/san-pham/{id}(id=${related.id})}">
-                                                <img class="aspect__img" style="object-fit: cover; width: 100%; height: 100%;"
+                                            <a class="aspect aspect--bg-white aspect--square u-d-block" th:href="@{/san-pham/{id}(id=${related.id})}" style="background-color: #ffffff !important; border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9; display: block;">
+                                                <img class="aspect__img" style="object-fit: contain; padding: 12px; background-color: #ffffff !important; width: 100%; height: 100%;"
                                                      th:if="${!related.sanPhamChiTiets.isEmpty()}"
-                                                     th:src="@{'/uploads/product/' + ${related.sanPhamChiTiets[0].hinhAnhSanPham}}" alt="Ảnh Sản Phẩm">
+                                                     th:src="@{${related.sanPhamChiTiets[0].hinhAnhUrl}}"
+                                                     loading="lazy" decoding="async"
+                                                     onerror="this.onerror=null; this.src='/images/placeholder.png';" alt="Ảnh Sản Phẩm">
                                             </a>
                                             <!-- Shopee Discount Badge -->
                                             <div th:if="${related.getActiveGiamGiaPhanTram() > 0}" class="shopee-discount-badge" th:text="'-' + ${related.getActiveGiamGiaPhanTram()} + '%'"></div>
@@ -691,11 +860,11 @@
         <!--====== End - App Content ======-->
 
 
-        <!--====== Main Footer ======-->
-        <footer th:replace="~{layout/footer :: footer}">
-        </footer>
-
-        <div th:replace="~{layout/modals :: all-modals}"></div>
+        <!--====== Main Footer (Ẩn trong chế độ xem trước) ======-->
+        <th:block th:unless="${previewMode}">
+            <footer th:replace="~{layout/footer :: footer}"></footer>
+            <div th:replace="~{layout/modals :: all-modals}"></div>
+        </th:block>
     </div>
     <!--====== End - Main App ======-->
 
@@ -736,7 +905,7 @@
     <script th:src="@{/js/jquery.shopnav.js}"></script>
 
     <!--====== Ứng dụng ======-->
-    <script th:src="@{/js/app.js}"></script>
+    <script th:src="@{/js/app.js(v=1.0.4)}"></script>
 
     <!--====== Khi không hỗ trợ JavaScript ======-->
     <noscript>
@@ -745,9 +914,9 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="app-setting__wrap">
-                            <h1 class="app-setting__h1">JavaScript is disabled in your browser.</h1>
+                            <h1 class="app-setting__h1">JavaScript đã bị tắt trên trình duyệt của bạn.</h1>
 
-                            <span class="app-setting__text">Please enable JavaScript in your browser or upgrade to a JavaScript-capable browser.</span>
+                            <span class="app-setting__text">Vui lòng bật JavaScript trên trình duyệt để sử dụng đầy đủ chức năng của website.</span>
                         </div>
                     </div>
                 </div>
@@ -815,7 +984,67 @@
                     document.body.style.overflow = "";
                 }
             });
+
+            $('.js-btn-buy-now').on('click', function(e) {
+                e.preventDefault();
+                let $form = $(this).closest('form');
+                let container = $(this).closest('.pd-detail');
+                let spctId = $form.find('.js-variant-id').val();
+                let qty = $form.find('.js-quantity-input').val() || 1;
+
+                let hasColorOptions = container.find('.color-btn').length > 0;
+                let hasSizeOptions = container.find('.size-btn').length > 0;
+                let selectedColor = container.attr('data-selected-color');
+                let selectedSize = container.attr('data-selected-size');
+                
+                let dynamicButtons = container.find('.dynamic-attr-btn');
+                let dynamicAttrNames = Array.from(new Set(Array.from(dynamicButtons).map(btn => $(btn).attr('data-attr-name'))));
+                let hasMissingDynamic = false;
+                for (let i = 0; i < dynamicAttrNames.length; i++) {
+                    let key = 'data-selected-attr-' + dynamicAttrNames[i].replace(/\s+/g, '_').toLowerCase();
+                    if (!container.attr(key)) {
+                        hasMissingDynamic = true;
+                        break;
+                    }
+                }
+
+                if ((hasColorOptions && !selectedColor) || (hasSizeOptions && !selectedSize) || hasMissingDynamic || !spctId) {
+                    let stockStatus = container.find('.js-stock-status');
+                    if (stockStatus.length) {
+                        stockStatus.html('<i class="fas fa-exclamation-circle"></i> Vui lòng chọn đầy đủ các thuộc tính phân loại sản phẩm.');
+                        stockStatus.attr('class', 'js-stock-status u-s-m-b-15 text-danger fw-bold');
+                        stockStatus.css('display', 'block');
+                    }
+                    if (typeof showToast === 'function') {
+                        showToast('Vui lòng chọn đầy đủ các thuộc tính phân loại sản phẩm trước khi mua ngay!', 'warning');
+                    }
+                    return;
+                }
+
+                let token = $('meta[name="_csrf"]').attr('content');
+                let header = $('meta[name="_csrf_header"]').attr('content');
+
+                $.ajax({
+                    url: '/checkout/buy-now',
+                    type: 'POST',
+                    data: { idSanPhamChiTiet: parseInt(spctId), soLuong: parseInt(qty) },
+                    beforeSend: function(xhr) {
+                        if (token && header) xhr.setRequestHeader(header, token);
+                    },
+                    success: function(res) {
+                        if (res.trangThai === 'ok' && res.checkoutUrl) {
+                            window.location.href = res.checkoutUrl;
+                        } else {
+                            showToast(res.message || 'Không thể thực hiện mua ngay.', 'error');
+                        }
+                    },
+                    error: function(err) {
+                        showToast('Có lỗi xảy ra, vui lòng thử lại.', 'error');
+                    }
+                });
+            });
         });
     </script>
 </body>
+
 </html>

@@ -37,7 +37,7 @@
     <div class="preloader is-active">
         <div class="preloader__wrap">
 
-            <img class="preloader__img" th:src="@{/images/preloader.gif}" alt=""></div>
+            <img class="preloader__img" th:src="@{/images/preloader.svg}" alt="Đang tải" width="64" height="64"></div>
     </div>
 
     <!--====== Ứng dụng chính ======-->
@@ -95,10 +95,10 @@
                                             <ul class="dash__f-list">
                                                 <li>
 
-                                                    <a class="dash-active" th:href="@{/user/dashboard}">Quản lý tài khoản</a></li>
+                                                    <a th:href="@{/user/dashboard}">Quản lý tài khoản</a></li>
                                                 <li>
 
-                                                    <a th:href="@{/user/profile}">Thông tin cá nhân</a></li>
+                                                    <a class="dash-active" th:href="@{/user/profile}">Thông tin cá nhân</a></li>
                                                 <li>
 
                                                     <a th:href="@{/user/address}">Địa chỉ</a></li>
@@ -127,7 +127,7 @@
 
                                                         <span class="dash__w-icon dash__w-icon-style-1"><i class="fas fa-cart-arrow-down"></i></span>
 
-                                                        <span class="dash__w-text">4</span>
+                                                        <span class="dash__w-text" th:text="${orderPlaced}">4</span>
 
                                                         <span class="dash__w-name">Đơn Hàng Đã Đặt</span></div>
                                                 </li>
@@ -136,7 +136,7 @@
 
                                                         <span class="dash__w-icon dash__w-icon-style-2"><i class="fas fa-times"></i></span>
 
-                                                        <span class="dash__w-text">0</span>
+                                                        <span class="dash__w-text" th:text="${cancelOrders}">0</span>
 
                                                         <span class="dash__w-name">Đơn Hàng Đã Hủy</span></div>
                                                 </li>
@@ -145,7 +145,7 @@
 
                                                         <span class="dash__w-icon dash__w-icon-style-3"><i class="far fa-heart"></i></span>
 
-                                                        <span class="dash__w-text">0</span>
+                                                        <span class="dash__w-text" th:text="${wishlist}">0</span>
 
                                                         <span class="dash__w-name">Yêu Thích</span></div>
                                                 </li>
@@ -184,7 +184,7 @@
 									            <div class="gl-inline">
 									                <div class="u-s-m-b-30">
 									                    <label class="gl-label" for="reg-email">EMAIL ĐĂNG NHẬP</label>
-									                    <input class="input-text input-text--primary-style" type="text" id="reg-email" th:value="${kh.taiKhoan.email}" readonly style="background-color: #f1f1f1;">
+									                    <input class="input-text input-text--primary-style" type="text" id="reg-email" th:value="${kh.taiKhoan?.username ?: ''}" readonly style="background-color: #f1f1f1;">
 									                </div>
 									                <div class="u-s-m-b-30">
 									                    <label class="gl-label" for="reg-phone">SỐ ĐIỆN THOẠI *</label>
@@ -244,7 +244,7 @@
                                     <div class="gl-inline">
                                         <div class="u-s-m-b-30">
                                             <label class="gl-label" for="modal-reg-email">EMAIL ĐĂNG NHẬP</label>
-                                            <input class="input-text input-text--primary-style" type="text" id="modal-reg-email" th:value="${kh.taiKhoan.email}" readonly style="background-color: #f1f1f1;">
+                                            <input class="input-text input-text--primary-style" type="text" id="modal-reg-email" th:value="${kh.taiKhoan?.username ?: ''}" readonly style="background-color: #f1f1f1;">
                                         </div>
                                         <div class="u-s-m-b-30">
                                             <label class="gl-label" for="modal-reg-phone">SỐ ĐIỆN THOẠI *</label>

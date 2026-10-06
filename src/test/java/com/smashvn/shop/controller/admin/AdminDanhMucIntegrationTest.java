@@ -48,12 +48,8 @@ public class AdminDanhMucIntegrationTest {
         // (matches the pattern used in all other passing integration tests in this project)
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
-        // Populate session attributes consumed by admin/layout/header Thymeleaf template:
-        // (session.laKhachHang ? 1 : 0) + (session.laNhanVien ? 1 : 0) + (session.laQuanLy ? 1 : 0)
         adminSession = new MockHttpSession();
-        adminSession.setAttribute("laKhachHang", false);
-        adminSession.setAttribute("laNhanVien", true);
-        adminSession.setAttribute("laQuanLy", false);
+        adminSession.setAttribute("vaiTro", "NV");
     }
 
 

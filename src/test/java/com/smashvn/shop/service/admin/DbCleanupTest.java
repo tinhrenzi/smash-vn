@@ -46,7 +46,7 @@ public class DbCleanupTest {
             dbUrl = System.getenv("DB_URL");
         }
         if (dbUrl == null || dbUrl.isEmpty()) {
-            dbUrl = "jdbc:sqlserver://localhost:1433;databaseName=BadmintonShopDB1;encrypt=true;trustServerCertificate=true;";
+            dbUrl = "jdbc:sqlserver://localhost:1433;databaseName=SMDB_FINAL;encrypt=true;trustServerCertificate=true;";
         }
         
         String username = env.get("DB_USERNAME");

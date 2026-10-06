@@ -40,7 +40,7 @@
 
                                 <div class="outer-footer__text-wrap" style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; color: #a0a0a0; font-size: 0.82rem;">
                                     <i class="fas fa-map-marker-alt" style="color: #ff4500; margin-top: 4px; width: 14px; text-align: center;"></i>
-                                    <span>Đường đê Mỏ Bạch, TP Thái Nguyên, Việt Nam</span>
+                                    <span th:text="${shopAddress}">Địa chỉ kho</span>
                                 </div>
                                 <div class="outer-footer__text-wrap" style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: #a0a0a0; font-size: 0.82rem;">
                                     <i class="fas fa-phone-alt" style="color: #ff4500; width: 14px; text-align: center;"></i>
@@ -52,25 +52,16 @@
                                 </div>
 
                                 <span class="outer-footer__content-title" style="color: #fff; font-size: 0.88rem; font-weight: 700; letter-spacing: 0.05em; display: block; margin-bottom: 15px;">KẾT NỐI VỚI CHÚNG TÔI</span>
-                                <div class="outer-footer__social">
-                                    <ul>
-                                        <li>
-
-                                            <a class="s-fb--color-hover" href="https://facebook.com/"><i class="fab fa-facebook-f"></i></a></li>
-                                        <li>
-
-                                            <a class="s-tw--color-hover" href="https://twitter.com/"><i class="fab fa-twitter"></i></a></li>
-                                        <li>
-
-                                            <a class="s-youtube--color-hover" href="https://youtube.com/"><i class="fab fa-youtube"></i></a></li>
-                                        <li>
-
-                                            <a class="s-insta--color-hover" href="https://instagram.com/taikhoan/"><i class="fab fa-instagram"></i></a></li>
-                                        <li>
-
-                                            <a class="s-gplus--color-hover" href="https://www.google.com/"><i class="fab fa-google-plus-g"></i></a></li>
-                                    </ul>
-                                </div>
+                                 <div class="outer-footer__social">
+                                     <ul>
+                                         <li>
+                                             <a class="s-fb--color-hover" href="https://facebook.com/"><i class="fab fa-facebook-f"></i></a>
+                                         </li>
+                                         <li>
+                                             <a class="s-insta--color-hover" href="https://instagram.com/"><i class="fab fa-instagram"></i></a>
+                                         </li>
+                                     </ul>
+                                 </div>
                             </div>
                         </div>
                         
@@ -132,7 +123,7 @@
                         <div class="col-lg-5 col-md-12">
                             <div class="outer-footer__content">
                                 <span class="outer-footer__content-title" style="color: #fff; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.05em; display: block; margin-bottom: 20px;">ĐĂNG KÝ NHẬN ƯU ĐÃI</span>
-                                <form class="newsletter" onsubmit="event.preventDefault(); showToast('Thành công', 'Đăng ký nhận ưu đãi thành công!', 'success');">
+                                <form class="newsletter" id="newsletter-subscribe-form">
                                     <span class="newsletter__text" style="color: #a0a0a0; font-size: 0.82rem; line-height: 1.6; display: block; margin-bottom: 15px;">Nhận thông tin về khuyến mãi, sản phẩm mới và các ưu đãi đặc biệt từ SMASH VN.</span>
                                     
                                     <div class="newsletter__group" style="display: flex; gap: 0; width: 100%; max-width: 320px; margin-bottom: 15px;">
@@ -140,17 +131,7 @@
                                         <button class="btn newsletter__btn" type="submit" style="background-color: #ff4500; color: #fff; border: none; height: 38px; padding: 0 20px; font-weight: 700; font-size: 0.82rem; border-radius: 0 4px 4px 0; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#e03d00'" onmouseout="this.style.backgroundColor='#ff4500'">ĐĂNG KÝ</button>
                                     </div>
                                     
-                                    <div style="margin-bottom: 15px;">
-                                        <span style="color: #a0a0a0; font-size: 0.82rem; display: block; margin-bottom: 8px;">Giới tính (tùy chọn):</span>
-                                        <div style="display: flex; gap: 20px; align-items: center;">
-                                            <label style="color: #a0a0a0; font-size: 0.82rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="gender" value="male" style="accent-color: #ff4500;"> Nam
-                                            </label>
-                                            <label style="color: #a0a0a0; font-size: 0.82rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="gender" value="female" style="accent-color: #ff4500;"> Nữ
-                                            </label>
-                                        </div>
-                                    </div>
+
 
                                     <div style="display: flex; align-items: center; gap: 8px; color: #ff4500; font-size: 0.78rem;">
                                         <i class="fas fa-lock" style="font-size: 0.85rem;"></i>
@@ -170,19 +151,15 @@
                             <div class="lower-footer__content">
                                 <div class="lower-footer__copyright">
 
-                                    <span>Copyright © 2026</span>
+                                    <span>Bản quyền © 2026</span>
 
                                     <a th:href="@{/}">SMASH VN</a>
 
-                                    <span>All Right Reserved</span></div>
+                                    <span>Tất cả quyền được bảo lưu.</span></div>
                                 <div class="lower-footer__payment">
-                                    <ul>
-                                        <li><i class="fab fa-cc-stripe"></i></li>
-                                        <li><i class="fab fa-cc-paypal"></i></li>
-                                        <li><i class="fab fa-cc-mastercard"></i></li>
-                                        <li><i class="fab fa-cc-visa"></i></li>
-                                        <li><i class="fab fa-cc-discover"></i></li>
-                                        <li><i class="fab fa-cc-amex"></i></li>
+                                    <ul style="display: flex; gap: 15px; font-size: 1.5rem; color: #a0a0a0; list-style: none; margin: 0; padding: 0;">
+                                        <li title="Chuyển khoản ngân hàng / VietQR"><i class="fas fa-university" style="transition: color 0.2s;" onmouseover="this.style.color='#ff4500'" onmouseout="this.style.color='#a0a0a0'"></i></li>
+                                        <li title="Thanh toán khi nhận hàng (COD)"><i class="fas fa-money-bill-wave" style="transition: color 0.2s;" onmouseover="this.style.color='#ff4500'" onmouseout="this.style.color='#a0a0a0'"></i></li>
                                     </ul>
                                 </div>
                             </div>
@@ -221,9 +198,18 @@
                         <!-- Messages are rendered dynamically -->
                     </div>
                     
+                    <!-- Quick Suggestions Area -->
+                    <div class="chatbot-quick-chips">
+                        <button type="button" class="chatbot-chip" data-query="Tư vấn vợt theo lối chơi">🏸 Tư vấn lối chơi</button>
+                        <button type="button" class="chatbot-chip" data-query="Vợt cho người mới chơi">🔰 Vợt người mới</button>
+                        <button type="button" class="chatbot-chip" data-query="Vợt đang giảm giá">🔥 Vợt giảm giá</button>
+                        <button type="button" class="chatbot-chip" data-query="Tìm vợt Yonex">🏸 Vợt Yonex</button>
+                        <button type="button" class="chatbot-chip" data-query="Giày cầu lông">👟 Giày cầu lông</button>
+                    </div>
+
                     <!-- Input Form Area -->
                     <div class="chatbot-input-area">
-                        <input type="text" id="chatbot-input-field" placeholder="Hỏi sản phẩm, đơn hàng, voucher..." autocomplete="off">
+                        <input type="text" id="chatbot-input-field" placeholder="Hỏi về sản phẩm, giá, cách chọn vợt..." autocomplete="off">
                         <button id="chatbot-send-btn" type="button" title="Gửi tin nhắn">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -463,6 +449,41 @@
                     background-color: #e03d00;
                     transform: scale(1.05);
                 }
+
+                .chatbot-quick-chips {
+                    display: flex;
+                    gap: 6px;
+                    padding: 8px 12px;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                    background: #f8f9fb;
+                    border-top: 1px solid rgba(21, 23, 28, 0.06);
+                    border-bottom: 1px solid rgba(21, 23, 28, 0.04);
+                    scrollbar-width: none;
+                }
+                .chatbot-quick-chips::-webkit-scrollbar {
+                    display: none;
+                }
+                .chatbot-chip {
+                    background: #ffffff;
+                    border: 1px solid rgba(255, 69, 0, 0.25);
+                    border-radius: 16px;
+                    color: #495057;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    padding: 4px 10px;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+                }
+                .chatbot-chip:hover {
+                    background: #ff4500;
+                    color: #ffffff;
+                    border-color: #ff4500;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 6px rgba(255, 69, 0, 0.25);
+                }
                 
                 .chatbot-msg-feedback {
                     display: flex;
@@ -580,6 +601,22 @@
                     color: #ff4500;
                     font-weight: 700;
                 }
+                .chatbot-product-description {
+                    margin: 0;
+                    color: #687080;
+                    font-size: 0.72rem;
+                    line-height: 1.35;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+                .chatbot-product-link {
+                    color: #ff4500;
+                    font-size: 0.74rem;
+                    font-weight: 600;
+                    text-decoration: none;
+                }
 
                 /* Premium styling for parsed Markdown in Chatbot Bubble */
                 .chatbot-msg-bubble h1, .chatbot-msg-bubble h2, .chatbot-msg-bubble h3 {
@@ -653,9 +690,6 @@
                 }
             </style>
 
-            <!-- Load Marked.js to render premium Markdown formatting -->
-            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
             <script>
                 document.addEventListener("DOMContentLoaded", function() {
                     const trigger = document.getElementById("chatbot-trigger");
@@ -680,11 +714,9 @@
 
                     function openChatbot() {
                         windowBox.classList.remove("chatbot-hidden");
-                        // Transform the trigger bubble to show close icon
                         trigger.innerHTML = '<i class="fas fa-times"></i>';
-                        trigger.classList.remove("chatbot-pulse"); // Disable pulse when open for clean aesthetics
+                        trigger.classList.remove("chatbot-pulse");
                         
-                        // Load history once
                         if (!historyLoaded) {
                             loadChatHistory();
                         } else {
@@ -696,7 +728,6 @@
 
                     function closeChatbot() {
                         windowBox.classList.add("chatbot-hidden");
-                        // Restore original robot icon and notification dot
                         trigger.innerHTML = '<i class="fas fa-robot"></i><span class="chatbot-notification-dot"></span>';
                         trigger.classList.add("chatbot-pulse");
                     }
@@ -709,26 +740,54 @@
                         }
                     });
 
+                    // Quick Action Chips listener
+                    const chipButtons = document.querySelectorAll(".chatbot-chip");
+                    chipButtons.forEach(btn => {
+                        btn.addEventListener("click", function() {
+                            const query = btn.getAttribute("data-query");
+                            if (query) {
+                                inputField.value = query;
+                                sendMessageAction();
+                            }
+                        });
+                    });
+
                     function loadChatHistory() {
                         messagesBox.innerHTML = "";
                         showTypingIndicator();
                         
-                        fetch("/api/chat/history")
-                            .then(res => res.json())
+                        return fetch("/api/chat/history", { credentials: "same-origin" })
+                            .then(parseJsonResponse)
                             .then(data => {
                                 removeTypingIndicator();
                                 historyLoaded = true;
                                 if (data && data.length > 0) {
                                     data.forEach(msg => {
-                                        renderMessage(msg.id, msg.senderType, msg.noiDung, msg.thoiGian, msg.products);
+                                        renderMessage(msg.id, msg.senderType, msg.content, msg.thoiGian, msg.suggestedProducts);
                                     });
+                                } else {
+                                    showWelcomeMessage();
                                 }
                             })
                             .catch(err => {
                                 removeTypingIndicator();
+                                historyLoaded = true;
                                 console.error("Error loading chat history:", err);
-                                renderMessage(0, "BOT", "⚠️ Có lỗi xảy ra khi tải lịch sử trò chuyện. Vui lòng tải lại trang!", "");
+                                showWelcomeMessage();
                             });
+                    }
+
+                    function showWelcomeMessage() {
+                        const now = new Date();
+                        const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+                        renderMessage(0, "BOT", "Xin chào! 👋 Mình là trợ lý ảo của SmashVN. Mình hỗ trợ tư vấn và giải đáp các thắc mắc về các sản phẩm (vợt, giày, phụ kiện...) tại cửa hàng. Bạn cần tư vấn sản phẩm nào?", timeStr);
+                    }
+
+                    function parseJsonResponse(response) {
+                        if (!response.ok) {
+                            throw new Error(`Chatbot API returned ${response.status}`);
+                        }
+                        return response.json();
                     }
 
                     function sendMessageAction() {
@@ -746,20 +805,17 @@
 
                         fetch("/api/chat/send", {
                             method: "POST",
+                            credentials: "same-origin",
                             headers: {
                                 "Content-Type": "application/json"
                             },
                             body: JSON.stringify({ content: text })
                         })
-                        .then(res => res.json())
+                        .then(parseJsonResponse)
                         .then(data => {
                             removeTypingIndicator();
-                            if (data && data.length > 0) {
-                                // Clear typing and render bot message from response array
-                                const botMsg = data.find(m => m.senderType === "BOT");
-                                if (botMsg) {
-                                    renderMessage(botMsg.id, botMsg.senderType, botMsg.noiDung, botMsg.thoiGian, botMsg.products);
-                                }
+                            if (data && data.message != null) {
+                                renderMessage(data.messageId, "BOT", data.message, data.time, data.products);
                             }
                         })
                         .catch(err => {
@@ -794,21 +850,37 @@
                         }
                     }
 
+                    function formatChatMarkdown(text) {
+                        if (!text) return "";
+                        let safe = text
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;")
+                            .replace(/"/g, "&quot;");
+                        
+                        // Bold **text**
+                        safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        // Italic *text*
+                        safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                        // Inline code `code`
+                        safe = safe.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:2px 5px;border-radius:4px;font-size:0.86em;color:#e83e8c;">$1</code>');
+                        // Line breaks
+                        safe = safe.replace(/\n/g, '<br>');
+                        return safe;
+                    }
+
                     function renderMessage(id, senderType, content, time, products) {
+                        if (!senderType || content == null) return;
                         const wrap = document.createElement("div");
                         wrap.className = `chatbot-msg-wrap ${senderType.toLowerCase()}`;
                         
                         const bubble = document.createElement("div");
                         bubble.className = "chatbot-msg-bubble shadow-sm";
                         if (senderType === 'BOT') {
-                            // Parse markdown to HTML on the client side for maximum layout aesthetics
-                            if (typeof marked !== 'undefined') {
-                                bubble.innerHTML = marked.parse(content);
-                            } else {
-                                bubble.innerHTML = content.replace(/\n/g, '<br>');
-                            }
+                            bubble.innerHTML = formatChatMarkdown(content);
                         } else {
-                            bubble.textContent = content; // Escaped text for user input
+                            bubble.textContent = content;
+                            bubble.style.whiteSpace = "pre-line";
                         }
                         wrap.appendChild(bubble);
 
@@ -839,14 +911,15 @@
 
                             products.forEach(p => {
                                 const card = document.createElement("a");
-                                card.href = `/san-pham/${p.id}`;
                                 card.className = "chatbot-product-card";
-                                card.target = "_blank";
+                                card.href = p.detailUrl || p.productUrl || ('/san-pham/' + p.id);
+                                card.setAttribute("aria-label", "Xem chi tiết " + p.name);
 
                                 const img = document.createElement("img");
-                                img.src = p.imageUrl || '/images/favicon.png';
+                                img.src = p.imageUrl || '/images/placeholder.png';
+                                img.onerror = function() { this.onerror = null; this.src = '/images/placeholder.png'; };
                                 img.className = "chatbot-product-img";
-                                img.alt = p.tenSanPham;
+                                img.alt = p.name;
                                 card.appendChild(img);
 
                                 const info = document.createElement("div");
@@ -854,13 +927,18 @@
 
                                 const name = document.createElement("div");
                                 name.className = "chatbot-product-name";
-                                name.textContent = p.tenSanPham;
+                                name.textContent = p.name;
                                 info.appendChild(name);
 
-                                const price = document.createElement("div");
-                                price.className = "chatbot-product-price";
-                                price.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaBan);
-                                info.appendChild(price);
+                                const fmtVND = v => v ? Number(v).toLocaleString('vi-VN') + 'đ' : '';
+                                const priceWrap = document.createElement("div");
+                                priceWrap.className = "chatbot-product-price";
+                                if (p.salePrice && Number(p.salePrice) > 0 && Number(p.salePrice) < Number(p.price)) {
+                                    priceWrap.innerHTML = '<span style="color:#e53935;font-weight:700;">' + fmtVND(p.salePrice) + '</span> <span style="text-decoration:line-through;color:#9e9e9e;font-size:0.82em;">' + fmtVND(p.price) + '</span>';
+                                } else {
+                                    priceWrap.textContent = fmtVND(p.price);
+                                }
+                                info.appendChild(priceWrap);
 
                                 card.appendChild(info);
                                 prodContainer.appendChild(card);
@@ -882,12 +960,13 @@
 
                         fetch("/api/chat/feedback", {
                             method: "POST",
+                            credentials: "same-origin",
                             headers: {
                                 "Content-Type": "application/json"
                             },
                             body: JSON.stringify({
                                 messageId: messageId,
-                                positive: positive,
+                                rating: positive ? 1 : -1,
                                 note: positive ? "Hữu ích" : "Cần cải thiện"
                             })
                         })
@@ -900,6 +979,83 @@
                             buttons.forEach(b => b.disabled = false); // Re-enable on failure
                         });
                     };
+                });
+            </script>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const newsletterForm = document.getElementById("newsletter-subscribe-form");
+                    if (newsletterForm) {
+                        newsletterForm.addEventListener("submit", function(e) {
+                            e.preventDefault();
+                            
+                            const emailInput = document.getElementById("newsletter");
+                            const submitBtn = newsletterForm.querySelector(".newsletter__btn");
+                            
+                            if (!emailInput || !submitBtn) return;
+                            
+                            const email = emailInput.value.trim();
+                            const headers = {
+                                "Content-Type": "application/json"
+                            };
+                            const csrfHolder = document.getElementById("csrf-token-holder");
+                            const csrfToken = csrfHolder ? csrfHolder.getAttribute("data-csrf-token") : "";
+                            const csrfHeader = csrfHolder ? csrfHolder.getAttribute("data-csrf-header") : "";
+                            if (csrfToken && csrfHeader) {
+                                headers[csrfHeader] = csrfToken;
+                            }
+                            
+                            // Disable fields
+                            emailInput.disabled = true;
+                            submitBtn.disabled = true;
+                            const originalBtnText = submitBtn.innerText;
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ĐANG GỬI...';
+                            
+                            fetch("/api/newsletter/subscribe", {
+                                method: "POST",
+                                headers: headers,
+                                body: JSON.stringify({ email: email })
+                            })
+                            .then(response => {
+                                const contentType = response.headers.get("content-type");
+                                if (contentType && contentType.includes("application/json")) {
+                                    return response.json().then(data => ({
+                                        status: response.status,
+                                        ok: response.ok,
+                                        body: data
+                                    }));
+                                } else {
+                                    return response.text().then(text => ({
+                                        status: response.status,
+                                        ok: false,
+                                        body: { success: false, message: "Lỗi phản hồi từ máy chủ." }
+                                    }));
+                                }
+                            })
+                            .then(res => {
+                                // Re-enable fields
+                                emailInput.disabled = false;
+                                submitBtn.disabled = false;
+                                submitBtn.innerText = originalBtnText;
+                                
+                                if (res.ok && res.body.success) {
+                                    showToast("Thành công", res.body.message || "Đăng ký nhận ưu đãi thành công!", "success");
+                                    emailInput.value = "";
+                                    if (genderRadio) {
+                                        genderRadio.checked = false;
+                                    }
+                                } else {
+                                    showToast("Thông báo", res.body.message || "Có lỗi xảy ra, vui lòng thử lại.", "warning");
+                                }
+                            })
+                            .catch(err => {
+                                emailInput.disabled = false;
+                                submitBtn.disabled = false;
+                                submitBtn.innerText = originalBtnText;
+                                console.error("Newsletter error:", err);
+                                showToast("Lỗi", "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.", "error");
+                            });
+                        });
+                    }
                 });
             </script>
     </footer>
@@ -931,9 +1087,9 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="app-setting__wrap">
-                            <h1 class="app-setting__h1">JavaScript is disabled in your browser.</h1>
+                            <h1 class="app-setting__h1">JavaScript đã bị tắt trên trình duyệt của bạn.</h1>
 
-                            <span class="app-setting__text">Please enable JavaScript in your browser or upgrade to a JavaScript-capable browser.</span>
+                            <span class="app-setting__text">Vui lòng bật JavaScript trên trình duyệt để sử dụng đầy đủ chức năng của website.</span>
                         </div>
                     </div>
                 </div>

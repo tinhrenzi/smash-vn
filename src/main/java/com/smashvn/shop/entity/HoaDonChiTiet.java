@@ -27,33 +27,44 @@ public class HoaDonChiTiet {
     @Column(name = "don_gia", nullable = false)
     private BigDecimal donGia;
 
-    @Column(name = "gia_niem_yet")
-    private BigDecimal giaNiemYet;
+    @Column(name = "gia_goc")
+    private BigDecimal giaGoc;
 
-    @Column(name = "phan_tram_giam")
-    private BigDecimal phanTramGiam;
-
-    @Column(name = "so_tien_giam_san_pham")
-    private BigDecimal soTienGiamSanPham;
-
-    @Column(name = "ten_dot_giam_gia", length = 100)
-    private String tenDotGiamGia;
-
-    @Column(name = "id_dot_giam_gia")
-    private Integer idDotGiamGia;
+    @Column(name = "gia_sau_giam")
+    private BigDecimal giaSauGiam;
 
     @Column(name = "ten_san_pham_snapshot", length = 255)
     private String tenSanPhamSnapshot;
 
-    @Column(name = "ma_hang_snapshot", length = 100)
+    @Column(name = "sku_snapshot", length = 100)
     private String skuSnapshot;
+
+    @Column(name = "ten_dot_giam_gia_snapshot", length = 255)
+    private String tenDotGiamGiaSnapshot;
 
     @Column(name = "thuoc_tinh_snapshot", length = 500)
     private String thuocTinhSnapshot;
 
-    @Column(name = "thuong_hieu_snapshot", length = 100)
-    private String thuongHieuSnapshot;
+    @Column(name = "ngay_tao", nullable = false)
+    private java.time.LocalDateTime ngayTao = java.time.LocalDateTime.now();
 
-    @Column(name = "danh_muc_snapshot", length = 100)
-    private String danhMucSnapshot;
+    public String getTenDotGiamGia() {
+        return tenDotGiamGiaSnapshot;
+    }
+
+    public BigDecimal getGiaNiemYet() {
+        return giaGoc;
+    }
+
+    public Integer getPhanTramGiam() {
+        if (giaGoc == null || donGia == null || giaGoc.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0;
+        }
+        if (giaGoc.compareTo(donGia) <= 0) {
+            return 0;
+        }
+        BigDecimal traceDiff = giaGoc.subtract(donGia);
+        BigDecimal percent = traceDiff.multiply(new BigDecimal("100")).divide(giaGoc, 0, java.math.RoundingMode.HALF_UP);
+        return percent.intValue();
+    }
 }
