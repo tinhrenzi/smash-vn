@@ -389,4 +389,106 @@ public class ChatbotIntegrationTest {
             }
         }
     }
+
+    @Test
+    void testGreeting_InformalLo_RespondsPolitely() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"LÔ\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("SmashVN xin chào")))
+                .andExpect(jsonPath("$.products").isArray());
+    }
+
+    @Test
+    void testGreeting_AloShop_RespondsPolitely() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"alo shop ơi cho em hỏi xíu\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("SmashVN xin chào")));
+    }
+
+    @Test
+    void testBestSeller_TopProducts_ReturnsBestSellers() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"cho mình xem top sản phẩm bán chạy nhất của cửa hàng\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("BÁN CHẠY NHẤT")))
+                .andExpect(jsonPath("$.products").isArray());
+    }
+
+    @Test
+    void testBestSeller_VotBanChay_ReturnsRackets() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"vợt bán chạy nhất\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("VỢT BÁN CHẠY NHẤT")))
+                .andExpect(jsonPath("$.products").isArray());
+    }
+
+    @Test
+    void testStringingConsultation_ReturnsTensionAdvice() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"căng cước bao nhiêu kg thì vừa?\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Căng cước")));
+    }
+
+    @Test
+    void testAuthenticityConsultation_ReturnsGenuineCommitment() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"hàng của shop có chính hãng không\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Chính Hãng")));
+    }
+
+    @Test
+    void testResetConversation_ClosesActiveAndStartsNewSession() throws Exception {
+        // Send a message first to create an active conversation
+        mockMvc.perform(post("/api/chat/send")
+                        .session(session)
+                        .contentType("application/json")
+                        .content("{\"content\":\"Chào shop\"}"))
+                .andExpect(status().isOk());
+
+        String guestSessionId = (String) session.getAttribute("guestSessionId");
+        assertNotNull(guestSessionId);
+
+        var activeConvList = chatConversationRepository.findAllBySessionIdAndTrangThai(guestSessionId, "ACTIVE");
+        assertFalse(activeConvList.isEmpty());
+        Long activeConvId = activeConvList.get(0).getId();
+
+        // Call reset endpoint
+        mockMvc.perform(post("/api/chat/reset")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("làm mới")));
+
+        // Verify that there are no active conversations for this sessionId
+        var activeAfterReset = chatConversationRepository.findAllBySessionIdAndTrangThai(guestSessionId, "ACTIVE");
+        assertTrue(activeAfterReset.isEmpty());
+
+        Optional<ChatConversation> closedConv = chatConversationRepository.findById(activeConvId);
+        assertTrue(closedConv.isPresent());
+        assertEquals("CLOSED", closedConv.get().getTrangThai());
+    }
 }
+

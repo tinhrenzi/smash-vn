@@ -417,6 +417,7 @@ public class AdminSanPhamService {
                     savedCount++;
                 }
             }
+            sp.setSanPhamChiTiets(createdSpcts);
 
             // Tự động tạo Phiếu nhập hàng ban đầu để lưu vào Lịch sử nhập hàng cho các biến thể có số lượng nhập > 0
             List<SanPhamChiTiet> variantsWithStock = new ArrayList<>();
@@ -619,6 +620,9 @@ public class AdminSanPhamService {
 
         // 4. Kiểm tra có ít nhất một biến thể
         List<SanPhamChiTiet> variants = sp.getSanPhamChiTiets();
+        if (variants == null || variants.isEmpty()) {
+            variants = sanPhamChiTietRepository.findBySanPham_Id(idSanPham);
+        }
         if (variants == null || variants.isEmpty()) {
             throw new IllegalArgumentException("Không thể đăng bán: Sản phẩm phải có ít nhất một biến thể (phân loại hàng)!");
         }

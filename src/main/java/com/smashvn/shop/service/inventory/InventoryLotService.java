@@ -711,6 +711,16 @@ public class InventoryLotService {
                     }
                     return true;
                 })
+                .sorted((a, b) -> {
+                    String nameA = spct.getDisplayNameForAttribute(a);
+                    String nameB = spct.getDisplayNameForAttribute(b);
+                    int p1 = SanPhamChiTiet.getAttributeDisplayPriority(nameA);
+                    int p2 = SanPhamChiTiet.getAttributeDisplayPriority(nameB);
+                    if (p1 != p2) {
+                        return Integer.compare(p1, p2);
+                    }
+                    return nameA.compareToIgnoreCase(nameB);
+                })
                 .map(a -> a.getGiaTri() != null ? a.getGiaTri() : "")
                 .collect(Collectors.toList());
 

@@ -80,10 +80,16 @@ public class ChatbotRestController {
         }
     }
 
+    @PostMapping("/reset")
+    public ResponseEntity<?> resetConversation(HttpSession session) {
+        Integer idTaiKhoan = resolveTaiKhoanId(session);
+        String sessionId = resolveSessionId(session);
+
+        chatbotService.resetConversation(idTaiKhoan, sessionId);
+        return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Cuộc trò chuyện đã được làm mới thành công."));
+    }
+
     private Integer resolveTaiKhoanId(HttpSession session) {
-        // Customer authentication in this application is session based, so the
-        // session must be checked before Spring Security (which is normally
-        // anonymous for storefront customers).
         Object sessionAccountId = session.getAttribute("idNguoiDung");
         if (sessionAccountId instanceof Integer accountId
                 && taiKhoanRepository.existsById(accountId)) {

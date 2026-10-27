@@ -452,7 +452,7 @@ Dự án được xây dựng và phát triển bởi:
 
 | Tác giả | Vai trò | GitHub Profile | Liên hệ |
 | :--- | :--- | :--- | :--- |
-| **Tinhrenzi** (Xuân Tính) | Lead Developer | [![GitHub](https://img.shields.io/badge/GitHub-tinhrenzi-181717?style=flat-square&logo=github)](https://github.com/tinhrenzi) | [![Facebook](https://img.shields.io/badge/Facebook-TinhXuannn-1877F2?style=flat-square&logo=facebook)](https://facebook.com/TinhXuannn) [![Instagram](https://img.shields.io/badge/Instagram-TinhXuannn-E4405F?style=flat-square&logo=instagram)](https://instagram.com/TinhXuannn) |
+| **Tinhrenzi** (Xuân Tĩnh) | Lead Developer | [![GitHub](https://img.shields.io/badge/GitHub-tinhrenzi-181717?style=flat-square&logo=github)](https://github.com/tinhrenzi) | [![Facebook](https://img.shields.io/badge/Facebook-TinhXuannn-1877F2?style=flat-square&logo=facebook)](https://facebook.com/TinhXuannn) [![Instagram](https://img.shields.io/badge/Instagram-TinhXuannn-E4405F?style=flat-square&logo=instagram)](https://instagram.com/TinhXuannn) |
 | **LuongHiep334** | Developer | [![GitHub](https://img.shields.io/badge/GitHub-LuongHiep334-181717?style=flat-square&logo=github)](https://github.com/LuongHiep334) | [![GitHub](https://img.shields.io/badge/Profile-LuongHiep334-blue?style=flat-square&logo=github)](https://github.com/LuongHiep334) |
 
 ### 📊 Thống kê hoạt động GitHub
