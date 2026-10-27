@@ -7,6 +7,7 @@ import com.smashvn.shop.entity.SanPham;
 import com.smashvn.shop.entity.SanPhamChiTiet;
 import com.smashvn.shop.entity.ThuongHieu;
 import com.smashvn.shop.repository.DanhMucRepository;
+import com.smashvn.shop.repository.HoaDonChiTietRepository;
 import com.smashvn.shop.repository.SanPhamChiTietRepository;
 import com.smashvn.shop.repository.ThuongHieuRepository;
 import jakarta.annotation.PostConstruct;
@@ -21,6 +22,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ public class ChatbotProductCache {
     private final SanPhamChiTietRepository sanPhamChiTietRepository;
     private final ThuongHieuRepository thuongHieuRepository;
     private final DanhMucRepository danhMucRepository;
+    private final HoaDonChiTietRepository hoaDonChiTietRepository;
 
     private static final long CACHE_TTL_SECONDS = 300; // 5 minutes
     private Instant lastRefreshed = Instant.EPOCH;
@@ -56,6 +59,7 @@ public class ChatbotProductCache {
         private String imageUrl;
         private String detailUrl;
         private int stock;
+        private long totalSold;
 
         private String unaccentedName;
         private String unaccentedBrand;
@@ -89,6 +93,20 @@ public class ChatbotProductCache {
             log.info("Refreshing ChatbotProductCache...");
             List<SanPhamChiTiet> variants = sanPhamChiTietRepository.findAllActiveInStock();
             Map<Integer, CachedProduct> productMap = new LinkedHashMap<>();
+
+            Map<Integer, Long> soldMap = new HashMap<>();
+            try {
+                List<Object[]> soldRows = hoaDonChiTietRepository.findAllTimeSoldQuantityByProduct();
+                if (soldRows != null) {
+                    for (Object[] row : soldRows) {
+                        if (row != null && row.length >= 2 && row[0] instanceof Integer pid && row[1] instanceof Number cnt) {
+                            soldMap.put(pid, cnt.longValue());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not load product sold counts: {}", e.getMessage());
+            }
 
             for (SanPhamChiTiet v : variants) {
                 SanPham sp = v.getSanPham();
@@ -131,6 +149,8 @@ public class ChatbotProductCache {
                     }
                 }
 
+                long soldCount = soldMap.getOrDefault(sp.getId(), 0L);
+
                 CachedProduct cp = CachedProduct.builder()
                         .id(sp.getId())
                         .name(sp.getTenSanPham())
@@ -142,6 +162,7 @@ public class ChatbotProductCache {
                         .imageUrl(imgUrl)
                         .detailUrl("/san-pham/" + sp.getId())
                         .stock(v.getSoLuongTon())
+                        .totalSold(soldCount)
                         .unaccentedName(ChatbotServiceImpl.removeAccents(sp.getTenSanPham().toLowerCase()))
                         .unaccentedBrand(ChatbotServiceImpl.removeAccents(brandName.toLowerCase()))
                         .unaccentedCategory(ChatbotServiceImpl.removeAccents(catName.toLowerCase()))
@@ -306,6 +327,29 @@ public class ChatbotProductCache {
                 .productUrl(cp.getDetailUrl())
                 .detailUrl(cp.getDetailUrl())
                 .build();
+    }
+
+    public List<ChatProductResponse> getBestSellers(String category, int limit) {
+        ensureFreshCache();
+        rwLock.readLock().lock();
+        try {
+            String cat = (category != null && !category.isBlank()) ? ChatbotServiceImpl.removeAccents(category.toLowerCase().trim()) : null;
+            return cachedProducts.stream()
+                    .filter(p -> cat == null || cat.isEmpty() || p.getUnaccentedCategory().contains(cat) || p.getUnaccentedName().contains(cat))
+                    .sorted(Comparator.comparing(CachedProduct::getTotalSold, Comparator.reverseOrder())
+                            .thenComparing(p -> p.getSalePrice() != null ? 0 : 1)
+                            .thenComparing(CachedProduct::getStock, Comparator.reverseOrder())
+                            .thenComparing(CachedProduct::getId, Comparator.reverseOrder()))
+                    .limit(limit)
+                    .map(this::mapToChatProductResponse)
+                    .toList();
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    public List<ChatProductResponse> getFeaturedProducts(int limit) {
+        return getBestSellers(null, limit);
     }
 
     private String normalizeImageUrl(String storedPath) {

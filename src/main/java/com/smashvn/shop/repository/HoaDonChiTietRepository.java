@@ -105,4 +105,11 @@ public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, In
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    @Query("SELECT hdct.sanPhamChiTiet.sanPham.id, COALESCE(SUM(hdct.soLuong), 0L) "
+            + "FROM HoaDonChiTiet hdct "
+            + "WHERE LOWER(hdct.hoaDon.trangThaiDonHang) IN ('da_giao', 'hoan_thanh', 'delivered') "
+            + "AND (hdct.hoaDon.trangThaiThanhToan IS NULL OR UPPER(hdct.hoaDon.trangThaiThanhToan) NOT IN ('REFUNDED', 'HOAN_TIEN', 'DA_HOAN_TIEN')) "
+            + "GROUP BY hdct.sanPhamChiTiet.sanPham.id")
+    List<Object[]> findAllTimeSoldQuantityByProduct();
 }

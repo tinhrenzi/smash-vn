@@ -190,7 +190,12 @@
                                 <span class="chatbot-subtitle">Trợ lý ảo thông minh</span>
                             </div>
                         </div>
-                        <button id="chatbot-close-btn" type="button" class="btn-close btn-close-white" aria-label="Close" style="filter: invert(1) grayscale(1) brightness(2); background-size: 0.8rem; border: none; outline: none; box-shadow: none;"></button>
+                        <div class="chatbot-header-actions">
+                            <button id="chatbot-reset-btn" type="button" class="chatbot-header-btn" title="Làm mới cuộc trò chuyện">
+                                <i class="fas fa-rotate-right"></i>
+                            </button>
+                            <button id="chatbot-close-btn" type="button" class="btn-close btn-close-white" aria-label="Close" style="filter: invert(1) grayscale(1) brightness(2); background-size: 0.8rem; border: none; outline: none; box-shadow: none;"></button>
+                        </div>
                     </div>
                     
                     <!-- Messages Area -->
@@ -200,9 +205,11 @@
                     
                     <!-- Quick Suggestions Area -->
                     <div class="chatbot-quick-chips">
+                        <button type="button" class="chatbot-chip" data-query="Top sản phẩm bán chạy nhất">🏆 Top bán chạy</button>
                         <button type="button" class="chatbot-chip" data-query="Tư vấn vợt theo lối chơi">🏸 Tư vấn lối chơi</button>
                         <button type="button" class="chatbot-chip" data-query="Vợt cho người mới chơi">🔰 Vợt người mới</button>
-                        <button type="button" class="chatbot-chip" data-query="Vợt đang giảm giá">🔥 Vợt giảm giá</button>
+                        <button type="button" class="chatbot-chip" data-query="Căng cước bao nhiêu kg thì vừa?">⚡ Căng cước mấy kg?</button>
+                        <button type="button" class="chatbot-chip" data-query="Mã giảm giá hôm nay">🎟️ Mã giảm giá</button>
                         <button type="button" class="chatbot-chip" data-query="Tìm vợt Yonex">🏸 Vợt Yonex</button>
                         <button type="button" class="chatbot-chip" data-query="Giày cầu lông">👟 Giày cầu lông</button>
                     </div>
@@ -325,6 +332,32 @@
                     display: flex;
                     align-items: center;
                     gap: 12px;
+                }
+                .chatbot-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                .chatbot-header-btn {
+                    background: rgba(255, 255, 255, 0.12);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    color: #ffffff;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                    transition: all 0.25s ease;
+                    outline: none;
+                }
+                .chatbot-header-btn:hover {
+                    background-color: #ff4500;
+                    border-color: #ff4500;
+                    transform: rotate(180deg);
+                    box-shadow: 0 2px 8px rgba(255, 69, 0, 0.35);
                 }
                 .chatbot-avatar {
                     width: 40px;
@@ -695,6 +728,7 @@
                     const trigger = document.getElementById("chatbot-trigger");
                     const windowBox = document.getElementById("chatbot-window");
                     const closeBtn = document.getElementById("chatbot-close-btn");
+                    const resetBtn = document.getElementById("chatbot-reset-btn");
                     const sendBtn = document.getElementById("chatbot-send-btn");
                     const inputField = document.getElementById("chatbot-input-field");
                     const messagesBox = document.getElementById("chatbot-messages-box");
@@ -711,6 +745,30 @@
                     });
 
                     closeBtn.addEventListener("click", closeChatbot);
+
+                    if (resetBtn) {
+                        resetBtn.addEventListener("click", function() {
+                            if (confirm("Bạn có muốn làm mới và bắt đầu cuộc trò chuyện mới không?")) {
+                                showTypingIndicator();
+                                fetch("/api/chat/reset", {
+                                    method: "POST",
+                                    credentials: "same-origin"
+                                })
+                                .then(parseJsonResponse)
+                                .then(data => {
+                                    removeTypingIndicator();
+                                    messagesBox.innerHTML = "";
+                                    showWelcomeMessage();
+                                })
+                                .catch(err => {
+                                    removeTypingIndicator();
+                                    console.error("Error resetting chat:", err);
+                                    messagesBox.innerHTML = "";
+                                    showWelcomeMessage();
+                                });
+                            }
+                        });
+                    }
 
                     function openChatbot() {
                         windowBox.classList.remove("chatbot-hidden");

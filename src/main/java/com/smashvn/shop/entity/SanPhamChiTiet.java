@@ -275,6 +275,10 @@ public class SanPhamChiTiet {
         return getGiaTriThuocTinh("Chất liệu");
     }
 
+    public String getDoCung() {
+        return getGiaTriThuocTinh("Độ cứng");
+    }
+
     public String getMucCang() {
         return getSucCang();
     }
@@ -301,6 +305,10 @@ public class SanPhamChiTiet {
 
     public void setChatLieu(String chatLieu) {
         setGiaTriThuocTinhHelper("Chất liệu", chatLieu);
+    }
+
+    public void setDoCung(String doCung) {
+        setGiaTriThuocTinhHelper("Độ cứng", doCung);
     }
 
     private void setGiaTriThuocTinhHelper(String tenThuocTinh, String giaTri) {
@@ -396,6 +404,27 @@ public class SanPhamChiTiet {
         return dbName;
     }
 
+    public static int getAttributeDisplayPriority(String attributeName) {
+        if (attributeName == null) return 999;
+        String norm = attributeName.trim().toLowerCase();
+        if (norm.contains("màu") || norm.contains("color")) {
+            return 1;
+        }
+        if (norm.contains("căng") || norm.contains("tension")) {
+            return 2;
+        }
+        if (norm.contains("cứng") || norm.contains("stiff")) {
+            return 3;
+        }
+        if (norm.contains("trọng lượng") || norm.contains("weight")) {
+            return 4;
+        }
+        if (norm.contains("kích thước") || norm.contains("size")) {
+            return 5;
+        }
+        return 100;
+    }
+
     public String getPhanLoaiHienThi() {
         if (sanPhamChiTietThuocTinhs == null || sanPhamChiTietThuocTinhs.isEmpty()) {
             return "Mặc định";
@@ -425,6 +454,17 @@ public class SanPhamChiTiet {
             return "Mặc định";
         }
 
+        validAttrs.sort((a, b) -> {
+            String nameA = getDisplayNameForAttribute(a);
+            String nameB = getDisplayNameForAttribute(b);
+            int p1 = getAttributeDisplayPriority(nameA);
+            int p2 = getAttributeDisplayPriority(nameB);
+            if (p1 != p2) {
+                return Integer.compare(p1, p2);
+            }
+            return nameA.compareToIgnoreCase(nameB);
+        });
+
         return validAttrs.stream()
                 .map(tt -> getDisplayNameForAttribute(tt) + ": " + tt.getGiaTri())
                 .collect(Collectors.joining(", "));
@@ -444,8 +484,20 @@ public class SanPhamChiTiet {
         if (sanPhamChiTietThuocTinhs == null || sanPhamChiTietThuocTinhs.isEmpty()) {
             return "{}";
         }
+        List<SanPhamChiTietThuocTinh> sortedList = new ArrayList<>(sanPhamChiTietThuocTinhs);
+        sortedList.sort((a, b) -> {
+            String nameA = getDisplayNameForAttribute(a);
+            String nameB = getDisplayNameForAttribute(b);
+            int p1 = getAttributeDisplayPriority(nameA);
+            int p2 = getAttributeDisplayPriority(nameB);
+            if (p1 != p2) {
+                return Integer.compare(p1, p2);
+            }
+            return nameA.compareToIgnoreCase(nameB);
+        });
+
         java.util.Map<String, String> map = new java.util.LinkedHashMap<>();
-        for (SanPhamChiTietThuocTinh tt : sanPhamChiTietThuocTinhs) {
+        for (SanPhamChiTietThuocTinh tt : sortedList) {
             if (tt.getThuocTinh() != null && tt.getGiaTri() != null && !tt.getGiaTri().isBlank()) {
                 String displayName = getDisplayNameForAttribute(tt);
                 map.put(displayName.trim(), tt.getGiaTri().trim());

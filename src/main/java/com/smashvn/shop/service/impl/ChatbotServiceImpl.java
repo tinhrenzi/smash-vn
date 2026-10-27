@@ -168,27 +168,133 @@ public class ChatbotServiceImpl implements ChatbotService {
             return dto;
         }
 
-        // 3. Fast-path: Greetings
+        // 3. Fast-path: Greetings & Casual Openers
         if (intent == ChatIntent.GREETING) {
             ChatMessage greetingMsg = new ChatMessage();
             greetingMsg.setConversation(conversation);
             greetingMsg.setVaiTro("ASSISTANT");
-            greetingMsg.setNoiDung("Xin chào! 👋 Mình là trợ lý ảo của SmashVN Shop.\n"
-                    + "Tôi hỗ trợ tư vấn và giải đáp các thắc mắc đối với các sản phẩm cầu lông tại cửa hàng:\n"
-                    + "🏸 Tư vấn chọn vợt theo lối chơi (tấn công, phòng thủ, toàn diện)\n"
-                    + "🔰 Gợi ý sản phẩm phù hợp với trình độ và mức giá\n"
-                    + "👟 Giải đáp thông số, giá bán và tình trạng còn hàng của sản phẩm\n"
-                    + "Bạn cần tư vấn sản phẩm nào hôm nay?");
+            greetingMsg.setNoiDung("Dạ SmashVN xin chào bạn! 👋 Rất vui được hỗ trợ bạn hôm nay.\n\n"
+                    + "Tôi là Trợ lý ảo chuyên tư vấn cầu lông của shop. Bạn có thể hỏi tôi bất cứ điều gì như:\n"
+                    + "🏆 **Top sản phẩm bán chạy nhất** / Hàng hot tại shop\n"
+                    + "🏸 **Tư vấn chọn vợt theo lối chơi** (Tấn công smash, Phòng thủ phản tạt, Công thủ toàn diện)\n"
+                    + "🔰 **Gợi ý vợt cho người mới chơi**, học sinh - sinh viên\n"
+                    + "💰 **Tìm sản phẩm theo tầm giá** (Ví dụ: *vợt dưới 1 triệu*, *vợt 1tr5 đến 2 triệu*)\n"
+                    + "⚡ **Tư vấn mức căng cước** & Thông số kỹ thuật (3U/4U, G5...)\n"
+                    + "📦 **Tra cứu đơn hàng** & 🎟️ **Mã giảm giá mới nhất**\n\n"
+                    + "Bạn đang quan tâm đến mẫu sản phẩm nào hoặc cần tư vấn lối chơi gì ạ?");
             greetingMsg.setTrangThai("SUCCESS");
             greetingMsg = chatbotDbHelper.saveMessage(greetingMsg);
             chatbotDbHelper.updateConversationTime(conversation.getId());
 
             ChatMessageDto dto = mapToDto(greetingMsg);
-            dto.setSuggestedProducts(getFeaturedProducts(3));
+            dto.setSuggestedProducts(chatbotProductCache.getBestSellers(null, 4));
             return dto;
         }
 
-        // 4. Fast-path: Store Information & Policies (Address, Hotline, Warranty, Shipping)
+        // 4. Fast-path: Best Sellers & Top Products
+        if (intent == ChatIntent.BEST_SELLER) {
+            String msgL = removeAccents(rawMessage.toLowerCase());
+            String catFilter = null;
+            if (msgL.contains("giay") || msgL.contains("doi")) {
+                catFilter = "Giày";
+            } else if (msgL.contains("vot") || msgL.contains("cay")) {
+                catFilter = "Vợt";
+            } else if (msgL.contains("phu kien") || msgL.contains("balo") || msgL.contains("tui") || msgL.contains("cuoc")) {
+                catFilter = "Phụ kiện";
+            }
+
+            List<ChatProductResponse> bestSellers = chatbotProductCache.getBestSellers(catFilter, 5);
+            String catTitle = (catFilter != null) ? catFilter.toUpperCase() : "SẢN PHẨM";
+
+            ChatMessage bestSellerMsg = new ChatMessage();
+            bestSellerMsg.setConversation(conversation);
+            bestSellerMsg.setVaiTro("ASSISTANT");
+            bestSellerMsg.setNoiDung("🔥 **TOP " + catTitle + " BÁN CHẠY NHẤT TẠI SMASHVN:**\n\n"
+                    + "Dưới đây là các mẫu " + (catFilter != null ? catFilter.toLowerCase() : "sản phẩm") + " được đông đảo lông thủ phong trào và bán chuyên yêu thích nhất hiện nay:\n"
+                    + "✨ **Ưu điểm nổi bật:** Khung vợt bền bỉ chịu cân cao, độ thoát cầu nhanh, đầm tay và tỉ lệ hiệu năng / giá thành cực tốt.\n"
+                    + "🛡️ **Cam kết:** 100% hàng chính hãng, bảo hành chuẩn từ hãng và hỗ trợ căng cước điện tử chuẩn xác theo yêu cầu.\n\n"
+                    + "👉 Mời bạn tham khảo danh sách các mẫu bán chạy hàng đầu bên dưới (bấm vào từng sản phẩm để xem chi tiết thông số và nhận ưu đãi):");
+            bestSellerMsg.setTrangThai("SUCCESS");
+            bestSellerMsg = chatbotDbHelper.saveMessage(bestSellerMsg);
+            chatbotDbHelper.updateConversationTime(conversation.getId());
+
+            ChatMessageDto dto = mapToDto(bestSellerMsg);
+            dto.setSuggestedProducts(bestSellers);
+            return dto;
+        }
+
+        // 5. Fast-path: Stringing & Tension Consultation
+        if (intent == ChatIntent.STRINGING_CONSULTATION) {
+            ChatMessage stringingMsg = new ChatMessage();
+            stringingMsg.setConversation(conversation);
+            stringingMsg.setVaiTro("ASSISTANT");
+            stringingMsg.setNoiDung("⚡ **Tư vấn Căng cước & Chọn dây vợt cầu lông tại SmashVN:**\n\n"
+                    + "🏸 **1. Mức căng cước khuyến nghị theo trình độ & lực tay:**\n"
+                    + "- **Người mới chơi / Nữ / Lực tay vừa:** Căng từ **9.0 kg - 10.2 kg** (20 - 22.5 lbs) để tối ưu độ nảy trợ lực tự nhiên, hạn chế rung tay và tránh chấn thương khớp.\n"
+                    + "- **Người chơi phong trào khá (1 - 2 năm):** Căng từ **10.5 kg - 11.5 kg** (23 - 25 lbs) giúp kiểm soát đường cầu chuẩn xác, cảm giác đập cầu đầm tay.\n"
+                    + "- **Vận động viên / Bán chuyên tay khỏe:** Căng từ **11.5 kg - 12.5+ kg** (26+ lbs) cho mặt cước đanh cứng, smash cắm sân và cầu đi rất nhanh.\n\n"
+                    + "🧵 **2. Các dòng cước Yonex phổ biến nhất:**\n"
+                    + "- **BG 65 (0.70mm):** Dòng cước 'quốc dân' siêu bền bỉ, tiết kiệm chi phí.\n"
+                    + "- **BG 66 Ultimax (0.65mm):** Cước trợ lực cao cấp, tiếng nổ đanh vang, đàn hồi cực tốt.\n"
+                    + "- **Nanogy 95 (0.69mm):** Cân bằng hoàn hảo giữa độ bền và độ nảy.\n"
+                    + "- **Exbolt 63 / 65:** Dây siêu tốc độ, tạo âm thanh smash giòn giã.\n\n"
+                    + "💡 *SmashVN trang bị máy căng cước điện tử hiện đại, hỗ trợ căng chuẩn từng lbs cho quý khách.*");
+            stringingMsg.setTrangThai("SUCCESS");
+            stringingMsg = chatbotDbHelper.saveMessage(stringingMsg);
+            chatbotDbHelper.updateConversationTime(conversation.getId());
+
+            ChatMessageDto dto = mapToDto(stringingMsg);
+            dto.setSuggestedProducts(chatbotProductCache.getBestSellers("Vợt", 3));
+            return dto;
+        }
+
+        // 6. Fast-path: Spec Explanation (3U/4U/5U, G5, Điểm cân bằng)
+        if (intent == ChatIntent.SPEC_EXPLANATION) {
+            ChatMessage specMsg = new ChatMessage();
+            specMsg.setConversation(conversation);
+            specMsg.setVaiTro("ASSISTANT");
+            specMsg.setNoiDung("📐 **Giải thích các Thông số Vợt Cầu Lông chuẩn quốc tế:**\n\n"
+                    + "⚖️ **1. Thông số Trọng lượng (U):**\n"
+                    + "- **3U (85 - 89g):** Vợt đầm tay, dành cho người có lực cổ tay tốt, thích lối đánh tấn công uy lực.\n"
+                    + "- **4U (80 - 84g):** Trọng lượng phổ biến nhất, phù hợp với hầu hết lông thủ phong trào nam và nữ.\n"
+                    + "- **5U (75 - 79g):** Vợt siêu nhẹ, linh hoạt xoay trở nhanh, rất thích hợp cho phái nữ hoặc lối chơi bắt lưới.\n\n"
+                    + "🎯 **2. Điểm cân bằng (Balance Point):**\n"
+                    + "- **Nặng đầu (Head-heavy > 295mm):** Tăng uy lực đập cầu (Smash), thiên về tấn công.\n"
+                    + "- **Cân bằng (Balanced 290 - 295mm):** Công thủ toàn diện, linh hoạt trong mọi tình huống.\n"
+                    + "- **Nhẹ đầu (Head-light < 290mm):** Vung vợt cực nhanh, chuyên thủ cầu và phản tạt.\n\n"
+                    + "✊ **3. Chu vi cán cầm (G):**\n"
+                    + "- **G5:** Cỡ cán tiêu chuẩn phổ biến nhất tại Việt Nam, vừa vặn với kích thước bàn tay người châu Á.\n\n"
+                    + "SmashVN gợi ý một số cây vợt thông số chuẩn, dễ chơi nhất bên dưới để bạn tham khảo:");
+            specMsg.setTrangThai("SUCCESS");
+            specMsg = chatbotDbHelper.saveMessage(specMsg);
+            chatbotDbHelper.updateConversationTime(conversation.getId());
+
+            ChatMessageDto dto = mapToDto(specMsg);
+            dto.setSuggestedProducts(chatbotProductCache.getBestSellers("Vợt", 3));
+            return dto;
+        }
+
+        // 7. Fast-path: Authenticity & Quality Guarantee
+        if (intent == ChatIntent.AUTHENTICITY_WARRANTY) {
+            ChatMessage authMsg = new ChatMessage();
+            authMsg.setConversation(conversation);
+            authMsg.setVaiTro("ASSISTANT");
+            authMsg.setNoiDung("🛡️ **Cam kết Chất lượng & Chính sách Bán hàng tại SmashVN:**\n\n"
+                    + "✅ **100% Hàng Chính Hãng:** Tất cả vợt, giày và phụ kiện tại SmashVN đều có tem cào bảo hành từ nhà phân phối chính thức (Sunrise Yonex, Lining, Victor...). Đền bù 200% nếu phát hiện hàng không chính hãng.\n"
+                    + "🔄 **Chính sách Đổi trả 7 ngày:** Hỗ trợ 1 đổi 1 trong vòng 7 ngày nếu phát sinh lỗi kỹ thuật từ nhà sản xuất.\n"
+                    + "🚚 **Giao hàng Toàn quốc & Đồng kiểm:** Cho phép quý khách mở gói hàng kiểm tra sản phẩm trước khi thanh toán COD.\n"
+                    + "📞 **Hotline hỗ trợ bảo hành & kỹ thuật:** **" + hotline + "** (Hỗ trợ 8h00 - 21h30 hàng ngày).");
+            authMsg.setTrangThai("SUCCESS");
+            authMsg = chatbotDbHelper.saveMessage(authMsg);
+            chatbotDbHelper.updateConversationTime(conversation.getId());
+
+            ChatMessageDto dto = mapToDto(authMsg);
+            dto.setContact(buildContactDto());
+            dto.setSuggestedProducts(chatbotProductCache.getBestSellers(null, 3));
+            return dto;
+        }
+
+        // 8. Fast-path: Store Information & Policies (Address, Hotline, Warranty, Shipping)
         if (intent == ChatIntent.STORE_INFORMATION) {
             ChatMessage storeMsg = new ChatMessage();
             storeMsg.setConversation(conversation);
@@ -203,7 +309,7 @@ public class ChatbotServiceImpl implements ChatbotService {
             return dto;
         }
 
-        // 5. Intelligent Order Tracking
+        // 9. Intelligent Order Tracking
         if (intent == ChatIntent.ORDER_LOOKUP) {
             String orderReply = handleOrderLookup(rawMessage, idTaiKhoan);
             ChatMessage orderMsg = new ChatMessage();
@@ -219,7 +325,7 @@ public class ChatbotServiceImpl implements ChatbotService {
             return dto;
         }
 
-        // 6. Intelligent Voucher / Promotion Discovery
+        // 10. Intelligent Voucher / Promotion Discovery
         if (intent == ChatIntent.VOUCHER_LOOKUP) {
             String voucherReply = handleVoucherLookup();
             ChatMessage voucherMsg = new ChatMessage();
@@ -235,7 +341,7 @@ public class ChatbotServiceImpl implements ChatbotService {
             return dto;
         }
 
-        // 7. Check vague / incomplete query
+        // 11. Check vague / incomplete query
         if (isIncompleteQuery(rawMessage)) {
             ChatMessage vagueMsg = new ChatMessage();
             vagueMsg.setConversation(conversation);
@@ -373,8 +479,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     }
 
     private List<ChatProductResponse> getFeaturedProducts(int limit) {
-        ProductSearchCriteria criteria = new ProductSearchCriteria();
-        return chatbotProductCache.search(criteria, limit);
+        return chatbotProductCache.getFeaturedProducts(limit);
     }
 
     private String buildStoreInfoAnswer(String rawMessage, String hotline) {
@@ -795,7 +900,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     }
 
     private ChatIntent classifyQuestion(String message) {
-        String msgLower = removeAccents(message.toLowerCase());
+        String msgLower = removeAccents(message.toLowerCase().trim());
 
         // 1. Security Sensitive
         if (msgLower.contains("api key") || msgLower.contains("system prompt")
@@ -810,8 +915,8 @@ public class ChatbotServiceImpl implements ChatbotService {
         if (msgLower.contains("lap trinh") || msgLower.contains("java code") || msgLower.contains("code java")
                 || msgLower.contains("viet code") || msgLower.contains("database") || msgLower.contains("sql server")
                 || msgLower.contains("python") || msgLower.contains("html") || msgLower.contains("javascript")
-                || msgLower.contains("chinh tri") || msgLower.contains("thoi tiet") || msgLower.contains("mua khong")
-                || msgLower.contains("tin tuc") || msgLower.contains("giai tri") || msgLower.contains("hat")
+                || msgLower.contains("chinh tri") || msgLower.contains("thoi tiet") || msgLower.contains("troi mua khong")
+                || msgLower.contains("tin tuc") || msgLower.contains("giai tri") || msgLower.contains("ca hat") || msgLower.contains("hat ho")
                 || msgLower.contains("singing") || msgLower.contains("am nhac") || msgLower.contains("bai hat")
                 || msgLower.contains("cong thuc nau an") || msgLower.contains("du bao thoi tiet")
                 || msgLower.contains("toan hoc") || msgLower.contains("giai toan") || msgLower.contains("bai tap")) {
@@ -834,12 +939,72 @@ public class ChatbotServiceImpl implements ChatbotService {
             return ChatIntent.VOUCHER_LOOKUP;
         }
 
-        // 5. Greetings
-        if (msgLower.matches("^(xin chao|chao|chao ban|chao shop|hello|hi|hey|alo|ad oi|shop oi)[!\\?\\s.]*$")) {
+        // 5. Best Seller / Top Products / Hot Products
+        if (msgLower.contains("ban chay") || msgLower.contains("top san pham")
+                || msgLower.contains("top ban chay") || msgLower.contains("top vot")
+                || msgLower.contains("top giay") || msgLower.contains("hot nhat")
+                || msgLower.contains("hang hot") || msgLower.contains("san pham hot")
+                || msgLower.contains("mau nao hot") || msgLower.contains("mau nao ban chay")
+                || msgLower.contains("cay vot hot") || msgLower.contains("cay nao hot")
+                || msgLower.contains("mua nhieu nhat") || msgLower.contains("duoc mua nhieu")
+                || msgLower.contains("ua chuong nhat") || msgLower.contains("best seller")
+                || msgLower.contains("san pham noi bat") || msgLower.contains("hang ban chay")
+                || msgLower.contains("nhung cay vot hot") || msgLower.contains("nhung mau hot")
+                || msgLower.contains("top 1") || msgLower.contains("top 3") || msgLower.contains("top 5")) {
+            return ChatIntent.BEST_SELLER;
+        }
+
+        // 6. Stringing Consultation (Căng cước, đan vợt, mức kg/lbs, cước dây)
+        if (msgLower.contains("cang cuoc") || msgLower.contains("dan vot")
+                || msgLower.contains("cang may kg") || msgLower.contains("cang bao nhieu kg")
+                || msgLower.contains("cang bao nhieu") || msgLower.contains("dan may kg")
+                || msgLower.contains("dan bao nhieu kg") || msgLower.contains("cang bao nhieu lbs")
+                || msgLower.contains("may lbs") || msgLower.contains("cang may lbs")
+                || msgLower.contains("cuoc bg65") || msgLower.contains("cuoc 66")
+                || msgLower.contains("cuoc nanogy") || msgLower.contains("cuoc exbolt")
+                || msgLower.contains("tiem co cang cuoc") || msgLower.contains("shop co dan vot")
+                || msgLower.contains("tiem co dan vot") || msgLower.contains("cang day")
+                || msgLower.contains("cang vot") || msgLower.contains("suc cang")
+                || msgLower.contains("cang bao nhieu la vua") || msgLower.contains("cang may ky")) {
+            return ChatIntent.STRINGING_CONSULTATION;
+        }
+
+        // 7. Spec Explanation (3U/4U, G5, điểm cân bằng, độ dẻo đũa)
+        if (msgLower.contains("3u 4u la gi") || msgLower.contains("3u la gi")
+                || msgLower.contains("4u la gi") || msgLower.contains("5u la gi")
+                || msgLower.contains("thong so u") || msgLower.contains("thong so g")
+                || msgLower.contains("g5 la gi") || msgLower.contains("g4 la gi")
+                || msgLower.contains("diem can bang la gi") || msgLower.contains("vot nang dau la gi")
+                || msgLower.contains("head heavy la gi") || msgLower.contains("head light la gi")
+                || msgLower.contains("do cung dua vot") || msgLower.contains("do deo than vot")
+                || msgLower.contains("do cung than vot") || msgLower.contains("y nghia 3u 4u")) {
+            return ChatIntent.SPEC_EXPLANATION;
+        }
+
+        // 8. Authenticity & Warranty / Shipping Guarantee
+        if (msgLower.contains("chinh hang khong") || msgLower.contains("co phai hang fake")
+                || msgLower.contains("hang fake") || msgLower.contains("hang auth")
+                || msgLower.contains("check code yonex") || msgLower.contains("check ma yonex")
+                || msgLower.contains("bao hanh bao lau") || msgLower.contains("chinh sach bao hanh")
+                || msgLower.contains("co ship cod") || msgLower.contains("ship cod khong")
+                || msgLower.contains("kiem tra hang truoc khi thanh toan") || msgLower.contains("dong kiem")
+                || msgLower.contains("xem hang truoc khi thanh toan")) {
+            return ChatIntent.AUTHENTICITY_WARRANTY;
+        }
+
+        // 9. Greetings & Casual Openers (including informal slang "LÔ", "alo", "helo", "ê shop", "shop ơi cho em hỏi"...)
+        if (msgLower.matches("^(xin chao|chao|chao ban|chao shop|chao ad|chao anh|chao em|hello|hi|hey|halo|helo|he lo|he nho|alo|alooo|lo|lo shop|lo ad|e shop|ad oi|shop oi|ban oi|2|2 shop|hu|hu shop)[!\\?\\s.]*$")
+                || msgLower.equals("lo") || msgLower.equals("alo") || msgLower.equals("e shop") || msgLower.equals("ê shop")
+                || msgLower.startsWith("lo ") || msgLower.startsWith("alo ") || msgLower.equals("hi shop") || msgLower.equals("hello shop")
+                || msgLower.startsWith("shop oi cho") || msgLower.startsWith("ad oi cho") || msgLower.startsWith("cho minh hoi")
+                || msgLower.startsWith("cho em hoi") || msgLower.startsWith("cho toi hoi") || msgLower.equals("co ai truc khong")
+                || msgLower.equals("co ai o do khong") || msgLower.equals("shop co do khong") || msgLower.equals("shop con lam viec khong")
+                || msgLower.equals("tu van giup em") || msgLower.equals("tu van giup minh") || msgLower.equals("can tu van")
+                || msgLower.equals("tu van em voi") || msgLower.equals("tu van cho em")) {
             return ChatIntent.GREETING;
         }
 
-        // 6. Store Information & Policies
+        // 10. Store Information & Policies
         if (msgLower.contains("hotline") || msgLower.contains("dia chi")
                 || msgLower.contains("so dien thoai") || msgLower.contains("email")
                 || msgLower.contains("gio mo cua") || msgLower.contains("hoat dong")
@@ -851,23 +1016,22 @@ public class ChatbotServiceImpl implements ChatbotService {
             return ChatIntent.STORE_INFORMATION;
         }
 
-        // 7. Product Consultation (Badminton plays, specs)
+        // 11. Product Consultation (Badminton plays, specs)
         if (msgLower.contains("tan cong") || msgLower.contains("phong thu")
                 || msgLower.contains("nang dau") || msgLower.contains("nhe dau")
                 || msgLower.contains("luc co tay") || msgLower.contains("nguoi moi choi")
                 || msgLower.contains("cong thu toan dien") || msgLower.contains("tro luc")
-                || msgLower.contains("cang bao nhieu") || msgLower.contains("suc cang")
                 || msgLower.contains("3u") || msgLower.contains("4u") || msgLower.contains("5u")) {
             return ChatIntent.BASIC_CONSULTATION;
         }
 
-        // 8. Product Detail Information
+        // 12. Product Detail Information
         if (msgLower.contains("chi tiet") || msgLower.contains("thong so")
                 || msgLower.contains("chat lieu") || msgLower.contains("cau tao")) {
             return ChatIntent.PRODUCT_INFORMATION;
         }
 
-        // 9. Product Search
+        // 13. Product Search
         if (msgLower.contains("tim") || msgLower.contains("mua")
                 || msgLower.contains("gia") || msgLower.contains("re")
                 || msgLower.contains("bao nhieu") || msgLower.contains("con hang")
@@ -909,10 +1073,15 @@ public class ChatbotServiceImpl implements ChatbotService {
                 - Giọng điệu: Thân thiện, chuyên nghiệp, súc tích (tối đa 3-4 câu).
                 
                 KIẾN THỨC TƯ VẤN CẦU LÔNG:
+                - Chào hỏi & Mở đầu: Khi khách chào (Lô, alo, hi, hello, shop ơi...), chào lại nồng nhiệt, giới thiệu vai trò trợ lý chuyên tư vấn cầu lông và hỏi nhu cầu của khách.
+                - Top sản phẩm bán chạy / Hot: Gợi ý các sản phẩm trong danh sách được cung cấp, nêu ưu điểm về độ bền, cảm giác đánh và tỉ lệ hiệu năng/giá.
                 - Lối chơi Tấn công (Smash): Phù hợp vợt nặng đầu (Head-heavy), đũa cứng/trung bình, 3U hoặc 4U đầm tay (ví dụ Astrox, Halbertec, Thruster).
                 - Lối chơi Tốc độ / Phản tạt / Phòng thủ: Phù hợp vợt nhẹ đầu/cân bằng, 4U/5U linh hoạt vung vợt (ví dụ Nanoflare, Bladex, DriveX).
                 - Công thủ toàn diện: Vợt cân bằng ~290-295mm, dễ thuần (ví dụ Arcsaber, Axforce).
-                - Người mới chơi / Nữ / Cổ tay yếu: Chọn vợt 4U/5U thân dẻo để trợ lực tốt, mức căng dây khuyến nghị 9 - 10.5 kg.
+                - Người mới chơi / Nữ / Cổ tay yếu: Chọn vợt 4U/5U thân dẻo để trợ lực tốt, mức căng dây khuyến nghị 9 - 10.2 kg.
+                - Mức căng cước khuyến nghị: Người mới 9-10.2kg (20-22.5 lbs); Phong trào 10.5-11.5kg (23-25 lbs); VĐV >11.5kg (26+ lbs).
+                - Thông số vợt: 3U (85-89g), 4U (80-84g), 5U (75-79g); Cán G5 vừa tay người Việt; Điểm cân bằng >295mm nặng đầu, 290-295mm cân bằng, <290mm nhẹ đầu.
+                - Cam kết: 100% hàng chính hãng tem cào Sunrise/Lining/Victor, đổi trả 7 ngày lỗi kỹ thuật, ship COD đồng kiểm.
                 """);
 
         systemPrompt.append("\nDanh sách sản phẩm từ hệ thống SmashVN:\n");
@@ -1042,6 +1211,20 @@ public class ChatbotServiceImpl implements ChatbotService {
         Collections.reverse(limited);
 
         return limited.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void resetConversation(Integer idTaiKhoan, String sessionId) {
+        List<ChatConversation> activeConversations = idTaiKhoan != null
+                ? chatConversationRepository.findAllByTaiKhoanIdAndTrangThai(idTaiKhoan, "ACTIVE")
+                : chatConversationRepository.findAllBySessionIdAndTrangThai(sessionId, "ACTIVE");
+
+        for (ChatConversation c : activeConversations) {
+            c.setTrangThai("CLOSED");
+            c.setNgayCapNhat(LocalDateTime.now());
+            chatbotDbHelper.saveConversation(c);
+        }
     }
 
     @Override
